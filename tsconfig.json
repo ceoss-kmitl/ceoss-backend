@@ -1,0 +1,42 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "strictPropertyInitialization": false,
+        "strict": true,
+        "noImplicitAny": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "outDir": "build",
+        "baseUrl": "src",
+        "paths": {
+            "@configs/*": [
+                "configs/*"
+            ],
+            "@models/*": [
+                "models/*"
+            ],
+            "@api/*": [
+                "api/*"
+            ],
+            "@middlewares/*": [
+                "middlewares/*"
+            ],
+            "@errors/*": [
+                "errors/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
