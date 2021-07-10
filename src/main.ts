@@ -5,7 +5,7 @@ import { Server } from '@configs/server'
 async function init() {
   await Database.connect()
   Server.setupDefaultMiddlewares()
-  //   Server.setupAPIs()
+  Server.setupAPIs()
   Server.start()
 }
 
