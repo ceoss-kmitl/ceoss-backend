@@ -13,7 +13,9 @@
 1. Install extension `ESLint`, `Prettier` 
 2. Edit own `.env` file
 3. Set up PostgreSQL using psql cli
-4. Run `yarn model:up`
+4. Run command `yarn`
+5. Run command `yarn model:up` (update local database to match migration)
+6. Run command `yarn dev`
 
 ### Example `.env` file
 ```
