@@ -2,10 +2,7 @@ import Express from 'express'
 import AccountService from '@api/services/account'
 import { asyncWrapper } from '@middlewares/asyncWrapper'
 import { validateRequest } from '@middlewares/validateRequest'
-import {
-  ICreateAccountRequest,
-  IEditAccountRequest,
-} from '@api/interfaces/account'
+import { ICreateAccountRequest, IEditAccountRequest } from '@api/types/account'
 
 const router = Express.Router()
 

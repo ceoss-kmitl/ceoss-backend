@@ -4,7 +4,7 @@ import { BadRequestError } from '@errors/badRequestError'
 import {
   ICreateAccountRequest,
   IEditAccountRequest,
-} from '@api/interfaces/account'
+} from '@api/types/account'
 
 const findAll = async () => {
   const accountList = await Account.find()
