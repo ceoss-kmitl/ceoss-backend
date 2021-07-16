@@ -1,7 +1,7 @@
 import { ConnectionOptions } from 'typeorm'
 import 'reflect-metadata'
 
-const connectionConfigs: ConnectionOptions = {
+export const connectionConfigs: ConnectionOptions = {
   type: 'postgres',
   logging: false,
   synchronize: false,
@@ -17,5 +17,3 @@ const connectionConfigs: ConnectionOptions = {
     migrationsDir: 'src/models/migrations',
   },
 }
-
-export = connectionConfigs
