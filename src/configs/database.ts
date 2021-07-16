@@ -1,7 +1,6 @@
 import { createConnection } from 'typeorm'
 import { Logger } from '@configs/logger'
-
-import connectionConfigs = require('@configs/ormconfig')
+import { connectionConfigs } from '@configs/ormconfig'
 
 async function connect() {
   try {
