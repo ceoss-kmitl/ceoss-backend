@@ -22,8 +22,8 @@
             "@models/*": [
                 "models/*"
             ],
-            "@api/*": [
-                "api/*"
+            "@controllers/*": [
+                "controllers/*"
             ],
             "@middlewares/*": [
                 "middlewares/*"

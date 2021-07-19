@@ -42,18 +42,10 @@ psql -U USER
 \dt           # see all table in current database
 ```
 
-## API structure
-
-```
-Router -> Services -> Model
-```
-
-### Coding
-1. Create router in `api/routes/`
-2. Create service in `api/services/`
-3. *(optional)* Create interface in `api/interfaces/`
+### Creating new API
+1. Create new controller in `controllers/`
+2. *(optional)* Create type in `controllers/types/`
 3. Implement logic
-5. When finish. Apply router in `middlewares/api.ts`
 
 ### Updating table
 1. Edit file in `models/`

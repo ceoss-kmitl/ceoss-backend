@@ -1,5 +1,4 @@
 import { ConnectionOptions } from 'typeorm'
-import 'reflect-metadata'
 
 export const connectionConfigs: ConnectionOptions = {
   type: 'postgres',
