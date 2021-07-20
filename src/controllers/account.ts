@@ -14,7 +14,7 @@ import {
 } from '@controllers/types/account'
 import { schema } from '@middlewares/schema'
 import { Account } from '@models/account'
-import { AccountNotFoundError } from '@errors/notFoundError'
+import { NotFoundError } from '@errors/notFoundError'
 import { BadRequestError } from '@errors/badRequestError'
 
 @JsonController()
@@ -28,7 +28,7 @@ export class AccountController {
   @Get('/account/:id')
   async findById(@Param('id') id: string) {
     const account = await Account.findOne(id)
-    if (!account) throw new AccountNotFoundError(id)
+    if (!account) throw new NotFoundError(`Account ${id} is not found`)
 
     return {
       id: account.id,
@@ -61,7 +61,7 @@ export class AccountController {
     if (isExist) throw new BadRequestError('This username has been used')
 
     const account = await Account.findOne(id)
-    if (!account) throw new AccountNotFoundError(id)
+    if (!account) throw new NotFoundError(id)
 
     account.username = username ?? account.username
     account.password = password ?? account.password
@@ -74,7 +74,7 @@ export class AccountController {
   @Delete('/account/:id')
   async delete(@Param('id') id: string) {
     const account = await Account.findOne(id)
-    if (!account) throw new AccountNotFoundError(id)
+    if (!account) throw new NotFoundError(`Account ${id} is not found`)
 
     await account.softRemove()
     return 'Account deleted'
