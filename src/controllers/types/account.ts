@@ -1,6 +1,6 @@
 import { IsBoolean, IsOptional, IsString } from 'class-validator'
 
-export class ICreateAccountRequest {
+export class ICreateAccount {
   @IsString()
   username: string
 
@@ -12,7 +12,7 @@ export class ICreateAccountRequest {
   isAdmin: boolean
 }
 
-export class IEditAccountRequest {
+export class IEditAccount {
   @IsString()
   @IsOptional()
   username: string
