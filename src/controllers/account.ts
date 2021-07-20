@@ -8,10 +8,7 @@ import {
   Put,
   UseBefore,
 } from 'routing-controllers'
-import {
-  ICreateAccountRequest,
-  IEditAccountRequest,
-} from '@controllers/types/account'
+import { ICreateAccount, IEditAccount } from '@controllers/types/account'
 import { schema } from '@middlewares/schema'
 import { Account } from '@models/account'
 import { AccountNotFoundError } from '@errors/notFoundError'
@@ -38,8 +35,8 @@ export class AccountController {
   }
 
   @Post('/account')
-  @UseBefore(schema(ICreateAccountRequest))
-  async create(@Body() body: ICreateAccountRequest) {
+  @UseBefore(schema(ICreateAccount))
+  async create(@Body() body: ICreateAccount) {
     const { username, password, isAdmin } = body
     const isExist = await Account.findOneByUsername(username)
     if (isExist) throw new BadRequestError('Account already exist')
@@ -54,8 +51,8 @@ export class AccountController {
   }
 
   @Put('/account/:id')
-  @UseBefore(schema(IEditAccountRequest))
-  async edit(@Param('id') id: string, @Body() body: IEditAccountRequest) {
+  @UseBefore(schema(IEditAccount))
+  async edit(@Param('id') id: string, @Body() body: IEditAccount) {
     const { username, password, isAdmin } = body
     const isExist = await Account.findOneByUsername(username)
     if (isExist) throw new BadRequestError('This username has been used')
