@@ -1,9 +1,9 @@
 import { Handler } from 'express'
 import { validateSync, ValidationError as Error } from 'class-validator'
 import { plainToClass, classToPlain } from 'class-transformer'
-import { ValidationError } from '@errors/validationError'
+import { SchemaError } from '@errors/schemaError'
 
-export const validateRequest =
+export const schema =
   (schema: any): Handler =>
   (req, res, next) => {
     const errors: Error[] = validateSync(plainToClass(schema, req.body))
@@ -25,7 +25,7 @@ export const validateRequest =
       })
 
       const message = resultArray.join(', ')
-      next(new ValidationError(message))
+      next(new SchemaError(message))
     }
     next()
   }
