@@ -31,6 +31,7 @@ export class Server {
       routePrefix: '/api',
       controllers: [controllerPath],
       defaultErrorHandler: false,
+      cors: true,
     })
   }
 
