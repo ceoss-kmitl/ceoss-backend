@@ -27,13 +27,13 @@ export class Subject extends BaseEntity {
   @Column()
   credit: number
 
-  @Column()
+  @Column({ name: 'lecture_hours' })
   lectureHours: number
 
-  @Column()
+  @Column({ name: 'lab_hours' })
   labHours: number
 
-  @Column()
+  @Column({ name: 'independent_hours' })
   independentHours: number
 
   @CreateDateColumn({ name: 'created_at' })

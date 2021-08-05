@@ -62,7 +62,7 @@ export class SubjectController {
     } = body
 
     const subject = await Subject.findOne(id)
-    if (!subject) throw new NotFoundError(id)
+    if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
 
     subject.code = code ?? subject.code
     subject.name = name ?? subject.name
