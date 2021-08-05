@@ -5,10 +5,12 @@ import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
+  Entity,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm'
 
+@Entity()
 export class Room extends BaseEntity {
   @PrimaryColumn()
   id: string
