@@ -11,18 +11,30 @@ import {
 import { nanoid } from 'nanoid'
 
 @Entity()
-export class Teacher extends BaseEntity {
+export class Subject extends BaseEntity {
   @PrimaryColumn()
   id: string
 
   @Column()
-  name: string
+  code: string
 
   @Column()
-  title: string
+  name: string
 
-  @Column({ name: 'is_executive' })
-  isExecutive: boolean
+  @Column({ name: 'is_required' })
+  isRequired: boolean
+
+  @Column()
+  credit: number
+
+  @Column()
+  lectureHours: number
+
+  @Column()
+  labHours: number
+
+  @Column()
+  independentHours: number
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
