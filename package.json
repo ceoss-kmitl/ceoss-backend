@@ -9,7 +9,8 @@
     "lint": "eslint src/**/*.ts --fix",
     "typeorm": "ts-node -r tsconfig-paths/register node_modules/typeorm/cli -f src/configs/ormconfig-migration.ts",
     "model:gen": "npm run typeorm -- migration:generate -n",
-    "model:up": "npm run typeorm -- migration:run"
+    "model:up": "npm run typeorm -- migration:run",
+    "model:revert": "npm run typeorm -- migration:revert"
   },
   "repository": {
     "type": "git",
