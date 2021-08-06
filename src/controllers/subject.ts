@@ -18,8 +18,8 @@ import { NotFoundError } from '@errors/notFoundError'
 export class SubjectController {
   @Get('/subject')
   async getSubject() {
-    const SubjectList = await Subject.find()
-    return SubjectList
+    const subjectList = await Subject.find()
+    return subjectList
   }
 
   @Post('/subject')
