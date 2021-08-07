@@ -4,8 +4,8 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 const rootDir = isProduction ? 'build' : 'src'
 
-const elephantSQLConfigs = {
-  url: process.env.ELEPHANTSQL_URL,
+const productionConfigs = {
+  url: process.env.DATABASE_URL,
 }
 
 const localConfigs = {
@@ -31,7 +31,7 @@ const defaultConfigs: ConnectionOptions = {
 export const connectionConfigs: ConnectionOptions = isProduction
   ? {
       ...defaultConfigs,
-      ...elephantSQLConfigs,
+      ...productionConfigs,
     }
   : {
       ...defaultConfigs,
