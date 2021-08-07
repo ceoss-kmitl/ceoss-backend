@@ -26,7 +26,7 @@ export class Server {
   }
 
   private setupRouting() {
-    const controllerPath = Path.join(__dirname, '../controllers/*.ts')
+    const controllerPath = Path.join(__dirname, '../controllers/*.{ts,js}')
     useExpressServer(this.app, {
       routePrefix: '/api',
       controllers: [controllerPath],
