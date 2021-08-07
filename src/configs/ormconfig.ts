@@ -26,7 +26,6 @@ const defaultConfigs: ConnectionOptions = {
     entitiesDir: rootDir + '/models',
     migrationsDir: rootDir + '/models/migrations',
   },
-  ssl: true,
 }
 
 export const connectionConfigs: ConnectionOptions = isProduction
