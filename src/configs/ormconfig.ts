@@ -1,8 +1,8 @@
 import { ConnectionOptions } from 'typeorm'
 
-const isProduction = process.env.NODE_ENV === 'production'
+const isDevelopment = process.env.NODE_ENV === 'development'
 
-const rootDir = isProduction ? 'build' : 'src'
+const rootDir = isDevelopment ? 'src' : 'build'
 
 const productionConfigs = {
   url: process.env.DATABASE_URL,
@@ -28,12 +28,12 @@ const defaultConfigs: ConnectionOptions = {
   },
 }
 
-export const connectionConfigs: ConnectionOptions = isProduction
+export const connectionConfigs: ConnectionOptions = isDevelopment
   ? {
       ...defaultConfigs,
-      ...productionConfigs,
+      ...localConfigs,
     }
   : {
       ...defaultConfigs,
-      ...localConfigs,
+      ...productionConfigs,
     }
