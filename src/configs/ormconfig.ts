@@ -2,6 +2,8 @@ import { ConnectionOptions } from 'typeorm'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
+const rootDir = isProduction ? 'build' : 'src'
+
 const elephantSQLConfigs = {
   url: process.env.ELEPHANTSQL_URL,
 }
@@ -18,11 +20,11 @@ const defaultConfigs: ConnectionOptions = {
   type: 'postgres',
   logging: false,
   synchronize: false,
-  entities: ['src/models/*{.ts,.js}'],
-  migrations: ['src/models/migrations/*{.ts,.js}'],
+  entities: [rootDir + '/models/*{.ts,.js}'],
+  migrations: [rootDir + '/models/migrations/*{.ts,.js}'],
   cli: {
-    entitiesDir: 'src/models',
-    migrationsDir: 'src/models/migrations',
+    entitiesDir: rootDir + '/models',
+    migrationsDir: rootDir + '/models/migrations',
   },
 }
 
