@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "target": "es5",
+        "target": "es2017",
         "module": "commonjs",
         "esModuleInterop": true,
-        "declaration": true,
+        "declaration": false,
         "removeComments": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
@@ -22,14 +22,17 @@
             "@models/*": [
                 "models/*"
             ],
-            "@api/*": [
-                "api/*"
+            "@controllers/*": [
+                "controllers/*"
             ],
             "@middlewares/*": [
                 "middlewares/*"
             ],
             "@errors/*": [
                 "errors/*"
+            ],
+            "@libs/*": [
+                "libs/*"
             ]
         }
     },

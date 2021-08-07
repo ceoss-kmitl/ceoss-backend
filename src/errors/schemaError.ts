@@ -1,10 +1,10 @@
 import { BaseError } from '@errors/baseError'
 
-export class ValidationError extends BaseError {
+export class SchemaError extends BaseError {
   constructor(message: string) {
     super({
       statusCode: 400,
-      name: 'ValidationError',
+      name: 'SchemaError',
       message,
     })
   }

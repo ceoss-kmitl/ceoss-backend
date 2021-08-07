@@ -8,19 +8,13 @@ export const ErrorHandler =
     if (!error.statusCode) {
       const err = new InternalServerError(error)
       return res.status(err.statusCode).send({
-        data: null,
-        error: {
-          name: err.name,
-          message: err.message,
-        },
+        name: err.name,
+        message: err.message,
       })
     }
 
     res.status(error.statusCode).send({
-      data: null,
-      error: {
-        name: error.name,
-        message: error.message,
-      },
+      name: error.name,
+      message: error.message,
     })
   }
