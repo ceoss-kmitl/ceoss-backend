@@ -5,7 +5,6 @@
   "main": "src/main.ts",
   "scripts": {
     "start": "yarn model:up && node build/main.js",
-    "postinstall": "yarn build",
     "build": "rm -rf build && tsc --project tsconfig.json && tscpaths -p tsconfig.json -s src -o build",
     "dev": "nodemon",
     "test": "echo 'Error: no test specified' && exit 1",
