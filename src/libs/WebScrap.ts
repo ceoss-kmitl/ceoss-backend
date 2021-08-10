@@ -21,7 +21,7 @@ export class WebScrap {
   async extractData() {
     const $ = this.$
     const tableList = $('table.hoverTable')
-    const result = tableList.toArray().map((table, index) => {
+    const result: IWebScrapData[] = tableList.toArray().map((table, index) => {
       const subjectList: any[] = []
       let subject = {} as any
 
@@ -139,4 +139,29 @@ export class WebScrap {
     })
     return teacherList
   }
+}
+
+interface IWebScrapData {
+  year: number
+  subjectList: {
+    subjectCode: string
+    subjectName: string
+    credit: number
+    lectureHours: number
+    labHours: number
+    independentHours: number
+    sectionList: {
+      section: number
+      room: string
+      teacherList: {
+        title: string
+        name: string
+      }[]
+      time: string
+      dayOfWeek: DayOfWeek
+      startTimeSlot: number
+      endTimeSlot: number
+      subjectType: WorkloadType
+    }[]
+  }[]
 }

@@ -1,5 +1,8 @@
 import { Get, JsonController } from 'routing-controllers'
 import { WebScrap } from '@libs/WebScrap'
+import { Workload } from '@models/workload'
+import { Subject } from '@models/subject'
+import { Teacher } from '@models/teacher'
 
 @JsonController()
 export class WebScrapController {
@@ -10,6 +13,32 @@ export class WebScrapController {
     const webScrap = new WebScrap(URL)
     await webScrap.init()
     const data = await webScrap.extractData()
+
+    data.forEach((_year) => {
+      _year.subjectList.forEach((_subject) => {
+        _subject.sectionList.forEach(async (_section) => {
+          const subject = await Subject.findByCode(_subject.subjectCode)
+
+          const workload = new Workload()
+          workload.subject = subject as Subject
+          workload.section = _section.section
+          workload.type = _section.subjectType
+          workload.dayOfWeek = _section.dayOfWeek
+          workload.startTimeSlot = _section.startTimeSlot
+          workload.endTimeSlot = _section.endTimeSlot
+          workload.isCompensated = false
+          await workload.save()
+          console.log({ ...workload })
+
+          _section.teacherList.forEach(async (_teacher) => {
+            const teacher = await Teacher.findByName(_teacher.name)
+
+            teacher?.workloadList.push(workload)
+            await teacher?.save()
+          })
+        })
+      })
+    })
 
     return data
   }

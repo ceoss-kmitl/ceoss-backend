@@ -54,4 +54,8 @@ export class Subject extends BaseEntity {
   private beforeInsert() {
     this.id = nanoid(10)
   }
+
+  static findByCode(code: string) {
+    return this.findOne({ where: { code } })
+  }
 }

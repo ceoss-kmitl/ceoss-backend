@@ -44,4 +44,8 @@ export class Teacher extends BaseEntity {
   private beforeInsert() {
     this.id = nanoid(10)
   }
+
+  static findByName(name: string) {
+    return this.findOne({ where: { name } })
+  }
 }
