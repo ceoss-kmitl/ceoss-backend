@@ -84,7 +84,7 @@ export class TeacherController {
 
     const { workloadList } = teacher
     workloadList.forEach((workload) => {
-      const thatDay = teacherWorkload[workload.dayOfWeek]
+      const thatDay = teacherWorkload[workload.dayOfWeek - 1]
       const { subject } = workload
 
       thatDay.subjectList.push({
