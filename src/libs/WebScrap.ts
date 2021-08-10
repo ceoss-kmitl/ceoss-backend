@@ -1,6 +1,7 @@
 import Fetch from 'node-fetch'
 import Iconv from 'iconv-lite'
 import Cheerio, { CheerioAPI } from 'cheerio'
+import { DayOfWeek, WorkloadType } from '@models/workload'
 
 export class WebScrap {
   private url: string
@@ -30,27 +31,28 @@ export class WebScrap {
         .toArray()
         .forEach((row) => {
           const columnList = $(row).find('td').toArray()
-          const subjectId = $(columnList[0]).text().trim()
+          const subjectCode = $(columnList[0]).text().trim()
 
           // Found new subject. Push prev subject to subjectList
           // then reset the subject to the new one
-          if (subjectId !== '' && subject.subjectId !== subjectId) {
-            if (subject.subjectId) subjectList.push(subject)
+          if (subjectCode !== '' && subject.subjectCode !== subjectCode) {
+            if (subject.subjectCode) subjectList.push(subject)
 
             subject = {
-              subjectId,
+              subjectCode,
               subjectName: $(columnList[2]).text().trim(),
-              credit: $(columnList[4]).text().trim(),
+              ...this.extractCredit($(columnList[4]).text().trim()),
               sectionList: [],
             }
           }
 
           // Add section into subject
           subject.sectionList.push({
-            section: $(columnList[6]).text().trim(),
-            time: $(columnList[10]).text().trim(),
+            section: Number($(columnList[6]).text().trim()),
             room: $(columnList[12]).text().trim(),
             teacher: $(columnList[16]).text().trim(),
+            time: $(columnList[10]).text().trim(),
+            ...this.extractTimeAndType($(columnList[10]).text().trim()),
           })
         })
 
@@ -61,5 +63,68 @@ export class WebScrap {
     })
 
     return result
+  }
+
+  // Utilities function
+  private extractCredit(creditStr: string) {
+    const [credit, lectureHours, labHours, independentHours] = creditStr
+      .replace(/[\(\)]/g, '-')
+      .split('-')
+      .map((each) => Number(each))
+
+    return {
+      credit,
+      lectureHours,
+      labHours,
+      independentHours,
+    }
+  }
+
+  private extractTimeAndType(timeStr: string) {
+    const [day] = timeStr.match(/[^\s]+\./) ?? [null]
+    const [type] = timeStr.match(/\(.{1}\)/) ?? [null]
+    const time = timeStr.match(/\d{2}:\d{2}/g) ?? [null, null]
+    const startTime = time[0]
+    const endTime = time[3] ?? time[1]
+
+    return {
+      dayOfWeek: this.mapDayToDayOfWeek(day),
+      startTimeSlot: this.mapTimeToTimeSlot(startTime),
+      endTimeSlot: this.mapTimeToTimeSlot(endTime) - 1,
+      subjectType: this.mapTypeToWorkloadType(type),
+    }
+  }
+
+  private mapDayToDayOfWeek(day: string | null) {
+    if (!day) return -1
+    const Day = {
+      จ: DayOfWeek.Monday,
+      อ: DayOfWeek.Tuesday,
+      พ: DayOfWeek.Wednesday,
+      พฤ: DayOfWeek.Thursday,
+      ศ: DayOfWeek.Friday,
+      ส: DayOfWeek.Saturday,
+      อา: DayOfWeek.Sunday,
+    } as any
+    return Day[day.replace('.', '')]
+  }
+
+  private mapTimeToTimeSlot(time: string | null) {
+    if (!time) return -1
+    const [hr, min] = time.split(':').map((each) => Number(each))
+    const START_HOURS = 8
+    const totalMinute = (hr - START_HOURS) * 60 + min
+    const slot = Math.floor(totalMinute / 15) + 1
+    return slot
+  }
+
+  private mapTypeToWorkloadType(type: string | null) {
+    if (!type) return ''
+    const typeStr = type.replace(/[\(\)]/g, '')
+    const Workload = {
+      ท: WorkloadType.Lecture,
+      ป: WorkloadType.Lab,
+    } as any
+    return Workload[typeStr]
   }
 }
