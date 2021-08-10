@@ -6,9 +6,11 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm'
+import { Workload } from '@models/workload'
 
 @Entity()
 export class Room extends BaseEntity {
@@ -20,6 +22,9 @@ export class Room extends BaseEntity {
 
   @Column()
   capacity: number
+
+  @OneToMany(() => Workload, (workload) => workload.room)
+  workloadList: Workload[]
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
