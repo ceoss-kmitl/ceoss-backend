@@ -50,7 +50,9 @@ export class WebScrap {
           subject.sectionList.push({
             section: Number($(columnList[6]).text().trim()),
             room: $(columnList[12]).text().trim(),
-            teacher: $(columnList[16]).text().trim(),
+            teacherList: this.extractTeacherInfo(
+              $(columnList[16]).text().trim()
+            ),
             time: $(columnList[10]).text().trim(),
             ...this.extractTimeAndType($(columnList[10]).text().trim()),
           })
@@ -126,5 +128,15 @@ export class WebScrap {
       ป: WorkloadType.Lab,
     } as any
     return Workload[typeStr]
+  }
+
+  private extractTeacherInfo(teacherStr: string) {
+    const teacherList = teacherStr.split(', ').map((teacher) => {
+      const [title] = teacher.match(/[^\s]+\./) ?? ['']
+      const [name] = teacher.match(/[^.,]+\s+[^.,]+/) ?? ['']
+      const fullName = name.split(/\s+/).join(' ')
+      return { title, name: fullName }
+    })
+    return teacherList
   }
 }
