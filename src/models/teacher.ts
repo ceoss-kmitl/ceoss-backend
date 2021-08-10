@@ -5,10 +5,13 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
+import { Workload } from '@models/workload'
 
 @Entity()
 export class Teacher extends BaseEntity {
@@ -23,6 +26,10 @@ export class Teacher extends BaseEntity {
 
   @Column({ name: 'is_executive' })
   isExecutive: boolean
+
+  @ManyToMany(() => Workload)
+  @JoinTable({ name: 'teacher_workload' })
+  workloadList: Workload[]
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date

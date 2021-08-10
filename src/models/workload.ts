@@ -5,8 +5,6 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
   PrimaryColumn,
   UpdateDateColumn,
@@ -14,7 +12,6 @@ import {
 import { nanoid } from 'nanoid'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
-import { Teacher } from '@models/teacher'
 
 export enum WorkloadType {
   Lecture = 'LECTURE',
@@ -61,10 +58,6 @@ export class Workload extends BaseEntity {
 
   @ManyToOne(() => Room, (room) => room.workloadList)
   room: Room
-
-  @ManyToMany(() => Teacher)
-  @JoinTable({ name: 'workload_teacher' })
-  teacherList: Teacher[]
 
   @Column({ name: 'is_compensated' })
   isCompensated: boolean
