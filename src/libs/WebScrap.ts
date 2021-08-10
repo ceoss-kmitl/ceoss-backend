@@ -87,7 +87,7 @@ export class WebScrap {
     const [type] = timeStr.match(/\(.{1}\)/) ?? [null]
     const time = timeStr.match(/\d{2}:\d{2}/g) ?? [null, null]
     const startTime = time[0]
-    const endTime = time[3] ?? time[1]
+    const endTime = time[time.length - 1]
 
     return {
       dayOfWeek: this.mapDayToDayOfWeek(day),
