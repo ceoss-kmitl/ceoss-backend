@@ -14,6 +14,11 @@ export class WebScrapController {
     await webScrap.init()
     const data = await webScrap.extractData()
 
+    const oldWorkloadList = await Workload.find()
+    for (let i = 0; i < oldWorkloadList.length; i++) {
+      await oldWorkloadList[i].softRemove()
+    }
+
     for (let i = 0; i < data.length; i++) {
       const _year = data[i]
 
