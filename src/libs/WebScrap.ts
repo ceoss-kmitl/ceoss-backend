@@ -98,7 +98,7 @@ export class WebScrap {
   }
 
   private mapDayToDayOfWeek(day: string | null) {
-    if (!day) return -1
+    if (!day) return DayOfWeek.Monday
     const Day = {
       จ: DayOfWeek.Monday,
       อ: DayOfWeek.Tuesday,
@@ -121,7 +121,7 @@ export class WebScrap {
   }
 
   private mapTypeToWorkloadType(type: string | null) {
-    if (!type) return ''
+    if (!type) return WorkloadType.Lecture
     const typeStr = type.replace(/[\(\)]/g, '')
     const Workload = {
       ท: WorkloadType.Lecture,

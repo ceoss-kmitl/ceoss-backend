@@ -14,32 +14,57 @@ export class WebScrapController {
     await webScrap.init()
     const data = await webScrap.extractData()
 
-    data.forEach((_year) => {
-      _year.subjectList.forEach((_subject) => {
-        _subject.sectionList.forEach(async (_section) => {
-          const subject = await Subject.findByCode(_subject.subjectCode)
+    for (let i = 0; i < data.length; i++) {
+      const _year = data[i]
+
+      for (let j = 0; j < _year.subjectList.length; j++) {
+        const _subject = _year.subjectList[j]
+
+        for (let k = 0; k < _subject.sectionList.length; k++) {
+          const _section = _subject.sectionList[k]
+
+          let subject = await Subject.findByCode(_subject.subjectCode)
+          if (!subject) {
+            subject = new Subject()
+            subject.code = _subject.subjectCode
+            subject.name = _subject.subjectName
+            subject.credit = _subject.credit
+            subject.lectureHours = _subject.lectureHours
+            subject.labHours = _subject.labHours
+            subject.independentHours = _subject.independentHours
+            subject.isRequired = true
+          }
 
           const workload = new Workload()
-          workload.subject = subject as Subject
+          workload.subject = subject
           workload.section = _section.section
           workload.type = _section.subjectType
           workload.dayOfWeek = _section.dayOfWeek
           workload.startTimeSlot = _section.startTimeSlot
           workload.endTimeSlot = _section.endTimeSlot
           workload.isCompensated = false
-          await workload.save()
-          console.log({ ...workload })
 
-          _section.teacherList.forEach(async (_teacher) => {
-            const teacher = await Teacher.findByName(_teacher.name)
+          for (let l = 0; l < _section.teacherList.length; l++) {
+            const _teacher = _section.teacherList[l]
 
-            teacher?.workloadList.push(workload)
-            await teacher?.save()
-          })
-        })
-      })
-    })
+            let teacher = await Teacher.findByName(_teacher.name, {
+              relations: ['workloadList'],
+            })
+            if (!teacher) {
+              teacher = new Teacher()
+              teacher.title = _teacher.title
+              teacher.name = _teacher.name
+              teacher.isExecutive = false
+              teacher.workloadList = []
+            }
 
-    return data
+            teacher.workloadList.push(workload)
+            await teacher.save()
+          }
+        }
+      }
+    }
+
+    return 'OK'
   }
 }

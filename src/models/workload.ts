@@ -33,7 +33,9 @@ export class Workload extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @ManyToOne(() => Subject, (subject) => subject.workloadList)
+  @ManyToOne(() => Subject, (subject) => subject.workloadList, {
+    cascade: true,
+  })
   subject: Subject
 
   @Column()

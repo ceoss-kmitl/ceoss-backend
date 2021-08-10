@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  FindOneOptions,
   JoinTable,
   ManyToMany,
   PrimaryColumn,
@@ -27,7 +28,7 @@ export class Teacher extends BaseEntity {
   @Column({ name: 'is_executive' })
   isExecutive: boolean
 
-  @ManyToMany(() => Workload)
+  @ManyToMany(() => Workload, { cascade: true })
   @JoinTable({ name: 'teacher_workload' })
   workloadList: Workload[]
 
@@ -45,7 +46,7 @@ export class Teacher extends BaseEntity {
     this.id = nanoid(10)
   }
 
-  static findByName(name: string) {
-    return this.findOne({ where: { name } })
+  static findByName(name: string, options: FindOneOptions<Teacher> = {}) {
+    return this.findOne({ where: { name }, ...options })
   }
 }
