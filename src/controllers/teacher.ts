@@ -18,8 +18,15 @@ import { NotFoundError } from '@errors/notFoundError'
 export class TeacherController {
   @Get('/teacher')
   async getTeacher() {
-    const TeacherList = await Teacher.find()
-    return TeacherList
+    const teacherList = await Teacher.find()
+
+    return teacherList.map((teacher) => {
+      const modifyTeacher = { ...teacher } as Partial<Teacher>
+      delete modifyTeacher.createdAt
+      delete modifyTeacher.updatedAt
+      delete modifyTeacher.deletedAt
+      return modifyTeacher
+    })
   }
 
   @Post('/teacher')
