@@ -20,6 +20,20 @@ export class Excel {
   }
 
   /**
+   * Convert pixel into excel unit (Column)
+   */
+  static pxCol(pixel: number) {
+    return pixel * (1 / 6)
+  }
+
+  /**
+   * Convert pixel into excel unit (Row)
+   */
+  static pxRow(pixel: number) {
+    return pixel * (17 / 22)
+  }
+
+  /**
    * Send `.xlsx` file via `Express.js`
    */
   public async sendFile(fileName: string) {

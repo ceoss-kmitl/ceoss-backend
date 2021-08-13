@@ -6,7 +6,13 @@ import { Response } from 'express'
 export class WorkloadController {
   @Get('/workload-demo')
   async demo(@Res() res: Response) {
-    const excel = new Excel(res, { pageSetup: { paperSize: PaperSize.A4 } })
+    const excel = new Excel(res, {
+      pageSetup: { paperSize: PaperSize.A4 },
+      properties: {
+        defaultColWidth: Excel.pxCol(16),
+        defaultRowHeight: Excel.pxRow(17),
+      },
+    })
 
     excel.cell('A1').value('Hello').italic()
     excel.cell('B3').value('World').border('bottom', 'left')
