@@ -12,8 +12,8 @@ import {
 import {
   ICreateTeacher,
   IEditTeacher,
-  ITeacherWorkload,
   ITeacherWorkloadQuery,
+  ITeacherWorkloadResult,
 } from '@controllers/types/teacher'
 
 import { DayOfWeek } from '@models/workload'
@@ -84,18 +84,17 @@ export class TeacherController {
         workload.academicYear === query.academic_year &&
         workload.semester === query.semester
     )
-    const teacherWorkload: ITeacherWorkload[] = []
+    const result: ITeacherWorkloadResult[] = []
 
     for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
-      teacherWorkload.push({
+      result.push({
         dayInWeek: day,
         subjectList: [],
       })
     }
 
-    const { workloadList } = teacher
-    workloadList.forEach((workload) => {
-      const thatDay = teacherWorkload[workload.dayOfWeek - 1]
+    teacher.workloadList.forEach((workload) => {
+      const thatDay = result[workload.dayOfWeek - 1]
       const { subject } = workload
 
       thatDay.subjectList.push({
@@ -110,6 +109,6 @@ export class TeacherController {
       })
     })
 
-    return teacherWorkload
+    return result
   }
 }

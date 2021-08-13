@@ -37,7 +37,7 @@ export class ITeacherWorkloadQuery {
   semester: number
 }
 
-export interface ITeacherWorkload {
+export interface ITeacherWorkloadResult {
   dayInWeek: DayOfWeek
   subjectList: {
     id: string
