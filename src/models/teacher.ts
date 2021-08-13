@@ -28,7 +28,11 @@ export class Teacher extends BaseEntity {
   isExecutive: boolean
 
   @ManyToMany(() => Workload)
-  @JoinTable({ name: 'teacher_workload' })
+  @JoinTable({
+    name: 'teacher_workload',
+    joinColumn: { name: 'teacher_id' },
+    inverseJoinColumn: { name: 'workload_id' },
+  })
   workloadList: Workload[]
 
   @CreateDateColumn({ name: 'created_at' })
