@@ -3,6 +3,7 @@ import {
   BeforeInsert,
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm'
@@ -31,6 +32,7 @@ export class Workload extends BaseEntity {
   id: string
 
   @ManyToOne(() => Subject, (subject) => subject.workloadList)
+  @JoinColumn({ name: 'subject_id' })
   subject: Subject
 
   @Column()
@@ -54,6 +56,7 @@ export class Workload extends BaseEntity {
   endTimeSlot: number
 
   @ManyToOne(() => Room, (room) => room.workloadList)
+  @JoinColumn({ name: 'room_id' })
   room: Room
 
   @Column({ name: 'is_compensated' })
