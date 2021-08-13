@@ -26,7 +26,7 @@ export class WorkloadController {
     const workload = await Workload.findOne(id)
     if (!workload) throw new NotFoundError(`Workload ${id} is not found`)
 
-    await workload.softRemove()
+    await workload.remove()
     return 'Workload discarded'
   }
 }

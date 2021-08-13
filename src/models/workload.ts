@@ -2,12 +2,10 @@ import {
   BaseEntity,
   BeforeInsert,
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
 import { Subject } from '@models/subject'
@@ -36,6 +34,7 @@ export class Workload extends BaseEntity {
   @ManyToOne(() => Subject, (subject) => subject.workloadList, {
     cascade: true,
   })
+  @JoinColumn({ name: 'subject_id' })
   subject: Subject
 
   @Column()
@@ -59,19 +58,17 @@ export class Workload extends BaseEntity {
   endTimeSlot: number
 
   @ManyToOne(() => Room, (room) => room.workloadList)
+  @JoinColumn({ name: 'room_id' })
   room: Room
 
   @Column({ name: 'is_compensated' })
   isCompensated: boolean
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
+  @Column({ name: 'academic_year' })
+  academicYear: number
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
+  @Column()
+  semester: number
 
   @BeforeInsert()
   private beforeInsert() {
