@@ -2,12 +2,9 @@ import {
   BaseEntity,
   BeforeInsert,
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
   ManyToOne,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
 import { Subject } from '@models/subject'
