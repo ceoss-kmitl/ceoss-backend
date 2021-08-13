@@ -59,7 +59,7 @@ export class WebScrap {
         })
 
       return {
-        year: index + 1,
+        classYear: index + 1,
         subjectList,
       }
     })
@@ -142,7 +142,7 @@ export class WebScrap {
 }
 
 interface IWebScrapData {
-  year: number
+  classYear: number
   subjectList: {
     subjectCode: string
     subjectName: string
