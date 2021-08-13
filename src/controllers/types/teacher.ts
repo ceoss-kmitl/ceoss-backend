@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator'
+import { Type } from 'class-transformer'
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator'
 import { DayOfWeek, WorkloadType } from '@models/workload'
 
 export class ICreateTeacher {
@@ -24,6 +25,16 @@ export class IEditTeacher {
   @IsBoolean()
   @IsOptional()
   isExecutive: boolean
+}
+
+export class ITeacherWorkloadQuery {
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
 }
 
 export interface ITeacherWorkload {

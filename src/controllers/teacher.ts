@@ -6,12 +6,14 @@ import {
   Param,
   Post,
   Put,
+  QueryParams,
   UseBefore,
 } from 'routing-controllers'
 import {
   ICreateTeacher,
   IEditTeacher,
   ITeacherWorkload,
+  ITeacherWorkloadQuery,
 } from '@controllers/types/teacher'
 
 import { DayOfWeek } from '@models/workload'
@@ -67,12 +69,21 @@ export class TeacherController {
   }
 
   @Get('/teacher/:id/workload')
-  async getWorkloadByTeacherId(@Param('id') id: string) {
+  @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
+  async getWorkloadByTeacherId(
+    @Param('id') id: string,
+    @QueryParams() query: ITeacherWorkloadQuery
+  ) {
     const teacher = await Teacher.findOne(id, {
       relations: ['workloadList', 'workloadList.subject'],
     })
     if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
 
+    teacher.workloadList = teacher.workloadList.filter(
+      (workload) =>
+        workload.academicYear === query.academic_year &&
+        workload.semester === query.semester
+    )
     const teacherWorkload: ITeacherWorkload[] = []
 
     for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
