@@ -62,14 +62,11 @@ export class Workload extends BaseEntity {
   @Column({ name: 'is_compensated' })
   isCompensated: boolean
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
+  @Column({ name: 'academic_year' })
+  academicYear: number
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
+  @Column()
+  semester: number
 
   @BeforeInsert()
   private beforeInsert() {
