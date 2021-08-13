@@ -121,7 +121,18 @@ export class WebScrapController {
             subject.isRequired = true
           }
 
-          const workload = new Workload()
+          const workload =
+            (await Workload.findOne({
+              relations: ['subject'],
+              where: {
+                academicYear,
+                semester,
+                subject: { id: subject.id },
+                section: _section.section,
+                dayOfWeek: _section.dayOfWeek,
+                startTimeSlot: _section.startTimeSlot,
+              },
+            })) || new Workload()
           workload.subject = subject
           workload.section = _section.section
           workload.type = _section.subjectType
