@@ -19,7 +19,14 @@ export class RoomController {
   @Get('/room')
   async getRoom() {
     const roomList = await Room.find()
-    return roomList
+
+    return roomList.map((room) => {
+      const modifyRoom = { ...room } as Partial<Room>
+      delete modifyRoom.createdAt
+      delete modifyRoom.updatedAt
+      delete modifyRoom.deletedAt
+      return modifyRoom
+    })
   }
 
   @Post('/room')
