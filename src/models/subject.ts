@@ -2,12 +2,9 @@ import {
   BaseEntity,
   BeforeInsert,
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
   OneToMany,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
 import { Workload } from '@models/workload'
@@ -40,15 +37,6 @@ export class Subject extends BaseEntity {
 
   @OneToMany(() => Workload, (workload) => workload.subject)
   workloadList: Workload[]
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
 
   @BeforeInsert()
   private beforeInsert() {
