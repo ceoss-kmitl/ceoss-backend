@@ -131,11 +131,17 @@ export class WebScrap {
   }
 
   private extractTeacherInfo(teacherStr: string) {
+    const Title = {
+      'อ.': 'อาจารย์',
+      'รศ.': 'รองศาสตราจารย์',
+      'ศ.': 'ศาสตราจารย์',
+      'ผศ.': 'ผู้ช่วยศาสตราจารย์',
+    } as any
     const teacherList = teacherStr.split(', ').map((teacher) => {
       const [title] = teacher.match(/[^\s]+\./) ?? ['']
       const [name] = teacher.match(/[^.,]+\s+[^.,]+/) ?? ['']
       const fullName = name.split(/\s+/).join(' ')
-      return { title, name: fullName }
+      return { title: Title[title], name: fullName }
     })
     return teacherList
   }
