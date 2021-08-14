@@ -4,9 +4,9 @@ import { plainToClass, classToPlain } from 'class-transformer'
 import { SchemaError } from '@errors/schemaError'
 
 export const schema =
-  (schema: any): Handler =>
+  (schema: any, type: 'body' | 'query' = 'body'): Handler =>
   (req, res, next) => {
-    const errors: Error[] = validateSync(plainToClass(schema, req.body), {
+    const errors: Error[] = validateSync(plainToClass(schema, req[type]), {
       whitelist: true,
       forbidNonWhitelisted: true,
     })

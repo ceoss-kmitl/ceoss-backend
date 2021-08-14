@@ -6,15 +6,16 @@ import {
   Param,
   Post,
   Put,
+  QueryParams,
   UseBefore,
 } from 'routing-controllers'
 import {
   ICreateTeacher,
   IEditTeacher,
-  ITeacherWorkload,
+  ITeacherWorkloadQuery,
 } from '@controllers/types/teacher'
 
-import { DayOfWeek } from '@models/workload'
+import { DayOfWeek, WorkloadType } from '@models/workload'
 import { Teacher } from '@models/teacher'
 import { schema } from '@middlewares/schema'
 import { NotFoundError } from '@errors/notFoundError'
@@ -74,24 +75,45 @@ export class TeacherController {
   }
 
   @Get('/teacher/:id/workload')
-  async getWorkloadByTeacherId(@Param('id') id: string) {
+  @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
+  async getWorkloadByTeacherId(
+    @Param('id') id: string,
+    @QueryParams() query: ITeacherWorkloadQuery
+  ) {
     const teacher = await Teacher.findOne(id, {
       relations: ['workloadList', 'workloadList.subject'],
     })
     if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
 
-    const teacherWorkload: ITeacherWorkload[] = []
+    teacher.workloadList = teacher.workloadList.filter(
+      (workload) =>
+        workload.academicYear === query.academic_year &&
+        workload.semester === query.semester
+    )
+
+    const result = [] as {
+      dayInWeek: DayOfWeek
+      subjectList: {
+        id: string
+        workloadId: string
+        code: string
+        name: string
+        section: number
+        startSlot: number
+        endSlot: number
+        type: WorkloadType
+      }[]
+    }[]
 
     for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
-      teacherWorkload.push({
+      result.push({
         dayInWeek: day,
         subjectList: [],
       })
     }
 
-    const { workloadList } = teacher
-    workloadList.forEach((workload) => {
-      const thatDay = teacherWorkload[workload.dayOfWeek - 1]
+    teacher.workloadList.forEach((workload) => {
+      const thatDay = result[workload.dayOfWeek - 1]
       const { subject } = workload
 
       thatDay.subjectList.push({
@@ -106,6 +128,6 @@ export class TeacherController {
       })
     })
 
-    return teacherWorkload
+    return result
   }
 }
