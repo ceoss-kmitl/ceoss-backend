@@ -8,10 +8,15 @@ import {
   Put,
   UseBefore,
 } from 'routing-controllers'
+import {
+  ICreateTeacher,
+  IEditTeacher,
+  ITeacherWorkload,
+} from '@controllers/types/teacher'
 
+import { DayOfWeek } from '@models/workload'
 import { Teacher } from '@models/teacher'
 import { schema } from '@middlewares/schema'
-import { ICreateTeacher, IEditTeacher } from '@controllers/types/teacher'
 import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
@@ -66,5 +71,41 @@ export class TeacherController {
 
     await teacher.softRemove()
     return 'Deleted'
+  }
+
+  @Get('/teacher/:id/workload')
+  async getWorkloadByTeacherId(@Param('id') id: string) {
+    const teacher = await Teacher.findOne(id, {
+      relations: ['workloadList', 'workloadList.subject'],
+    })
+    if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
+
+    const teacherWorkload: ITeacherWorkload[] = []
+
+    for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
+      teacherWorkload.push({
+        dayInWeek: day,
+        subjectList: [],
+      })
+    }
+
+    const { workloadList } = teacher
+    workloadList.forEach((workload) => {
+      const thatDay = teacherWorkload[workload.dayOfWeek - 1]
+      const { subject } = workload
+
+      thatDay.subjectList.push({
+        id: subject.id,
+        code: subject.code,
+        name: subject.name,
+        section: workload.section,
+        startSlot: workload.startTimeSlot,
+        endSlot: workload.endTimeSlot,
+        type: workload.type,
+        workloadId: workload.id,
+      })
+    })
+
+    return teacherWorkload
   }
 }

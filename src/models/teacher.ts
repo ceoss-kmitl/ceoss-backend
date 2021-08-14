@@ -5,10 +5,14 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  FindOneOptions,
+  JoinTable,
+  ManyToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
+import { Workload } from '@models/workload'
 
 @Entity()
 export class Teacher extends BaseEntity {
@@ -24,6 +28,14 @@ export class Teacher extends BaseEntity {
   @Column({ name: 'is_executive' })
   isExecutive: boolean
 
+  @ManyToMany(() => Workload, { cascade: true })
+  @JoinTable({
+    name: 'teacher_workload',
+    joinColumn: { name: 'teacher_id' },
+    inverseJoinColumn: { name: 'workload_id' },
+  })
+  workloadList: Workload[]
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date
 
@@ -36,5 +48,9 @@ export class Teacher extends BaseEntity {
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
+  }
+
+  static findByName(name: string, options: FindOneOptions<Teacher> = {}) {
+    return this.findOne({ where: { name }, ...options })
   }
 }
