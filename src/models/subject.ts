@@ -2,11 +2,8 @@ import {
   BaseEntity,
   BeforeInsert,
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
 
@@ -35,15 +32,6 @@ export class Subject extends BaseEntity {
 
   @Column({ name: 'independent_hours' })
   independentHours: number
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
 
   @BeforeInsert()
   private beforeInsert() {

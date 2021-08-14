@@ -18,7 +18,7 @@ import { NotFoundError } from '@errors/notFoundError'
 export class SubjectController {
   @Get('/subject')
   async getSubject() {
-    const subjectList = await Subject.find()
+    const subjectList = await Subject.find({ order: { name: 'ASC' } })
     return subjectList
   }
 
@@ -81,7 +81,7 @@ export class SubjectController {
     const subject = await Subject.findOne(id)
     if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
 
-    await subject.softRemove()
+    await subject.remove()
     return 'Deleted'
   }
 }
