@@ -24,7 +24,7 @@ export class SubjectController {
 
   @Post('/subject')
   @UseBefore(schema(ICreateSubject))
-  async createTeacher(@Body() body: ICreateSubject) {
+  async create(@Body() body: ICreateSubject) {
     const {
       code,
       name,
