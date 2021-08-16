@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator'
+import { Type } from 'class-transformer'
+import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator'
 
 export class ICreateTeacher {
   @IsString()
@@ -23,4 +24,14 @@ export class IEditTeacher {
   @IsBoolean()
   @IsOptional()
   isExecutive: boolean
+}
+
+export class ITeacherWorkloadQuery {
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
 }
