@@ -13,6 +13,7 @@ import {
   ICreateTeacher,
   IEditTeacher,
   ITeacherWorkloadQuery,
+  IGetTeacherQuery,
 } from '@controllers/types/teacher'
 
 import { DayOfWeek, WorkloadType } from '@models/workload'
@@ -23,27 +24,27 @@ import { NotFoundError } from '@errors/notFoundError'
 @JsonController()
 export class TeacherController {
   @Get('/teacher')
-  async getTeacher() {
-    const teacherList = await Teacher.find()
-
-    return teacherList.map((teacher) => {
-      const modifyTeacher = { ...teacher } as Partial<Teacher>
-      delete modifyTeacher.createdAt
-      delete modifyTeacher.updatedAt
-      delete modifyTeacher.deletedAt
-      return modifyTeacher
+  @UseBefore(schema(IGetTeacherQuery, 'query'))
+  async getTeacher(@QueryParams() query: IGetTeacherQuery) {
+    const filterOption =
+      query.is_active === undefined ? {} : { isActive: query.is_active }
+    const teacherList = await Teacher.find({
+      order: { name: 'ASC' },
+      where: { ...filterOption },
     })
+    return teacherList
   }
 
   @Post('/teacher')
   @UseBefore(schema(ICreateTeacher))
   async createTeacher(@Body() body: ICreateTeacher) {
-    const { name, title, isExecutive } = body
+    const { name, title, isExecutive, isActive } = body
 
     const teacher = new Teacher()
     teacher.name = name
     teacher.title = title
     teacher.isExecutive = isExecutive
+    teacher.isActive = isActive
 
     await teacher.save()
     return 'Created'
@@ -52,14 +53,15 @@ export class TeacherController {
   @Put('/teacher/:id')
   @UseBefore(schema(IEditTeacher))
   async edit(@Param('id') id: string, @Body() body: IEditTeacher) {
-    const { name, title, isExecutive } = body
+    const { name, title, isExecutive, isActive } = body
 
     const teacher = await Teacher.findOne(id)
-    if (!teacher) throw new NotFoundError(id)
+    if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
 
     teacher.name = name ?? teacher.name
     teacher.title = title ?? teacher.title
     teacher.isExecutive = isExecutive ?? teacher.isExecutive
+    teacher.isActive = isActive ?? teacher.isActive
 
     await teacher.save()
     return 'Edited'
@@ -70,7 +72,7 @@ export class TeacherController {
     const teacher = await Teacher.findOne(id)
     if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
 
-    await teacher.softRemove()
+    await teacher.remove()
     return 'Deleted'
   }
 
