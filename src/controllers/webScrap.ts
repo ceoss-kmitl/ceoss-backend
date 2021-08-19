@@ -19,16 +19,10 @@ export class WebScrapController {
     const subjectErrorList: string[] = []
     const teacherErrorList: string[] = []
 
-    for (let i = 0; i < data.length; i++) {
-      const _classYear = data[i]
-
-      for (let j = 0; j < _classYear.subjectList.length; j++) {
-        const _subject = _classYear.subjectList[j]
-
-        for (let k = 0; k < _subject.sectionList.length; k++) {
-          const _section = _subject.sectionList[k]
-
-          const subject = await Subject.findByCode(_subject.subjectCode)
+    for (const _classYear of data) {
+      for (const _subject of _classYear.subjectList) {
+        for (const _section of _subject.sectionList) {
+          const subject = await Subject.findOneByCode(_subject.subjectCode)
           if (!subject) {
             subjectErrorList.push(
               `[${_subject.subjectCode}]${_subject.subjectName}`
@@ -58,9 +52,7 @@ export class WebScrapController {
           workload.academicYear = academicYear
           workload.semester = semester
 
-          for (let l = 0; l < _section.teacherList.length; l++) {
-            const _teacher = _section.teacherList[l]
-
+          for (const _teacher of _section.teacherList) {
             const teacher = await Teacher.findByName(_teacher.name, {
               relations: ['workloadList'],
             })
@@ -100,16 +92,10 @@ export class WebScrapController {
     await webScrap.init()
     const data = await webScrap.extractData()
 
-    for (let i = 0; i < data.length; i++) {
-      const _year = data[i]
-
-      for (let j = 0; j < _year.subjectList.length; j++) {
-        const _subject = _year.subjectList[j]
-
-        for (let k = 0; k < _subject.sectionList.length; k++) {
-          const _section = _subject.sectionList[k]
-
-          let subject = await Subject.findByCode(_subject.subjectCode)
+    for (const _classYear of data) {
+      for (const _subject of _classYear.subjectList) {
+        for (const _section of _subject.sectionList) {
+          let subject = await Subject.findOneByCode(_subject.subjectCode)
           if (!subject) {
             subject = new Subject()
             subject.code = _subject.subjectCode
@@ -143,9 +129,7 @@ export class WebScrapController {
           workload.academicYear = academicYear
           workload.semester = semester
 
-          for (let l = 0; l < _section.teacherList.length; l++) {
-            const _teacher = _section.teacherList[l]
-
+          for (const _teacher of _section.teacherList) {
             let teacher = await Teacher.findByName(_teacher.name, {
               relations: ['workloadList'],
             })
