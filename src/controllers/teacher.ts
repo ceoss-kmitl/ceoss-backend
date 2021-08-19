@@ -72,7 +72,7 @@ export class TeacherController {
     const teacher = await Teacher.findOne(id)
     if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
 
-    await teacher.softRemove()
+    await teacher.remove()
     return 'Deleted'
   }
 
