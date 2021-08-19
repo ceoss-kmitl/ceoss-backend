@@ -19,7 +19,7 @@ export class Teacher extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @Column()
+  @Column({ unique: true })
   name: string
 
   @Column()

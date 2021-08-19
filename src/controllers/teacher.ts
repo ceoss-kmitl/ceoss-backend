@@ -13,6 +13,7 @@ import {
   ICreateTeacher,
   IEditTeacher,
   ITeacherWorkloadQuery,
+  IGetTeacherQuery,
 } from '@controllers/types/teacher'
 
 import { DayOfWeek, WorkloadType } from '@models/workload'
@@ -23,17 +24,16 @@ import { NotFoundError } from '@errors/notFoundError'
 @JsonController()
 export class TeacherController {
   @Get('/teacher')
-  async getTeacher() {
-    const teacherList = await Teacher.find({ order: { name: 'ASC' } })
+  @UseBefore(schema(IGetTeacherQuery, 'query'))
+  async getTeacher(@QueryParams() query: IGetTeacherQuery) {
+    const filterOption =
+      query.is_active === undefined ? {} : { isActive: query.is_active }
+    const teacherList = await Teacher.find({
+      order: { name: 'ASC' },
+      where: { ...filterOption },
+    })
     return teacherList
   }
-
-  // @Get('/teacher ?is_active')
-  // @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
-  // async getTeacherIsActive() {
-  //   const teacherList = await Teacher.find({ order: { name: 'ASC' } })
-  //   return teacherList
-  // }
 
   @Post('/teacher')
   @UseBefore(schema(ICreateTeacher))

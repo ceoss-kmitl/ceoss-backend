@@ -33,6 +33,13 @@ export class IEditTeacher {
   isActive: boolean
 }
 
+export class IGetTeacherQuery {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  is_active: boolean
+}
+
 export class ITeacherWorkloadQuery {
   @Type(() => Number)
   @IsNumber()
