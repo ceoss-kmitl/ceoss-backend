@@ -28,6 +28,9 @@ export class Teacher extends BaseEntity {
   @Column({ name: 'is_executive' })
   isExecutive: boolean
 
+  @Column({ default: true, name: 'is_active' })
+  isActive: boolean
+
   @ManyToMany(() => Workload, { cascade: true })
   @JoinTable({
     name: 'teacher_workload',
@@ -35,15 +38,6 @@ export class Teacher extends BaseEntity {
     inverseJoinColumn: { name: 'workload_id' },
   })
   workloadList: Workload[]
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
 
   @BeforeInsert()
   private beforeInsert() {

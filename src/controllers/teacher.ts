@@ -24,26 +24,27 @@ import { NotFoundError } from '@errors/notFoundError'
 export class TeacherController {
   @Get('/teacher')
   async getTeacher() {
-    const teacherList = await Teacher.find()
-
-    return teacherList.map((teacher) => {
-      const modifyTeacher = { ...teacher } as Partial<Teacher>
-      delete modifyTeacher.createdAt
-      delete modifyTeacher.updatedAt
-      delete modifyTeacher.deletedAt
-      return modifyTeacher
-    })
+    const teacherList = await Teacher.find({ order: { name: 'ASC' } })
+    return teacherList
   }
+
+  // @Get('/teacher ?is_active')
+  // @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
+  // async getTeacherIsActive() {
+  //   const teacherList = await Teacher.find({ order: { name: 'ASC' } })
+  //   return teacherList
+  // }
 
   @Post('/teacher')
   @UseBefore(schema(ICreateTeacher))
   async createTeacher(@Body() body: ICreateTeacher) {
-    const { name, title, isExecutive } = body
+    const { name, title, isExecutive, isActive } = body
 
     const teacher = new Teacher()
     teacher.name = name
     teacher.title = title
     teacher.isExecutive = isExecutive
+    teacher.isActive = isActive
 
     await teacher.save()
     return 'Created'
@@ -52,14 +53,15 @@ export class TeacherController {
   @Put('/teacher/:id')
   @UseBefore(schema(IEditTeacher))
   async edit(@Param('id') id: string, @Body() body: IEditTeacher) {
-    const { name, title, isExecutive } = body
+    const { name, title, isExecutive, isActive } = body
 
     const teacher = await Teacher.findOne(id)
-    if (!teacher) throw new NotFoundError(id)
+    if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
 
     teacher.name = name ?? teacher.name
     teacher.title = title ?? teacher.title
     teacher.isExecutive = isExecutive ?? teacher.isExecutive
+    teacher.isActive = isActive ?? teacher.isActive
 
     await teacher.save()
     return 'Edited'
