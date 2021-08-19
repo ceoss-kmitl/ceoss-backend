@@ -14,7 +14,7 @@ export class Subject extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @Column()
+  @Column({ unique: true })
   code: string
 
   @Column()
@@ -43,7 +43,7 @@ export class Subject extends BaseEntity {
     this.id = nanoid(10)
   }
 
-  static findByCode(code: string) {
+  static findOneByCode(code: string) {
     return this.findOne({ where: { code } })
   }
 }
