@@ -19,7 +19,6 @@ export class RoomController {
   @Get('/room')
   async getRoom() {
     const roomList = await Room.find({ order: { name: 'ASC' } })
-    console.log(roomList)
     return roomList
   }
 
