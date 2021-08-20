@@ -3,12 +3,9 @@ import {
   BaseEntity,
   BeforeInsert,
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
   OneToMany,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm'
 import { Workload } from '@models/workload'
 
@@ -25,15 +22,6 @@ export class Room extends BaseEntity {
 
   @OneToMany(() => Workload, (workload) => workload.room)
   workloadList: Workload[]
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
 
   @BeforeInsert()
   private beforeInsert() {
