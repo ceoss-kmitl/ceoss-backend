@@ -65,7 +65,9 @@ export class SubjectController {
       independentHours,
     } = body
     const isExist = await Subject.findOneByCode(code)
-    if (isExist) throw new BadRequestError(`Subject ${id} already exist`)
+    const isNotSelf = isExist?.id !== id
+    if (isExist && isNotSelf)
+      throw new BadRequestError(`Subject ${id} already exist`)
 
     const subject = await Subject.findOne(id)
     if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
