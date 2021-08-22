@@ -3,6 +3,7 @@ import { WebScrap } from '@libs/WebScrap'
 import { Workload } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Teacher } from '@models/teacher'
+import { Setting } from '@models/setting'
 import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
@@ -79,7 +80,29 @@ export class WebScrapController {
       throw new NotFoundError(`${subjectErrorString} && ${teacherErrorString}`)
     }
 
-    return 'OK'
+    const setting = await Setting.get()
+    const todayDate = new Date()
+    setting.webScrapUpdatedDate = todayDate
+
+    await setting.save()
+    return todayDate.toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }
+
+  @Get('/web-scrap/updated-date')
+  async getUpdatedDate() {
+    const setting = await Setting.get()
+    const updatedDate = new Date(
+      setting.webScrapUpdatedDate
+    ).toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+    return updatedDate
   }
 
   // TODO: Remove this when go on production
