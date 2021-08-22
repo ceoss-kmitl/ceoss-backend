@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsOptional, IsString } from 'class-validator'
 
 export class ICreateTeacher {
   @IsString()
@@ -38,14 +38,4 @@ export class IGetTeacherQuery {
   @IsBoolean()
   @IsOptional()
   is_active: boolean
-}
-
-export class ITeacherWorkloadQuery {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
 }
