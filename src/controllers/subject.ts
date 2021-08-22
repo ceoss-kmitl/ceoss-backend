@@ -13,18 +13,19 @@ import { schema } from '@middlewares/schema'
 import { Subject } from '@models/subject'
 import { ICreateSubject, IEditSubject } from '@controllers/types/subject'
 import { NotFoundError } from '@errors/notFoundError'
+import { BadRequestError } from '@errors/badRequestError'
 
 @JsonController()
 export class SubjectController {
   @Get('/subject')
   async getSubject() {
-    const subjectList = await Subject.find()
+    const subjectList = await Subject.find({ order: { name: 'ASC' } })
     return subjectList
   }
 
   @Post('/subject')
   @UseBefore(schema(ICreateSubject))
-  async createTeacher(@Body() body: ICreateSubject) {
+  async create(@Body() body: ICreateSubject) {
     const {
       code,
       name,
@@ -34,6 +35,9 @@ export class SubjectController {
       labHours,
       independentHours,
     } = body
+
+    const isExist = await Subject.findOneByCode(code)
+    if (isExist) throw new BadRequestError(`Subject ${code} already exist`)
 
     const subject = new Subject()
     subject.code = code
@@ -60,6 +64,10 @@ export class SubjectController {
       labHours,
       independentHours,
     } = body
+    const isExist = await Subject.findOneByCode(code)
+    const isNotSelf = isExist?.id !== id
+    if (isExist && isNotSelf)
+      throw new BadRequestError(`Subject ${id} already exist`)
 
     const subject = await Subject.findOne(id)
     if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
@@ -81,7 +89,7 @@ export class SubjectController {
     const subject = await Subject.findOne(id)
     if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
 
-    await subject.softRemove()
+    await subject.remove()
     return 'Deleted'
   }
 }

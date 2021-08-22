@@ -18,7 +18,7 @@ import { NotFoundError } from '@errors/notFoundError'
 export class RoomController {
   @Get('/room')
   async getRoom() {
-    const roomList = await Room.find()
+    const roomList = await Room.find({ order: { name: 'ASC' } })
     return roomList
   }
 
@@ -55,7 +55,7 @@ export class RoomController {
     const room = await Room.findOne(id)
     if (!room) throw new NotFoundError(`Room ${id} is not found`)
 
-    await room.softRemove()
+    await room.remove()
     return 'Room deleted'
   }
 }

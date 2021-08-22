@@ -20,7 +20,22 @@ export class Excel {
   }
 
   /**
+   * Convert pixel into excel unit (Column)
+   */
+  static pxCol(pixel: number) {
+    return pixel * (1 / 6)
+  }
+
+  /**
+   * Convert pixel into excel unit (Row)
+   */
+  static pxRow(pixel: number) {
+    return pixel * (17 / 22)
+  }
+
+  /**
    * Send `.xlsx` file via `Express.js`
+   * @example excel.sendFile('workload-1')
    */
   public async sendFile(fileName: string) {
     this.response.setHeader(
@@ -66,44 +81,45 @@ export class Excel {
 
   /**
    * Set cell border. Can pass multiple sides
-   * @example border('top', 'left') border('diagonal')
+   * @example border('top', 'left') border('diagonal-down')
    */
-  public border(
-    ...borderSide: (
-      | 'top'
-      | 'right'
-      | 'bottom'
-      | 'left'
-      | 'all'
-      | 'diagonal-down'
-      | 'diagonal-up'
-    )[]
-  ) {
+  public border(...borderSide: MyBorderSide[]) {
     borderSide.forEach((side) => {
+      const style: ExcelJS.BorderStyle = side.includes('bold')
+        ? 'medium'
+        : 'thin'
+
       switch (side) {
+        case 'box':
+        case 'box-bold':
+          this.borderTop(style)
+          this.borderRight(style)
+          this.borderBottom(style)
+          this.borderLeft(style)
+          break
         case 'top':
-          this.borderTop()
+        case 'top-bold':
+          this.borderTop(style)
           break
         case 'right':
-          this.borderRight()
+        case 'right-bold':
+          this.borderRight(style)
           break
         case 'bottom':
-          this.borderBottom()
+        case 'bottom-bold':
+          this.borderBottom(style)
           break
         case 'left':
-          this.borderLeft()
-          break
-        case 'all':
-          this.borderTop()
-          this.borderRight()
-          this.borderBottom()
-          this.borderLeft()
+        case 'left-bold':
+          this.borderLeft(style)
           break
         case 'diagonal-down':
-          this.borderDiagonalLeftTopToRightBottom()
+        case 'diagonal-down-bold':
+          this.borderDiagonalLeftTopToRightBottom(style)
           break
         case 'diagonal-up':
-          this.borderDiagonalLeftBottomToRightTop()
+        case 'diagonal-up-bold':
+          this.borderDiagonalLeftBottomToRightTop(style)
           break
       }
     })
@@ -116,8 +132,8 @@ export class Excel {
    * @example align('center', 'middle')
    */
   public align(
-    x?: ExcelJS.Alignment['horizontal'],
-    y?: ExcelJS.Alignment['vertical']
+    x: ExcelJS.Alignment['horizontal'],
+    y: ExcelJS.Alignment['vertical'] = 'top'
   ) {
     this.alignX(x)
     this.alignY(y)
@@ -158,6 +174,17 @@ export class Excel {
   }
 
   /**
+   * Strikethrough this cell
+   */
+  public strike() {
+    this.activeCell.font = {
+      ...this.activeCell.font,
+      strike: true,
+    }
+    return this
+  }
+
+  /**
    * Set font size of this cell
    * @example fontSize(16)
    */
@@ -169,59 +196,75 @@ export class Excel {
     return this
   }
 
+  /**
+   * Set font of this cell
+   * @example font('TH Sarabun New')
+   */
+  public font(fontName: string) {
+    this.activeCell.font = {
+      ...this.activeCell.font,
+      name: fontName,
+    }
+    return this
+  }
+
   // === Private methods ===
 
-  private borderTop() {
+  private borderTop(style: ExcelJS.BorderStyle = 'thin') {
     this.activeCell.border = {
       ...this.activeCell.border,
-      top: { style: 'thin' },
+      top: { style },
     }
     return this
   }
 
-  private borderRight() {
+  private borderRight(style: ExcelJS.BorderStyle = 'thin') {
     this.activeCell.border = {
       ...this.activeCell.border,
-      right: { style: 'thin' },
+      right: { style },
     }
     return this
   }
 
-  private borderBottom() {
+  private borderBottom(style: ExcelJS.BorderStyle = 'thin') {
     this.activeCell.border = {
       ...this.activeCell.border,
-      bottom: { style: 'thin' },
+      bottom: { style },
     }
     return this
   }
 
-  private borderLeft() {
+  private borderLeft(style: ExcelJS.BorderStyle = 'thin') {
     this.activeCell.border = {
       ...this.activeCell.border,
-      left: { style: 'thin' },
+      left: { style },
     }
     return this
   }
 
-  private borderDiagonalLeftBottomToRightTop() {
+  private borderDiagonalLeftBottomToRightTop(
+    style: ExcelJS.BorderStyle = 'thin'
+  ) {
     this.activeCell.border = {
       ...this.activeCell.border,
       diagonal: {
         ...this.activeCell.border?.diagonal,
         up: true,
-        style: 'thin',
+        style,
       },
     }
     return this
   }
 
-  private borderDiagonalLeftTopToRightBottom() {
+  private borderDiagonalLeftTopToRightBottom(
+    style: ExcelJS.BorderStyle = 'thin'
+  ) {
     this.activeCell.border = {
       ...this.activeCell.border,
       diagonal: {
         ...this.activeCell.border?.diagonal,
         down: true,
-        style: 'thin',
+        style,
       },
     }
     return this
@@ -243,3 +286,14 @@ export class Excel {
     return this
   }
 }
+
+type MyBaseBorderSide =
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'box'
+  | 'diagonal-down'
+  | 'diagonal-up'
+
+type MyBorderSide = MyBaseBorderSide | `${MyBaseBorderSide}-bold`

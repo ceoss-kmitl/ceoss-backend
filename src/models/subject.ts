@@ -2,20 +2,19 @@ import {
   BaseEntity,
   BeforeInsert,
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
+  OneToMany,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
+import { Workload } from '@models/workload'
 
 @Entity()
 export class Subject extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @Column()
+  @Column({ unique: true })
   code: string
 
   @Column()
@@ -36,17 +35,15 @@ export class Subject extends BaseEntity {
   @Column({ name: 'independent_hours' })
   independentHours: number
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
+  @OneToMany(() => Workload, (workload) => workload.subject)
+  workloadList: Workload[]
 
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
+  }
+
+  static findOneByCode(code: string) {
+    return this.findOne({ where: { code } })
   }
 }
