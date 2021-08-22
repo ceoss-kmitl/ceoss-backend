@@ -79,7 +79,12 @@ export class WebScrapController {
       throw new NotFoundError(`${subjectErrorString} && ${teacherErrorString}`)
     }
 
-    return 'OK'
+    const todayDate = new Date().toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+    return todayDate
   }
 
   // TODO: Remove this when go on production
