@@ -16,14 +16,31 @@ export function generateExcelFile1(
     },
   })
 
-  // Table title
+  // Global font
   excel.font('TH SarabunPSK').fontSize(14)
+
+  // Table title
   excel
-    .cells('A1', 'BA1')
+    .cells('A1', 'BB1')
     .value(
       `ตารางการปฏิบัติงานสอนของอาจารย์คณะวิศวกรรมศาสตร์ สจล.  ประจำภาคเรียนที่ ${semester} ปีการศึกษา ${academicYear}`
     )
     .bold()
+    .align('center', 'middle')
+  excel
+    .cells('A2', 'BB2')
+    .value(
+      `ชื่อ  ${teacher.title}${teacher.name}  ภาควิชาวิศวกรรมคอมพิวเตอร์ 08.30 - 16.30`
+    )
+    .bold()
+    .align('center', 'middle')
+  excel
+    .cells('A3', 'BB3')
+    .value(
+      'งานที่สอนให้เขียนรหัสวิชา ชื่อวิชา เป็นการสอนแบบทฤษฎี(ท) หรือปฏิบัติ(ป) ชั้นปี ห้อง'
+    )
+    .bold()
+    .align('center', 'middle')
 
   return excel
 }
