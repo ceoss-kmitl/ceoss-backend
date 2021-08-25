@@ -57,10 +57,9 @@ export function generateExcelFile1(
   excel.fontSize(12)
   {
     let hours = 8
-    for (const col of ['D:G', 'H:K', 'L:O', 'P:S']) {
-      const [start, end] = col.split(':')
+    for (const range of ['D5:G5', 'H5:K5', 'L5:O5', 'P5:S5']) {
       excel
-        .cells(`${start}5:${end}5`)
+        .cells(range)
         .value(hours++)
         .border('box')
         .align('center', 'middle')
@@ -69,19 +68,18 @@ export function generateExcelFile1(
   excel.cells('T5:V5').value('12.00').border('box').align('center', 'middle')
   {
     let hours = 13
-    for (const col of [
-      'W:Z',
-      'AA:AD',
-      'AE:AH',
-      'AI:AL',
-      'AM:AP',
-      'AQ:AT',
-      'AU:AX',
-      'AY:BB',
+    for (const range of [
+      'W5:Z5',
+      'AA5:AD5',
+      'AE5:AH5',
+      'AI5:AL5',
+      'AM5:AP5',
+      'AQ5:AT5',
+      'AU5:AX5',
+      'AY5:BB5',
     ]) {
-      const [start, end] = col.split(':')
       excel
-        .cells(`${start}5:${end}5`)
+        .cells(range)
         .value(hours++)
         .border('box')
         .align('center', 'middle')
@@ -126,21 +124,18 @@ export function generateExcelFile1(
 
   // ===== Day side header =====
   excel.fontSize(12)
-  excel.cells('A7:C8').value('จันทร์').border('box').align('center', 'middle')
-  excel.cells('A9:C10').value('อังคาร').border('box').align('center', 'middle')
-  excel.cells('A11:C12').value('พุธ').border('box').align('center', 'middle')
-  excel
-    .cells('A13:C14')
-    .value('พฤหัสบดี')
-    .border('box')
-    .align('center', 'middle')
-  excel.cells('A15:C16').value('ศุกร์').border('box').align('center', 'middle')
-  excel.cells('A17:C18').value('เสาร์').border('box').align('center', 'middle')
-  excel
-    .cells('A19:C20')
-    .value('อาทิตย์')
-    .border('box')
-    .align('center', 'middle')
+  for (const day of [
+    'A7:C8 จันทร์',
+    'A9:C10 อังคาร',
+    'A11:C12 พุธ',
+    'A13:C14 พฤหัสบดี',
+    'A15:C16 ศุกร์',
+    'A17:C18 เสาร์',
+    'A19:C20 อาทิตย์',
+  ]) {
+    const [range, name] = day.split(' ')
+    excel.cells(range).value(name).border('box').align('center', 'middle')
+  }
 
   // ===== Grid all time slot =====
   for (let row = 7; row <= 20; row++) {
