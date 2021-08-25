@@ -7,6 +7,7 @@ export class Excel {
   private workbook: ExcelJS.Workbook
   private sheet: ExcelJS.Worksheet
   private activeCell: ExcelJS.Cell
+  private fontFamily: string
   private response: Response
 
   constructor(
@@ -17,6 +18,7 @@ export class Excel {
     this.workbook = new ExcelJS.Workbook()
     this.sheet = this.workbook.addWorksheet('sheet1', sheetOptions)
     this.activeCell = this.sheet.getCell('A1')
+    this.fontFamily = 'TH SarabunPSK'
   }
 
   /**
@@ -57,6 +59,7 @@ export class Excel {
    */
   public cell(id: string) {
     this.activeCell = this.sheet.getCell(id)
+    this.font(this.fontFamily)
     return this
   }
 
@@ -201,6 +204,7 @@ export class Excel {
    * @example font('TH Sarabun New')
    */
   public font(fontName: string) {
+    this.fontFamily = fontName
     this.activeCell.font = {
       ...this.activeCell.font,
       name: fontName,
