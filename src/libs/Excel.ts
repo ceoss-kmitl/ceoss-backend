@@ -44,7 +44,7 @@ export class Excel {
     )
     this.response.setHeader(
       'Content-Disposition',
-      `attachment; filename=${fileName}.xlsx`
+      `attachment; filename=${encodeURI(fileName)}.xlsx`
     )
     await this.workbook.xlsx.write(this.response)
     this.response.end()
