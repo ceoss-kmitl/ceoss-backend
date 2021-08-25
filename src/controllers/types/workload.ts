@@ -1,4 +1,5 @@
 import { DayOfWeek, WorkloadType } from '@models/workload'
+import { Type } from 'class-transformer'
 import {
   IsBoolean,
   IsEnum,
@@ -49,4 +50,17 @@ export class ICreateWorkload {
 
   @IsString()
   fieldOfStudy: string
+}
+
+export class IGetExcelFile1Query {
+  @IsString()
+  teacher_id: string
+
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
 }

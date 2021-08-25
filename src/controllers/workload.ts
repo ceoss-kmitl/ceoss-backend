@@ -6,46 +6,41 @@ import {
   JsonController,
   Param,
   Post,
+  QueryParams,
   Res,
   UseBefore,
 } from 'routing-controllers'
-import { Excel, PaperSize } from '@libs/Excel'
+import {
+  ICreateWorkload,
+  IGetExcelFile1Query,
+} from '@controllers/types/workload'
+import { generateExcelFile1 } from '@controllers/templates/excel1'
 import { mapTimeToTimeSlot } from '@libs/mapper'
-import { ICreateWorkload } from '@controllers/types/workload'
 import { schema } from '@middlewares/schema'
 import { Workload } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
 import { NotFoundError } from '@errors/notFoundError'
+import { Excel, PaperSize } from '@libs/Excel'
 
 @JsonController()
 export class WorkloadController {
-  // TODO: Remove this endpoint when start writing real excel file
-  @Get('/workload-demo')
-  async demo(@Res() res: Response) {
-    const excel = new Excel(res, {
-      pageSetup: { paperSize: PaperSize.A4 },
-      properties: {
-        defaultColWidth: Excel.pxCol(16),
-        defaultRowHeight: Excel.pxRow(17),
-      },
+  @Get('/workload/excel-1')
+  @UseBefore(schema(IGetExcelFile1Query, 'query'))
+  async getExcelFile1(
+    @Res() res: Response,
+    @QueryParams() query: IGetExcelFile1Query
+  ) {
+    const { teacher_id, academic_year, semester } = query
+
+    const teacher = await Teacher.findOne(teacher_id, {
+      relations: ['workloadList', 'workloadList.subject'],
     })
+    if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
 
-    excel.cell('A1').value('Hello').italic()
-    excel.cell('B3').value('World').border('bottom', 'left')
-    excel.cells('C1', 'D3').value('Merge!').bold().align('center', 'middle')
-    excel.cell('A4').border('diagonal-down', 'diagonal-up')
-    excel.cell('A5').border('diagonal-down')
-    excel.cell('A6').border('diagonal-up')
-    let total = 0
-    for (let i = 8; i <= 12; i++) {
-      excel.cell(`A${i}`).value(i)
-      total += i
-    }
-    excel.cell('A13').formula('SUM(A8:A12)', total)
-
-    return excel.sendFile('demo-file')
+    const file = generateExcelFile1(res, academic_year, semester, teacher)
+    return file.sendFile(`0123fดข`)
   }
 
   @Post('/workload')
