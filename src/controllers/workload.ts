@@ -22,7 +22,6 @@ import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
 import { NotFoundError } from '@errors/notFoundError'
-import { Excel, PaperSize } from '@libs/Excel'
 
 @JsonController()
 export class WorkloadController {
@@ -39,8 +38,18 @@ export class WorkloadController {
     })
     if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
 
+    teacher.workloadList = teacher.workloadList.filter(
+      (workload) =>
+        workload.academicYear === academic_year &&
+        workload.semester === semester
+    )
+
     const file = generateExcelFile1(res, academic_year, semester, teacher)
-    return file.sendFile(`0123fดข`)
+    return file.sendFile(
+      `01-ภาระงาน ${semester}-${String(academic_year).substr(2, 2)} คอม-${
+        teacher.name
+      }`
+    )
   }
 
   @Post('/workload')
