@@ -52,6 +52,7 @@ export class WebScrapController {
           workload.isCompensated = workload.isCompensated ?? false
           workload.academicYear = academicYear
           workload.semester = semester
+          workload.fieldOfStudy = 'D'
 
           for (const _teacher of _section.teacherList) {
             const teacher = await Teacher.findByName(_teacher.name, {
@@ -151,6 +152,7 @@ export class WebScrapController {
           workload.isCompensated = false
           workload.academicYear = academicYear
           workload.semester = semester
+          workload.fieldOfStudy = 'D'
 
           for (const _teacher of _section.teacherList) {
             let teacher = await Teacher.findByName(_teacher.name, {
