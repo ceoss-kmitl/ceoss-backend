@@ -208,6 +208,14 @@ export class Excel {
     return this
   }
 
+  /**
+   * Set formula of this cell BUT also have to give it a result
+   * @example formula('SUM(A1:A5)', 96)
+   */
+  public formula(expression: string, result: number) {
+    this.activeCell.value = { formula: expression, result } as any
+  }
+
   // === Private methods ===
 
   private borderTop(style: ExcelJS.BorderStyle = 'thin') {

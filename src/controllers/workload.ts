@@ -23,6 +23,12 @@ export class WorkloadController {
     excel.cell('A4').border('diagonal-down', 'diagonal-up')
     excel.cell('A5').border('diagonal-down')
     excel.cell('A6').border('diagonal-up')
+    let total = 0
+    for (let i = 8; i <= 12; i++) {
+      excel.cell(`A${i}`).value(i)
+      total += i
+    }
+    excel.cell('A13').formula('SUM(A8:A12)', total)
 
     return excel.sendFile('demo-file')
   }
