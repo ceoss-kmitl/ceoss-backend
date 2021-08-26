@@ -12,9 +12,10 @@ import {
 } from 'routing-controllers'
 import {
   ICreateWorkload,
+  IGetWorkloadExcel1Query,
   ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
-import { Excel, PaperSize } from '@libs/Excel'
+import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
 import { mapTimeToTimeSlot } from '@libs/mapper'
 import { schema } from '@middlewares/schema'
 import { DayOfWeek, Workload, WorkloadType } from '@models/workload'
@@ -25,31 +26,14 @@ import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
 export class WorkloadController {
-  // TODO: Remove this endpoint when start writing real excel file
-  @Get('/workload-demo')
-  async demo(@Res() res: Response) {
-    const excel = new Excel(res, {
-      pageSetup: { paperSize: PaperSize.A4 },
-      properties: {
-        defaultColWidth: Excel.pxCol(16),
-        defaultRowHeight: Excel.pxRow(17),
-      },
-    })
-
-    excel.cell('A1').value('Hello').italic()
-    excel.cell('B3').value('World').border('bottom', 'left')
-    excel.cells('C1', 'D3').value('Merge!').bold().align('center', 'middle')
-    excel.cell('A4').border('diagonal-down', 'diagonal-up')
-    excel.cell('A5').border('diagonal-down')
-    excel.cell('A6').border('diagonal-up')
-    let total = 0
-    for (let i = 8; i <= 12; i++) {
-      excel.cell(`A${i}`).value(i)
-      total += i
-    }
-    excel.cell('A13').formula('SUM(A8:A12)', total)
-
-    return excel.sendFile('demo-file')
+  @Get('/workload/excel-1')
+  @UseBefore(schema(IGetWorkloadExcel1Query, 'query'))
+  async getWorkloadExcel1(
+    @Res() res: Response,
+    @QueryParams() query: IGetWorkloadExcel1Query
+  ) {
+    const file = await generateWorkloadExcel1(res, query)
+    return file
   }
 
   @Get('/workload')
@@ -123,6 +107,7 @@ export class WorkloadController {
       academicYear,
       semester,
       isCompensated,
+      classYear,
     } = body
 
     const teacher = await Teacher.findOne(teacherId, {
@@ -147,6 +132,7 @@ export class WorkloadController {
     workload.academicYear = academicYear
     workload.semester = semester
     workload.isCompensated = isCompensated
+    workload.classYear = classYear
 
     teacher.workloadList.push(workload)
     await teacher.save()

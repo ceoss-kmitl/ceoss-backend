@@ -38,10 +38,53 @@ export class Excel {
   }
 
   /**
-   * Send `.xlsx` file via `Express.js`
-   * @example excel.sendFile('workload-1')
+   * Convert number to Excel alphabet
+   * ex. 0=A, 1=B, 26=AA
    */
-  public async sendFile(fileName: string) {
+  static toAlphabet(numeric: number) {
+    let alpha = ''
+    while (numeric > -1) {
+      alpha = String.fromCharCode(65 + (numeric % 26)) + alpha
+      numeric = Math.floor(numeric / 26) - 1
+    }
+    return alpha
+  }
+
+  /**
+   * Convert Excel alphabet to number
+   * ex. A=0, B=1, AA=26
+   */
+  static toNumber(alphabet: string) {
+    let numeric = 0
+    let multiplier = 1
+    for (let i = alphabet.length - 1; i >= 0; i--) {
+      numeric += (alphabet.charCodeAt(i) - 64) * multiplier
+      multiplier *= 26
+    }
+    return numeric - 1
+  }
+
+  /**
+   * Generate Excel alphabet array
+   * from `start` to `end`
+   * @example Excel.range('A:D') => ['A','B','C','D']
+   */
+  static range(alphabet: string) {
+    const [start, end] = alphabet.split(':')
+    const result: string[] = []
+    for (let i = this.toNumber(start); i <= this.toNumber(end); i++) {
+      result.push(this.toAlphabet(i))
+    }
+    return result
+  }
+
+  // === Public methods ===
+
+  /**
+   * Send `.xlsx` file via `Express.js`
+   * @example return excel.createFile('workload-1')
+   */
+  public async createFile(fileName: string) {
     this.response.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -61,16 +104,20 @@ export class Excel {
    */
   public cell(id: string) {
     this.activeCell = this.sheet.getCell(id)
-    this.font(this.activeFontFamily)
-    this.fontSize(this.activeFontSize)
+    this.activeCell.font = {
+      ...this.activeCell.font,
+      name: this.activeFontFamily,
+      size: this.activeFontSize,
+    }
     return this
   }
 
   /**
    * Get merged cell in worksheet
-   * @example cells('A1', 'B4')
+   * @example cells('A1:B4')
    */
-  public cells(topLeftId: string, bottomRightId: string) {
+  public cells(twoId: string) {
+    const [topLeftId, bottomRightId] = twoId.split(':')
     this.sheet.mergeCells(topLeftId, bottomRightId)
     this.cell(topLeftId)
     return this
@@ -139,7 +186,7 @@ export class Excel {
    */
   public align(
     x: ExcelJS.Alignment['horizontal'],
-    y: ExcelJS.Alignment['vertical'] = 'top'
+    y: ExcelJS.Alignment['vertical'] = 'middle'
   ) {
     this.alignX(x)
     this.alignY(y)
@@ -196,10 +243,6 @@ export class Excel {
    */
   public fontSize(size: number) {
     this.activeFontSize = size
-    this.activeCell.font = {
-      ...this.activeCell.font,
-      size,
-    }
     return this
   }
 
@@ -209,10 +252,6 @@ export class Excel {
    */
   public font(fontName: string) {
     this.activeFontFamily = fontName
-    this.activeCell.font = {
-      ...this.activeCell.font,
-      name: fontName,
-    }
     return this
   }
 
@@ -220,8 +259,18 @@ export class Excel {
    * Set formula of this cell BUT also have to give it a result
    * @example formula('SUM(A1:A5)', 96)
    */
-  public formula(expression: string, result: number) {
-    this.activeCell.value = { formula: expression, result } as any
+  public formula(expression: string) {
+    this.activeCell.value = { formula: expression } as ExcelJS.CellValue
+  }
+
+  /**
+   * Make this cell content scale-down to fit the width of cell
+   */
+  public shrink() {
+    this.activeCell.alignment = {
+      ...this.activeCell.alignment,
+      shrinkToFit: true,
+    }
   }
 
   // === Private methods ===

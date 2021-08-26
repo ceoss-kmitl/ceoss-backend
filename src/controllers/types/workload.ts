@@ -63,4 +63,20 @@ export class ICreateWorkload {
 
   @IsString()
   fieldOfStudy: string
+
+  @IsNumber()
+  classYear: number
+}
+
+export class IGetWorkloadExcel1Query {
+  @IsString()
+  teacher_id: string
+
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
 }
