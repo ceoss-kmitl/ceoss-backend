@@ -1,4 +1,11 @@
-import { Get, JsonController } from 'routing-controllers'
+import {
+  Get,
+  JsonController,
+  QueryParams,
+  UseBefore,
+} from 'routing-controllers'
+import { IWebScrapQuery } from '@controllers/types/webScrap'
+import { schema } from '@middlewares/schema'
 import { WebScrap } from '@libs/WebScrap'
 import { Workload } from '@models/workload'
 import { Subject } from '@models/subject'
@@ -9,10 +16,10 @@ import { NotFoundError } from '@errors/notFoundError'
 @JsonController()
 export class WebScrapController {
   @Get('/web-scrap')
-  async scrapDataFromRegKMITL() {
-    const academicYear = 2563
-    const semester = 1
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academicYear}&semester=${semester}`
+  @UseBefore(schema(IWebScrapQuery, 'query'))
+  async scrapDataFromRegKMITL(@QueryParams() query: IWebScrapQuery) {
+    const { academic_year, semester } = query
+    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
     const webScrap = new WebScrap(URL)
     await webScrap.init()
     const data = await webScrap.extractData()
@@ -35,7 +42,7 @@ export class WebScrapController {
             (await Workload.findOne({
               relations: ['subject'],
               where: {
-                academicYear,
+                academicYear: academic_year,
                 semester,
                 subject: { id: subject.id },
                 section: _section.section,
@@ -50,7 +57,7 @@ export class WebScrapController {
           workload.startTimeSlot = _section.startTimeSlot
           workload.endTimeSlot = _section.endTimeSlot
           workload.isCompensated = workload.isCompensated ?? false
-          workload.academicYear = academicYear
+          workload.academicYear = academic_year
           workload.semester = semester
           workload.fieldOfStudy = 'D'
           workload.classYear = _classYear.classYear
@@ -109,10 +116,12 @@ export class WebScrapController {
 
   // TODO: Remove this when go on production
   @Get('/web-scrap/save')
-  async scrapDataFromRegKMITLSaveToDatabase() {
-    const academicYear = 2563
-    const semester = 1
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academicYear}&semester=${semester}`
+  @UseBefore(schema(IWebScrapQuery, 'query'))
+  async scrapDataFromRegKMITLSaveToDatabase(
+    @QueryParams() query: IWebScrapQuery
+  ) {
+    const { academic_year, semester } = query
+    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
     const webScrap = new WebScrap(URL)
     await webScrap.init()
     const data = await webScrap.extractData()
@@ -136,7 +145,7 @@ export class WebScrapController {
             (await Workload.findOne({
               relations: ['subject'],
               where: {
-                academicYear,
+                academicYear: academic_year,
                 semester,
                 subject: { id: subject.id },
                 section: _section.section,
@@ -151,7 +160,7 @@ export class WebScrapController {
           workload.startTimeSlot = _section.startTimeSlot
           workload.endTimeSlot = _section.endTimeSlot
           workload.isCompensated = false
-          workload.academicYear = academicYear
+          workload.academicYear = academic_year
           workload.semester = semester
           workload.fieldOfStudy = 'D'
           workload.classYear = _classYear.classYear

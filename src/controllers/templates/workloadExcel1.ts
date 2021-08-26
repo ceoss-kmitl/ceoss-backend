@@ -229,7 +229,7 @@ export async function generateWorkloadExcel1(
       .value(name)
       .border('box')
       .align('center')
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 4; i++) {
       excel
         .fontSize(14)
         .cells(`${start}${row + i}:${end}${row + i}`)
@@ -239,15 +239,17 @@ export async function generateWorkloadExcel1(
   }
 
   // ===== Other special work =====
-  excel.fontSize(10)
-  excel.cells('AK22:BA22').value('ตำแหน่งและงานพิเศษอื่น')
+  excel.fontSize(10).cells('AK22:BA22').value('ตำแหน่งและงานพิเศษอื่น')
   for (let i = 0; i < 3; i++) {
     const row = 23 + i
-    excel.cell(`AK${row}`).value(`${i + 1}.`)
-    excel.cells(`AL${row}:BA${row}`).border('bottom')
+    excel
+      .fontSize(10)
+      .cell(`AK${row}`)
+      .value(`${i + 1}.`)
+    excel.fontSize(14).cells(`AL${row}:BA${row}`).border('bottom')
   }
-  excel.cells(`AK26:AL26`).value('อื่นๆ')
-  excel.cells('AM26:BA26').border('bottom')
+  excel.fontSize(10).cells(`AK26:AL26`).value('อื่นๆ')
+  excel.fontSize(14).cells('AM26:BA26').border('bottom')
 
   // ===== Sign area =====
   excel.fontSize(14)
