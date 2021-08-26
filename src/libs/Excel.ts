@@ -7,6 +7,8 @@ export class Excel {
   private workbook: ExcelJS.Workbook
   private sheet: ExcelJS.Worksheet
   private activeCell: ExcelJS.Cell
+  private activeFontFamily: string
+  private activeFontSize: number
   private response: Response
 
   constructor(
@@ -17,6 +19,8 @@ export class Excel {
     this.workbook = new ExcelJS.Workbook()
     this.sheet = this.workbook.addWorksheet('sheet1', sheetOptions)
     this.activeCell = this.sheet.getCell('A1')
+    this.activeFontFamily = 'TH SarabunPSK'
+    this.activeFontSize = 16
   }
 
   /**
@@ -44,7 +48,7 @@ export class Excel {
     )
     this.response.setHeader(
       'Content-Disposition',
-      `attachment; filename=${fileName}.xlsx`
+      `attachment; filename=${encodeURI(fileName)}.xlsx`
     )
     await this.workbook.xlsx.write(this.response)
     this.response.end()
@@ -57,6 +61,8 @@ export class Excel {
    */
   public cell(id: string) {
     this.activeCell = this.sheet.getCell(id)
+    this.font(this.activeFontFamily)
+    this.fontSize(this.activeFontSize)
     return this
   }
 
@@ -189,6 +195,7 @@ export class Excel {
    * @example fontSize(16)
    */
   public fontSize(size: number) {
+    this.activeFontSize = size
     this.activeCell.font = {
       ...this.activeCell.font,
       size,
@@ -201,11 +208,20 @@ export class Excel {
    * @example font('TH Sarabun New')
    */
   public font(fontName: string) {
+    this.activeFontFamily = fontName
     this.activeCell.font = {
       ...this.activeCell.font,
       name: fontName,
     }
     return this
+  }
+
+  /**
+   * Set formula of this cell BUT also have to give it a result
+   * @example formula('SUM(A1:A5)', 96)
+   */
+  public formula(expression: string, result: number) {
+    this.activeCell.value = { formula: expression, result } as any
   }
 
   // === Private methods ===

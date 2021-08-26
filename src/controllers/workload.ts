@@ -1,17 +1,25 @@
 import { Response } from 'express'
 import {
+  Body,
   Delete,
   Get,
   JsonController,
   Param,
+  Post,
   QueryParams,
   Res,
   UseBefore,
 } from 'routing-controllers'
-import { ITeacherWorkloadQuery } from '@controllers/types/workload'
-import { schema } from '@middlewares/schema'
+import {
+  ICreateWorkload,
+  ITeacherWorkloadQuery,
+} from '@controllers/types/workload'
 import { Excel, PaperSize } from '@libs/Excel'
-import { Workload, DayOfWeek, WorkloadType } from '@models/workload'
+import { mapTimeToTimeSlot } from '@libs/mapper'
+import { schema } from '@middlewares/schema'
+import { DayOfWeek, Workload, WorkloadType } from '@models/workload'
+import { Subject } from '@models/subject'
+import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
 import { NotFoundError } from '@errors/notFoundError'
 
@@ -34,13 +42,19 @@ export class WorkloadController {
     excel.cell('A4').border('diagonal-down', 'diagonal-up')
     excel.cell('A5').border('diagonal-down')
     excel.cell('A6').border('diagonal-up')
+    let total = 0
+    for (let i = 8; i <= 12; i++) {
+      excel.cell(`A${i}`).value(i)
+      total += i
+    }
+    excel.cell('A13').formula('SUM(A8:A12)', total)
 
     return excel.sendFile('demo-file')
   }
 
   @Get('/workload')
   @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
-  async getWorkloadByTeacherId(@QueryParams() query: ITeacherWorkloadQuery) {
+  async getTeacherWorkload(@QueryParams() query: ITeacherWorkloadQuery) {
     const teacher = await Teacher.findOne(query.teacher_id, {
       relations: ['workloadList', 'workloadList.subject'],
     })
@@ -91,6 +105,52 @@ export class WorkloadController {
     })
 
     return result
+  }
+
+  @Post('/workload')
+  @UseBefore(schema(ICreateWorkload))
+  async createWorkload(@Body() body: ICreateWorkload) {
+    const {
+      teacherId,
+      subjectId,
+      roomId,
+      type,
+      fieldOfStudy,
+      section,
+      dayOfWeek,
+      startTime,
+      endTime,
+      academicYear,
+      semester,
+      isCompensated,
+    } = body
+
+    const teacher = await Teacher.findOne(teacherId, {
+      relations: ['workloadList'],
+    })
+    if (!teacher) throw new NotFoundError(`Teacher ${teacherId} is not found`)
+
+    const subject = await Subject.findOne(subjectId)
+    if (!subject) throw new NotFoundError(`Subject ${subjectId} is not found`)
+
+    const room = await Room.findOne({ where: { id: roomId } })
+
+    const workload = new Workload()
+    workload.subject = subject
+    workload.room = room as any
+    workload.type = type
+    workload.fieldOfStudy = fieldOfStudy
+    workload.section = section
+    workload.dayOfWeek = dayOfWeek
+    workload.startTimeSlot = mapTimeToTimeSlot(startTime)
+    workload.endTimeSlot = mapTimeToTimeSlot(endTime) - 1
+    workload.academicYear = academicYear
+    workload.semester = semester
+    workload.isCompensated = isCompensated
+
+    teacher.workloadList.push(workload)
+    await teacher.save()
+    return 'OK'
   }
 
   @Delete('/workload/:id')
