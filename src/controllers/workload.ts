@@ -6,14 +6,18 @@ import {
   JsonController,
   Param,
   Post,
+  QueryParams,
   Res,
   UseBefore,
 } from 'routing-controllers'
+import {
+  ICreateWorkload,
+  ITeacherWorkloadQuery,
+} from '@controllers/types/workload'
 import { Excel, PaperSize } from '@libs/Excel'
 import { mapTimeToTimeSlot } from '@libs/mapper'
-import { ICreateWorkload } from '@controllers/types/workload'
 import { schema } from '@middlewares/schema'
-import { Workload } from '@models/workload'
+import { DayOfWeek, Workload, WorkloadType } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
@@ -46,6 +50,61 @@ export class WorkloadController {
     excel.cell('A13').formula('SUM(A8:A12)', total)
 
     return excel.sendFile('demo-file')
+  }
+
+  @Get('/workload')
+  @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
+  async getTeacherWorkload(@QueryParams() query: ITeacherWorkloadQuery) {
+    const teacher = await Teacher.findOne(query.teacher_id, {
+      relations: ['workloadList', 'workloadList.subject'],
+    })
+    if (!teacher)
+      throw new NotFoundError(`Teacher ${query.teacher_id} is not found`)
+
+    teacher.workloadList = teacher.workloadList.filter(
+      (workload) =>
+        workload.academicYear === query.academic_year &&
+        workload.semester === query.semester
+    )
+
+    const result = [] as {
+      dayInWeek: DayOfWeek
+      subjectList: {
+        id: string
+        workloadId: string
+        code: string
+        name: string
+        section: number
+        startSlot: number
+        endSlot: number
+        type: WorkloadType
+      }[]
+    }[]
+
+    for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
+      result.push({
+        dayInWeek: day,
+        subjectList: [],
+      })
+    }
+
+    teacher.workloadList.forEach((workload) => {
+      const thatDay = result[workload.dayOfWeek - 1]
+      const { subject } = workload
+
+      thatDay.subjectList.push({
+        id: subject.id,
+        code: subject.code,
+        name: subject.name,
+        section: workload.section,
+        startSlot: workload.startTimeSlot,
+        endSlot: workload.endTimeSlot,
+        type: workload.type,
+        workloadId: workload.id,
+      })
+    })
+
+    return result
   }
 
   @Post('/workload')

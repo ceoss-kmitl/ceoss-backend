@@ -1,4 +1,5 @@
 import { DayOfWeek, WorkloadType } from '@models/workload'
+import { Type } from 'class-transformer'
 import {
   IsBoolean,
   IsEnum,
@@ -7,6 +8,19 @@ import {
   IsString,
   Matches,
 } from 'class-validator'
+
+export class ITeacherWorkloadQuery {
+  @IsString()
+  teacher_id: string
+
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
+}
 
 const TIME_REGEX = /^\d{2}:\d{2}$/ // hh:mm, 08:30, 12:05
 
