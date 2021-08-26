@@ -13,11 +13,12 @@ import {
 import {
   ICreateWorkload,
   IGetWorkloadExcel1Query,
+  ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
 import { mapTimeToTimeSlot } from '@libs/mapper'
 import { schema } from '@middlewares/schema'
-import { Workload } from '@models/workload'
+import { DayOfWeek, Workload, WorkloadType } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
@@ -33,6 +34,61 @@ export class WorkloadController {
   ) {
     const file = await generateWorkloadExcel1(res, query)
     return file
+  }
+
+  @Get('/workload')
+  @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
+  async getTeacherWorkload(@QueryParams() query: ITeacherWorkloadQuery) {
+    const teacher = await Teacher.findOne(query.teacher_id, {
+      relations: ['workloadList', 'workloadList.subject'],
+    })
+    if (!teacher)
+      throw new NotFoundError(`Teacher ${query.teacher_id} is not found`)
+
+    teacher.workloadList = teacher.workloadList.filter(
+      (workload) =>
+        workload.academicYear === query.academic_year &&
+        workload.semester === query.semester
+    )
+
+    const result = [] as {
+      dayInWeek: DayOfWeek
+      subjectList: {
+        id: string
+        workloadId: string
+        code: string
+        name: string
+        section: number
+        startSlot: number
+        endSlot: number
+        type: WorkloadType
+      }[]
+    }[]
+
+    for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
+      result.push({
+        dayInWeek: day,
+        subjectList: [],
+      })
+    }
+
+    teacher.workloadList.forEach((workload) => {
+      const thatDay = result[workload.dayOfWeek - 1]
+      const { subject } = workload
+
+      thatDay.subjectList.push({
+        id: subject.id,
+        code: subject.code,
+        name: subject.name,
+        section: workload.section,
+        startSlot: workload.startTimeSlot,
+        endSlot: workload.endTimeSlot,
+        type: workload.type,
+        workloadId: workload.id,
+      })
+    })
+
+    return result
   }
 
   @Post('/workload')
