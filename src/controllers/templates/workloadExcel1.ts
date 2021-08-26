@@ -6,6 +6,8 @@ import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
+const NOT_CLAIM_SUBJECT = ['01076311']
+
 export async function generateWorkloadExcel1(
   response: Response,
   query: IGetWorkloadExcel1Query
@@ -196,7 +198,11 @@ export async function generateWorkloadExcel1(
     excel
       .cells(`${start}${row}:${end}${row}`)
       .value(
-        `${subject.code} ${subjectType[type]} ปี ${classYear} ห้อง ${fieldOfStudy}/${section}`
+        `${subject.code} ${
+          subjectType[type]
+        } ปี ${classYear} ห้อง ${fieldOfStudy}/${section}${
+          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+        }`
       )
       .align('center')
       .shrink()
