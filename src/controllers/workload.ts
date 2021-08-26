@@ -12,9 +12,9 @@ import {
 } from 'routing-controllers'
 import {
   ICreateWorkload,
-  IGetExcelFile1Query,
+  IGetWorkloadExcel1Query,
 } from '@controllers/types/workload'
-import { generateExcelFile1 } from '@controllers/templates/excel1'
+import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
 import { mapTimeToTimeSlot } from '@libs/mapper'
 import { schema } from '@middlewares/schema'
 import { Workload } from '@models/workload'
@@ -26,30 +26,13 @@ import { NotFoundError } from '@errors/notFoundError'
 @JsonController()
 export class WorkloadController {
   @Get('/workload/excel-1')
-  @UseBefore(schema(IGetExcelFile1Query, 'query'))
-  async getExcelFile1(
+  @UseBefore(schema(IGetWorkloadExcel1Query, 'query'))
+  async getWorkloadExcel1(
     @Res() res: Response,
-    @QueryParams() query: IGetExcelFile1Query
+    @QueryParams() query: IGetWorkloadExcel1Query
   ) {
-    const { teacher_id, academic_year, semester } = query
-
-    const teacher = await Teacher.findOne(teacher_id, {
-      relations: ['workloadList', 'workloadList.subject'],
-    })
-    if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
-
-    teacher.workloadList = teacher.workloadList.filter(
-      (workload) =>
-        workload.academicYear === academic_year &&
-        workload.semester === semester
-    )
-
-    const file = generateExcelFile1(res, academic_year, semester, teacher)
-    return file.sendFile(
-      `01-ภาระงาน ${semester}-${String(academic_year).substr(2, 2)} คอม-${
-        teacher.name
-      }`
-    )
+    const file = await generateWorkloadExcel1(res, query)
+    return file
   }
 
   @Post('/workload')

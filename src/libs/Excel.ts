@@ -82,9 +82,9 @@ export class Excel {
 
   /**
    * Send `.xlsx` file via `Express.js`
-   * @example excel.sendFile('workload-1')
+   * @example return excel.createFile('workload-1')
    */
-  public async sendFile(fileName: string) {
+  public async createFile(fileName: string) {
     this.response.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -186,7 +186,7 @@ export class Excel {
    */
   public align(
     x: ExcelJS.Alignment['horizontal'],
-    y: ExcelJS.Alignment['vertical'] = 'top'
+    y: ExcelJS.Alignment['vertical'] = 'middle'
   ) {
     this.alignX(x)
     this.alignY(y)
@@ -259,8 +259,8 @@ export class Excel {
    * Set formula of this cell BUT also have to give it a result
    * @example formula('SUM(A1:A5)', 96)
    */
-  public formula(expression: string, result: number) {
-    this.activeCell.value = { formula: expression, result } as any
+  public formula(expression: string) {
+    this.activeCell.value = { formula: expression } as ExcelJS.CellValue
   }
 
   // === Private methods ===

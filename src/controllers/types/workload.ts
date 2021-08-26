@@ -52,7 +52,7 @@ export class ICreateWorkload {
   fieldOfStudy: string
 }
 
-export class IGetExcelFile1Query {
+export class IGetWorkloadExcel1Query {
   @IsString()
   teacher_id: string
 
