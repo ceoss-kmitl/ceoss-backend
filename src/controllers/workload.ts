@@ -51,6 +51,7 @@ export class WorkloadController {
       academicYear,
       semester,
       isCompensated,
+      classYear,
     } = body
 
     const teacher = await Teacher.findOne(teacherId, {
@@ -75,6 +76,7 @@ export class WorkloadController {
     workload.academicYear = academicYear
     workload.semester = semester
     workload.isCompensated = isCompensated
+    workload.classYear = classYear
 
     teacher.workloadList.push(workload)
     await teacher.save()

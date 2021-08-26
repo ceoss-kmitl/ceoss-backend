@@ -3,6 +3,7 @@ import { Excel, PaperSize } from '@libs/Excel'
 import { IGetWorkloadExcel1Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
+import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel1(
@@ -163,6 +164,48 @@ export async function generateWorkloadExcel1(
   excel.cell('V20').border('bottom')
 
   // ===== Workload of teacher =====
+  excel.fontSize(13)
+  teacher.workloadList.forEach((workload) => {
+    const {
+      subject,
+      type,
+      section,
+      dayOfWeek,
+      startTimeSlot,
+      endTimeSlot,
+      classYear,
+      fieldOfStudy,
+    } = workload
+
+    const subjectType = {
+      [WorkloadType.Lecture]: '(ท)',
+      [WorkloadType.Lab]: '(ป)',
+    }
+
+    const row = 7 + (dayOfWeek - 1) * 2
+    let start = Excel.toAlphabet(3 + (startTimeSlot - 1))
+    let end = Excel.toAlphabet(3 + (endTimeSlot - 1))
+    // Remove 1 slot cause Lunch break have only 3 slot
+    if (Excel.toNumber(start) >= 20) {
+      start = Excel.toAlphabet(Excel.toNumber(start) - 1)
+    }
+    if (Excel.toNumber(end) >= 20) {
+      end = Excel.toAlphabet(Excel.toNumber(end) - 1)
+    }
+
+    excel
+      .cells(`${start}${row}:${end}${row}`)
+      .value(
+        `${subject.code} ${subjectType[type]} ปี ${classYear} ห้อง ${fieldOfStudy}/${section}`
+      )
+      .align('center')
+      .shrink()
+    excel
+      .cells(`${start}${row + 1}:${end}${row + 1}`)
+      .value(subject.name)
+      .align('center')
+      .shrink()
+  })
 
   // ===== Project table =====
   for (const col of [

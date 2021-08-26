@@ -50,6 +50,9 @@ export class ICreateWorkload {
 
   @IsString()
   fieldOfStudy: string
+
+  @IsNumber()
+  classYear: number
 }
 
 export class IGetWorkloadExcel1Query {

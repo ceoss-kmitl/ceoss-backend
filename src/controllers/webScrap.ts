@@ -53,6 +53,7 @@ export class WebScrapController {
           workload.academicYear = academicYear
           workload.semester = semester
           workload.fieldOfStudy = 'D'
+          workload.classYear = _classYear.classYear
 
           for (const _teacher of _section.teacherList) {
             const teacher = await Teacher.findByName(_teacher.name, {
@@ -153,6 +154,7 @@ export class WebScrapController {
           workload.academicYear = academicYear
           workload.semester = semester
           workload.fieldOfStudy = 'D'
+          workload.classYear = _classYear.classYear
 
           for (const _teacher of _section.teacherList) {
             let teacher = await Teacher.findByName(_teacher.name, {

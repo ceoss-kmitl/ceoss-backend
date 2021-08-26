@@ -263,6 +263,16 @@ export class Excel {
     this.activeCell.value = { formula: expression } as ExcelJS.CellValue
   }
 
+  /**
+   * Make this cell content scale-down to fit the width of cell
+   */
+  public shrink() {
+    this.activeCell.alignment = {
+      ...this.activeCell.alignment,
+      shrinkToFit: true,
+    }
+  }
+
   // === Private methods ===
 
   private borderTop(style: ExcelJS.BorderStyle = 'thin') {
