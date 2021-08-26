@@ -6,7 +6,7 @@ import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
-const NOT_CLAIM_SUBJECT = ['01076311']
+const NOT_CLAIM_SUBJECT = ['01076311', '01076014']
 
 export async function generateWorkloadExcel1(
   response: Response,
@@ -28,10 +28,22 @@ export async function generateWorkloadExcel1(
 
   // ===== Excel setup =====
   const excel = new Excel(response, {
-    pageSetup: { paperSize: PaperSize.A4 },
+    pageSetup: {
+      paperSize: PaperSize.A4,
+      orientation: 'landscape',
+      margins: {
+        top: 0.35,
+        bottom: 0.1,
+        left: 0.16,
+        right: 0,
+        header: 0.32,
+        footer: 0.32,
+      },
+    },
+    views: [{ style: 'pageLayout' }],
     properties: {
-      defaultColWidth: Excel.pxCol(16),
-      defaultRowHeight: Excel.pxRow(17),
+      defaultColWidth: Excel.pxCol(20),
+      defaultRowHeight: Excel.pxRow(23),
     },
   })
 

@@ -27,7 +27,7 @@ export class Excel {
    * Convert pixel into excel unit (Column)
    */
   static pxCol(pixel: number) {
-    return pixel * (1 / 6)
+    return pixel * (1 / 7.5)
   }
 
   /**
