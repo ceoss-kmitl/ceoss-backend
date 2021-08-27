@@ -273,6 +273,26 @@ export class Excel {
     }
   }
 
+  /**
+   * Set width of the active column
+   * @example width(Excel.pxCol(10))
+   */
+  public width(excelPx: number) {
+    const col = this.activeCell.col
+    this.sheet.getColumn(col).width = excelPx
+    return this
+  }
+
+  /**
+   * Set height of the active row
+   * @example height(Excel.pxRow(10))
+   */
+  public height(excelPx: number) {
+    const row = this.activeCell.fullAddress.row
+    this.sheet.getRow(row).height = excelPx
+    return this
+  }
+
   // === Private methods ===
 
   private borderTop(style: ExcelJS.BorderStyle = 'thin') {
