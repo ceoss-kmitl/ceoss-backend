@@ -13,9 +13,11 @@ import {
 import {
   ICreateWorkload,
   IGetWorkloadExcel1Query,
+  IGetWorkloadExcel2Query,
   ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
+import { generateWorkloadExcel2 } from '@controllers/templates/workloadExcel2'
 import { mapTimeToTimeSlot } from '@libs/mapper'
 import { schema } from '@middlewares/schema'
 import { DayOfWeek, Workload, WorkloadType } from '@models/workload'
@@ -33,6 +35,16 @@ export class WorkloadController {
     @QueryParams() query: IGetWorkloadExcel1Query
   ) {
     const file = await generateWorkloadExcel1(res, query)
+    return file
+  }
+
+  @Get('/workload/excel-2')
+  @UseBefore(schema(IGetWorkloadExcel2Query, 'query'))
+  async getWorkloadExcel2(
+    @Res() res: Response,
+    @QueryParams() query: IGetWorkloadExcel2Query
+  ) {
+    const file = await generateWorkloadExcel2(res, query)
     return file
   }
 

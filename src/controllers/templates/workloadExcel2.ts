@@ -21,7 +21,7 @@ export async function generateWorkloadExcel2(
       workload.academicYear === academic_year && workload.semester === semester
   )
 
-  const setting = await Setting.get()
+  //   const setting = await Setting.get()
 
   // ===== Excel setup =====
   const excel = new Excel(response, {
@@ -39,10 +39,30 @@ export async function generateWorkloadExcel2(
     },
     views: [{ style: 'pageLayout' }],
     properties: {
-      defaultColWidth: Excel.pxCol(20),
-      defaultRowHeight: Excel.pxRow(23),
+      defaultColWidth: Excel.pxCol(70),
+      defaultRowHeight: Excel.pxRow(28),
     },
   })
+
+  // ===== Title =====
+  excel.font('TH SarabunPSK').fontSize(16)
+  excel
+    .cells('A1:N1')
+    .value(
+      `บัญชีรายละเอียดวิชาสอน ประจำภาคเรียนที่ ${semester} ปีการศึกษา ${academic_year}`
+    )
+    .bold()
+    .align('center')
+  excel
+    .cells('A2:N2')
+    .value(`ภาควิชาวิศวกรรมคอมพิวเตอร์`)
+    .bold()
+    .align('center')
+  excel
+    .cells('A3:N3')
+    .value(`คณะวิศวกรรมศาสตร์ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง`)
+    .bold()
+    .align('center')
 
   return excel.createFile(
     `02_บัญชีรายละเอียด ${semester}-${String(academic_year).substr(
