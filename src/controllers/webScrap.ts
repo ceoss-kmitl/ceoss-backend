@@ -13,14 +13,21 @@ import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { NotFoundError } from '@errors/notFoundError'
 
+// REG example url
+// http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=2563&semester=1
+
 @JsonController()
 export class WebScrapController {
   @Get('/web-scrap')
   @UseBefore(schema(IWebScrapQuery, 'query'))
   async scrapDataFromRegKMITL(@QueryParams() query: IWebScrapQuery) {
     const { academic_year, semester } = query
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
-    const webScrap = new WebScrap(URL)
+    const setting = await Setting.get()
+
+    const rawUrl = setting.webScrapUrl.replace(/&year=\d+&semester=\d/g, '')
+    setting.webScrapUrl = `${rawUrl}&year=${academic_year}&semester=${semester}`
+
+    const webScrap = new WebScrap(setting.webScrapUrl)
     await webScrap.init()
     const data = await webScrap.extractData()
 
@@ -89,7 +96,6 @@ export class WebScrapController {
       throw new NotFoundError(`${subjectErrorString} && ${teacherErrorString}`)
     }
 
-    const setting = await Setting.get()
     const todayDate = new Date()
     setting.webScrapUpdatedDate = todayDate
 
