@@ -81,10 +81,10 @@ export class WebScrapController {
     const hasError = subjectErrorList.length || teacherErrorList.length
     if (hasError) {
       const subjectErrorString = `Subject not found: ${
-        subjectErrorList.join(', ') || '-'
+        [...new Set(subjectErrorList)].join(', ') || '-'
       }`
       const teacherErrorString = `Teacher not found: ${
-        teacherErrorList.join(', ') || '-'
+        [...new Set(teacherErrorList)].join(', ') || '-'
       }`
       throw new NotFoundError(`${subjectErrorString} && ${teacherErrorString}`)
     }
