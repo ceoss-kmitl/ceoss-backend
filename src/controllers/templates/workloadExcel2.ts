@@ -116,6 +116,12 @@ export async function generateWorkloadExcel2(
   for (let i = 4; i < 7; i++) {
     excel.cell(`D${row + i}`).border('left')
     excel.cell(`E${row + i}`).border('right')
+    excel.cell(`F${row + i}`).border('left')
+    excel.cell(`G${row + i}`).border('right')
+    excel.cell(`H${row + i}`).border('left')
+    excel.cell(`I${row + i}`).border('right')
+    excel.cell(`J${row + i}`).border('left')
+    excel.cell(`K${row + i}`).border('right')
   }
   excel
     .cells(`D${row + 7}:E${row + 7}`)
@@ -134,10 +140,6 @@ export async function generateWorkloadExcel2(
     .value(`2.ตรวจสอบความถูกต้องแล้ว`)
     .border('left', 'right', 'top')
     .align('center')
-  for (let i = 4; i < 7; i++) {
-    excel.cell(`F${row + i}`).border('left')
-    excel.cell(`G${row + i}`).border('right')
-  }
   excel
     .cells(`F${row + 7}:G${row + 7}`)
     .value(`(${setting.headName})`)
@@ -155,10 +157,6 @@ export async function generateWorkloadExcel2(
     .value(`3.ตรวจสอบความถูกต้องแล้ว`)
     .border('left', 'right', 'top')
     .align('center')
-  for (let i = 4; i < 7; i++) {
-    excel.cell(`H${row + i}`).border('left')
-    excel.cell(`I${row + i}`).border('right')
-  }
   excel
     .cells(`H${row + 7}:I${row + 7}`)
     .value(`(อ่าเอ่อ)`)
@@ -176,10 +174,6 @@ export async function generateWorkloadExcel2(
     .value(`4.อนุมัติ`)
     .border('left', 'right', 'top')
     .align('center')
-  for (let i = 4; i < 7; i++) {
-    excel.cell(`J${row + i}`).border('left')
-    excel.cell(`K${row + i}`).border('right')
-  }
   excel
     .cells(`J${row + 7}:K${row + 7}`)
     .value(`(${setting.deanName})`)
