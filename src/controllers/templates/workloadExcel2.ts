@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
 import { IGetWorkloadExcel2Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
-import { Setting } from '@models/setting'
+// import { Setting } from '@models/setting'
 import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel2(
@@ -39,7 +39,7 @@ export async function generateWorkloadExcel2(
     },
     views: [{ style: 'pageLayout' }],
     properties: {
-      defaultColWidth: Excel.pxCol(70),
+      defaultColWidth: Excel.pxCol(90),
       defaultRowHeight: Excel.pxRow(28),
     },
   })
@@ -47,21 +47,46 @@ export async function generateWorkloadExcel2(
   // ===== Title =====
   excel.font('TH SarabunPSK').fontSize(16)
   excel
-    .cells('A1:N1')
+    .cells('A1:M1')
     .value(
-      `บัญชีรายละเอียดวิชาสอน ประจำภาคเรียนที่ ${semester} ปีการศึกษา ${academic_year}`
+      `บัญชีรายละเอียดวิชาสอน ประจำภาคเรียนที่ ${semester}/${academic_year}`
     )
     .bold()
     .align('center')
   excel
-    .cells('A2:N2')
+    .cells('A2:M2')
     .value(`ภาควิชาวิศวกรรมคอมพิวเตอร์`)
     .bold()
     .align('center')
   excel
-    .cells('A3:N3')
+    .cells('A3:M3')
     .value(`คณะวิศวกรรมศาสตร์ สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง`)
     .bold()
+    .align('center')
+
+  // ===== header ====
+  excel.fontSize(16)
+  excel.cells('A5:B6').value(`ชื่อผู้สอน`).bold().border('box').align('center')
+  excel.cells('C5:I6').value(`วิชาที่สอน`).bold().border('box').align('center')
+  excel
+    .cells('J5:K6')
+    .value(`ชั้นปีที่สอน/กลุ่ม`)
+    .bold()
+    .border('box')
+    .align('center')
+  excel.cell('L5').value(`อัตรา`).bold().border('top').align('center')
+  excel.cell('L6').value(`ค่าสอน/ช.ม.`).bold().border('bottom').align('center')
+  excel
+    .cell('M5')
+    .value(`จำนวน ชม.`)
+    .bold()
+    .border('left', 'right', 'top')
+    .align('center')
+  excel
+    .cell('M6')
+    .value(`ที่สอน/สัปดาห์`)
+    .bold()
+    .border('left', 'right', 'bottom')
     .align('center')
 
   return excel.createFile(
