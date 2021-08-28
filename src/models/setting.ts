@@ -39,7 +39,7 @@ export class Setting extends BaseEntity {
     setting.normalClaimLimit = 0
     setting.interClaimLimit = 0
     setting.webScrapUrl =
-      'http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=2563&semester=1'
+      'http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=0&semester=0'
     setting.webScrapUpdatedDate = new Date()
 
     await setting.save()
