@@ -39,7 +39,9 @@ export class Setting extends BaseEntity {
     const setting = new Setting()
     setting.id = 'CE'
     setting.deanName = ''
+    setting.viceDeanName = ''
     setting.headName = ''
+    setting.directorSIIEName = ''
     setting.lecturePayRate = 0
     setting.labPayRate = 0
     setting.normalClaimLimit = 0
