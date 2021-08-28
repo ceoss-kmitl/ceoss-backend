@@ -16,7 +16,9 @@ export class SettingController {
   async editSetting(@Body() body: IEditSetting) {
     const {
       deanName,
+      viceDeanName,
       headName,
+      directorSIIEName,
       lecturePayRate,
       labPayRate,
       normalClaimLimit,
@@ -26,7 +28,9 @@ export class SettingController {
 
     const setting = await Setting.get()
     setting.deanName = deanName ?? setting.deanName
+    setting.viceDeanName = viceDeanName ?? setting.viceDeanName
     setting.headName = headName ?? setting.headName
+    setting.directorSIIEName = directorSIIEName ?? setting.directorSIIEName
     setting.lecturePayRate = lecturePayRate ?? setting.lecturePayRate
     setting.labPayRate = labPayRate ?? setting.labPayRate
     setting.normalClaimLimit = normalClaimLimit ?? setting.normalClaimLimit
