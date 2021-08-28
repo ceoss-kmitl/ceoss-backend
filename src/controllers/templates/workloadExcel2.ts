@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
 import { IGetWorkloadExcel2Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
-// import { Setting } from '@models/setting'
+import { Setting } from '@models/setting'
 import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel2(
@@ -21,7 +21,7 @@ export async function generateWorkloadExcel2(
       workload.academicYear === academic_year && workload.semester === semester
   )
 
-  //   const setting = await Setting.get()
+  const setting = await Setting.get()
 
   // ===== Excel setup =====
   const excel = new Excel(response, {
@@ -86,6 +86,108 @@ export async function generateWorkloadExcel2(
     .cell('M6')
     .value(`ที่สอน/สัปดาห์`)
     .bold()
+    .border('left', 'right', 'bottom')
+    .align('center')
+
+  // ===== Teacher column =====
+  excel.fontSize(15.5)
+  excel
+    .cells('A7:B7')
+    .value(`${teacher.title}${teacher.name}`)
+    .border('left', 'right')
+    .align('center')
+
+  const row = 20
+  excel
+    .cells(`A${row + 1}:L${row + 1}`)
+    .value(`รวมจำนวนชม.ที่สอนทั้งหมด/สัปดาห์`)
+    .border('top')
+    .align('right')
+
+  // ===== Sign area =====
+  excel.fontSize(15.5)
+
+  // ===== Sign area Teacher =====
+  excel
+    .cells(`D${row + 3}:E${row + 3}`)
+    .value(`1.ตรวจสอบความถูกต้องแล้ว`)
+    .border('left', 'right', 'top')
+    .align('center')
+  for (let i = 4; i < 7; i++) {
+    excel.cell(`D${row + i}`).border('left')
+    excel.cell(`E${row + i}`).border('right')
+  }
+  excel
+    .cells(`D${row + 7}:E${row + 7}`)
+    .value(`(${teacher.title}${teacher.name})`)
+    .border('left', 'right')
+    .align('center')
+  excel
+    .cells(`D${row + 8}:E${row + 8}`)
+    .value(`ผู้จัดทำ/ผู้สอน`)
+    .border('left', 'right', 'bottom')
+    .align('center')
+
+  // ===== Sign area Head =====
+  excel
+    .cells(`F${row + 3}:G${row + 3}`)
+    .value(`2.ตรวจสอบความถูกต้องแล้ว`)
+    .border('left', 'right', 'top')
+    .align('center')
+  for (let i = 4; i < 7; i++) {
+    excel.cell(`F${row + i}`).border('left')
+    excel.cell(`G${row + i}`).border('right')
+  }
+  excel
+    .cells(`F${row + 7}:G${row + 7}`)
+    .value(`(${setting.headName})`)
+    .border('left', 'right')
+    .align('center')
+  excel
+    .cells(`F${row + 8}:G${row + 8}`)
+    .value(`หัวหน้าภาค`)
+    .border('left', 'right', 'bottom')
+    .align('center')
+
+  // ===== Sign area sub dean =====
+  excel
+    .cells(`H${row + 3}:I${row + 3}`)
+    .value(`3.ตรวจสอบความถูกต้องแล้ว`)
+    .border('left', 'right', 'top')
+    .align('center')
+  for (let i = 4; i < 7; i++) {
+    excel.cell(`H${row + i}`).border('left')
+    excel.cell(`I${row + i}`).border('right')
+  }
+  excel
+    .cells(`H${row + 7}:I${row + 7}`)
+    .value(`(อ่าเอ่อ)`)
+    .border('left', 'right')
+    .align('center')
+  excel
+    .cells(`H${row + 8}:I${row + 8}`)
+    .value(`รองคณบดี/ผู้ตรวจ`)
+    .border('left', 'right', 'bottom')
+    .align('center')
+
+  // ===== Sign area dean =====
+  excel
+    .cells(`J${row + 3}:K${row + 3}`)
+    .value(`4.อนุมัติ`)
+    .border('left', 'right', 'top')
+    .align('center')
+  for (let i = 4; i < 7; i++) {
+    excel.cell(`J${row + i}`).border('left')
+    excel.cell(`K${row + i}`).border('right')
+  }
+  excel
+    .cells(`J${row + 7}:K${row + 7}`)
+    .value(`(${setting.deanName})`)
+    .border('left', 'right')
+    .align('center')
+  excel
+    .cells(`J${row + 8}:K${row + 8}`)
+    .value(`คณบดีคณะวิศวกรรมศาสตร์`)
     .border('left', 'right', 'bottom')
     .align('center')
 
