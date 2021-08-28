@@ -7,7 +7,15 @@ export class IEditSetting {
 
   @IsString()
   @IsOptional()
+  viceDeanName: string
+
+  @IsString()
+  @IsOptional()
   headName: string
+
+  @IsString()
+  @IsOptional()
+  directorSIIEName: string
 
   @IsNumber()
   @IsOptional()

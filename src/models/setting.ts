@@ -9,7 +9,13 @@ export class Setting extends BaseEntity {
   deanName: string
 
   @Column()
+  viceDeanName: string
+
+  @Column()
   headName: string
+
+  @Column()
+  directorSIIEName: string
 
   @Column()
   lecturePayRate: number
