@@ -7,6 +7,8 @@ export class Excel {
   private workbook: ExcelJS.Workbook
   private sheet: ExcelJS.Worksheet
   private activeCell: ExcelJS.Cell
+  private activeFontFamily: string
+  private activeFontSize: number
   private response: Response
 
   constructor(
@@ -17,13 +19,15 @@ export class Excel {
     this.workbook = new ExcelJS.Workbook()
     this.sheet = this.workbook.addWorksheet('sheet1', sheetOptions)
     this.activeCell = this.sheet.getCell('A1')
+    this.activeFontFamily = 'TH SarabunPSK'
+    this.activeFontSize = 16
   }
 
   /**
    * Convert pixel into excel unit (Column)
    */
   static pxCol(pixel: number) {
-    return pixel * (1 / 6)
+    return pixel * (1 / 7.5)
   }
 
   /**
@@ -34,17 +38,60 @@ export class Excel {
   }
 
   /**
-   * Send `.xlsx` file via `Express.js`
-   * @example excel.sendFile('workload-1')
+   * Convert number to Excel alphabet
+   * ex. 0=A, 1=B, 26=AA
    */
-  public async sendFile(fileName: string) {
+  static toAlphabet(numeric: number) {
+    let alpha = ''
+    while (numeric > -1) {
+      alpha = String.fromCharCode(65 + (numeric % 26)) + alpha
+      numeric = Math.floor(numeric / 26) - 1
+    }
+    return alpha
+  }
+
+  /**
+   * Convert Excel alphabet to number
+   * ex. A=0, B=1, AA=26
+   */
+  static toNumber(alphabet: string) {
+    let numeric = 0
+    let multiplier = 1
+    for (let i = alphabet.length - 1; i >= 0; i--) {
+      numeric += (alphabet.charCodeAt(i) - 64) * multiplier
+      multiplier *= 26
+    }
+    return numeric - 1
+  }
+
+  /**
+   * Generate Excel alphabet array
+   * from `start` to `end`
+   * @example Excel.range('A:D') => ['A','B','C','D']
+   */
+  static range(alphabet: string) {
+    const [start, end] = alphabet.split(':')
+    const result: string[] = []
+    for (let i = this.toNumber(start); i <= this.toNumber(end); i++) {
+      result.push(this.toAlphabet(i))
+    }
+    return result
+  }
+
+  // === Public methods ===
+
+  /**
+   * Send `.xlsx` file via `Express.js`
+   * @example return excel.createFile('workload-1')
+   */
+  public async createFile(fileName: string) {
     this.response.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     this.response.setHeader(
       'Content-Disposition',
-      `attachment; filename=${fileName}.xlsx`
+      `attachment; filename=${encodeURI(fileName)}.xlsx`
     )
     await this.workbook.xlsx.write(this.response)
     this.response.end()
@@ -57,14 +104,20 @@ export class Excel {
    */
   public cell(id: string) {
     this.activeCell = this.sheet.getCell(id)
+    this.activeCell.font = {
+      ...this.activeCell.font,
+      name: this.activeFontFamily,
+      size: this.activeFontSize,
+    }
     return this
   }
 
   /**
    * Get merged cell in worksheet
-   * @example cells('A1', 'B4')
+   * @example cells('A1:B4')
    */
-  public cells(topLeftId: string, bottomRightId: string) {
+  public cells(twoId: string) {
+    const [topLeftId, bottomRightId] = twoId.split(':')
     this.sheet.mergeCells(topLeftId, bottomRightId)
     this.cell(topLeftId)
     return this
@@ -133,7 +186,7 @@ export class Excel {
    */
   public align(
     x: ExcelJS.Alignment['horizontal'],
-    y: ExcelJS.Alignment['vertical'] = 'top'
+    y: ExcelJS.Alignment['vertical'] = 'middle'
   ) {
     this.alignX(x)
     this.alignY(y)
@@ -189,10 +242,7 @@ export class Excel {
    * @example fontSize(16)
    */
   public fontSize(size: number) {
-    this.activeCell.font = {
-      ...this.activeCell.font,
-      size,
-    }
+    this.activeFontSize = size
     return this
   }
 
@@ -201,10 +251,45 @@ export class Excel {
    * @example font('TH Sarabun New')
    */
   public font(fontName: string) {
-    this.activeCell.font = {
-      ...this.activeCell.font,
-      name: fontName,
+    this.activeFontFamily = fontName
+    return this
+  }
+
+  /**
+   * Set formula of this cell BUT also have to give it a result
+   * @example formula('SUM(A1:A5)', 96)
+   */
+  public formula(expression: string) {
+    this.activeCell.value = { formula: expression } as ExcelJS.CellValue
+  }
+
+  /**
+   * Make this cell content scale-down to fit the width of cell
+   */
+  public shrink() {
+    this.activeCell.alignment = {
+      ...this.activeCell.alignment,
+      shrinkToFit: true,
     }
+  }
+
+  /**
+   * Set width of the active column
+   * @example width(Excel.pxCol(10))
+   */
+  public width(excelPx: number) {
+    const col = this.activeCell.col
+    this.sheet.getColumn(col).width = excelPx
+    return this
+  }
+
+  /**
+   * Set height of the active row
+   * @example height(Excel.pxRow(10))
+   */
+  public height(excelPx: number) {
+    const row = this.activeCell.fullAddress.row
+    this.sheet.getRow(row).height = excelPx
     return this
   }
 

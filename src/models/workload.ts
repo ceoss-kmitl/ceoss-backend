@@ -70,6 +70,12 @@ export class Workload extends BaseEntity {
   @Column()
   semester: number
 
+  @Column()
+  fieldOfStudy: string
+
+  @Column({ name: 'class_year' })
+  classYear: number
+
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)

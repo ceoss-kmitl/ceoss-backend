@@ -12,11 +12,9 @@ import {
 import {
   ICreateTeacher,
   IEditTeacher,
-  ITeacherWorkloadQuery,
   IGetTeacherQuery,
 } from '@controllers/types/teacher'
 
-import { DayOfWeek, WorkloadType } from '@models/workload'
 import { Teacher } from '@models/teacher'
 import { schema } from '@middlewares/schema'
 import { NotFoundError } from '@errors/notFoundError'
@@ -74,62 +72,5 @@ export class TeacherController {
 
     await teacher.remove()
     return 'Deleted'
-  }
-
-  @Get('/teacher/:id/workload')
-  @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
-  async getWorkloadByTeacherId(
-    @Param('id') id: string,
-    @QueryParams() query: ITeacherWorkloadQuery
-  ) {
-    const teacher = await Teacher.findOne(id, {
-      relations: ['workloadList', 'workloadList.subject'],
-    })
-    if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
-
-    teacher.workloadList = teacher.workloadList.filter(
-      (workload) =>
-        workload.academicYear === query.academic_year &&
-        workload.semester === query.semester
-    )
-
-    const result = [] as {
-      dayInWeek: DayOfWeek
-      subjectList: {
-        id: string
-        workloadId: string
-        code: string
-        name: string
-        section: number
-        startSlot: number
-        endSlot: number
-        type: WorkloadType
-      }[]
-    }[]
-
-    for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
-      result.push({
-        dayInWeek: day,
-        subjectList: [],
-      })
-    }
-
-    teacher.workloadList.forEach((workload) => {
-      const thatDay = result[workload.dayOfWeek - 1]
-      const { subject } = workload
-
-      thatDay.subjectList.push({
-        id: subject.id,
-        code: subject.code,
-        name: subject.name,
-        section: workload.section,
-        startSlot: workload.startTimeSlot,
-        endSlot: workload.endTimeSlot,
-        type: workload.type,
-        workloadId: workload.id,
-      })
-    })
-
-    return result
   }
 }
