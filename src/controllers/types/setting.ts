@@ -19,11 +19,27 @@ export class IEditSetting {
 
   @IsNumber()
   @IsOptional()
-  lecturePayRate: number
+  lecturePayRateNormal: number
 
   @IsNumber()
   @IsOptional()
-  labPayRate: number
+  labPayRateNormal: number
+
+  @IsNumber()
+  @IsOptional()
+  lecturePayRateInter: number
+
+  @IsNumber()
+  @IsOptional()
+  labPayRateInter: number
+
+  @IsNumber()
+  @IsOptional()
+  lecturePayRateExternal: number
+
+  @IsNumber()
+  @IsOptional()
+  labPayRateExternal: number
 
   @IsNumber()
   @IsOptional()

@@ -19,8 +19,12 @@ export class SettingController {
       viceDeanName,
       headName,
       directorSIIEName,
-      lecturePayRate,
-      labPayRate,
+      lecturePayRateNormal,
+      labPayRateNormal,
+      lecturePayRateInter,
+      labPayRateInter,
+      lecturePayRateExternal,
+      labPayRateExternal,
       normalClaimLimit,
       interClaimLimit,
       webScrapUrl,
@@ -31,8 +35,16 @@ export class SettingController {
     setting.viceDeanName = viceDeanName ?? setting.viceDeanName
     setting.headName = headName ?? setting.headName
     setting.directorSIIEName = directorSIIEName ?? setting.directorSIIEName
-    setting.lecturePayRate = lecturePayRate ?? setting.lecturePayRate
-    setting.labPayRate = labPayRate ?? setting.labPayRate
+    setting.lecturePayRateNormal =
+      lecturePayRateNormal ?? setting.lecturePayRateNormal
+    setting.labPayRateNormal = labPayRateNormal ?? setting.labPayRateNormal
+    setting.lecturePayRateInter =
+      lecturePayRateInter ?? setting.lecturePayRateInter
+    setting.labPayRateInter = labPayRateInter ?? setting.labPayRateInter
+    setting.lecturePayRateExternal =
+      lecturePayRateExternal ?? setting.lecturePayRateExternal
+    setting.labPayRateExternal =
+      labPayRateExternal ?? setting.labPayRateExternal
     setting.normalClaimLimit = normalClaimLimit ?? setting.normalClaimLimit
     setting.interClaimLimit = interClaimLimit ?? setting.interClaimLimit
     setting.webScrapUrl = webScrapUrl ?? setting.webScrapUrl
