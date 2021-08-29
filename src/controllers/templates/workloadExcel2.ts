@@ -3,7 +3,10 @@ import { Excel, PaperSize } from '@libs/Excel'
 import { IGetWorkloadExcel2Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
+import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
+
+const NOT_CLAIM_SUBJECT = ['']
 
 export async function generateWorkloadExcel2(
   response: Response,
@@ -97,6 +100,56 @@ export async function generateWorkloadExcel2(
     .border('left', 'right')
     .align('center')
 
+  // ===== workload =====
+  teacher.workloadList.forEach((workload) => {
+    const { subject, type, section, classYear, fieldOfStudy } = workload
+
+    const subjectType = {
+      [WorkloadType.Lecture]: '(ท)',
+      [WorkloadType.Lab]: '(ป)',
+    }
+
+    // ===== Subject column =====
+    // question about not claim
+    // how to print subject in each row still don't know
+    excel
+      .cells(`C7:I7`)
+      .value(
+        ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
+          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+        }`
+      )
+      .border('right', 'left')
+      .align('left')
+
+    // ===== class year/section column =====
+    excel
+      .cells(`J7:K7`)
+      .value(`${classYear}${fieldOfStudy}/${section}`)
+      .border('right', 'left')
+      .align('center')
+
+    // ===== pay rate column =====
+    // check not claim subject, subjectType and curriculum for get pay rate
+    excel
+      .cell(`L7`)
+      .value(
+        `${
+          NOT_CLAIM_SUBJECT.includes(subject.code)
+            ? '-'
+            : `${setting.lecturePayRate}`
+        }`
+      )
+      .border('right')
+      .align('right')
+
+    // ===== hour column =====
+    // check subjectType for get hour
+    excel.cell(`M7`).value(`${subject.credit}`).border('right').align('right')
+  })
+
+  // ===== summary =====
+  // still can't calculate
   const row = 20
   excel
     .cells(`A${row + 1}:L${row + 1}`)
@@ -104,8 +157,11 @@ export async function generateWorkloadExcel2(
     .border('top')
     .align('right')
 
-  // ===== Sign area =====
-  excel.fontSize(15.5)
+  excel
+    .cells(`M${row + 1}`)
+    .value(`ชั่วโมงรวม`)
+    .border('box')
+    .align('right')
 
   // ===== Sign area Teacher =====
   excel
