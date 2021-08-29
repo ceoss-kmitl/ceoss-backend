@@ -18,10 +18,22 @@ export class Setting extends BaseEntity {
   directorSIIEName: string
 
   @Column()
-  lecturePayRate: number
+  lecturePayRateNormal: number
 
   @Column()
-  labPayRate: number
+  labPayRateNormal: number
+
+  @Column()
+  lecturePayRateInter: number
+
+  @Column()
+  labPayRateInter: number
+
+  @Column()
+  lecturePayRateExternal: number
+
+  @Column()
+  labPayRateExternal: number
 
   @Column()
   normalClaimLimit: number
@@ -42,8 +54,12 @@ export class Setting extends BaseEntity {
     setting.viceDeanName = ''
     setting.headName = ''
     setting.directorSIIEName = ''
-    setting.lecturePayRate = 0
-    setting.labPayRate = 0
+    setting.lecturePayRateNormal = 0
+    setting.labPayRateNormal = 0
+    setting.lecturePayRateInter = 0
+    setting.labPayRateInter = 0
+    setting.lecturePayRateExternal = 0
+    setting.labPayRateExternal = 0
     setting.normalClaimLimit = 0
     setting.interClaimLimit = 0
     setting.webScrapUrl =
