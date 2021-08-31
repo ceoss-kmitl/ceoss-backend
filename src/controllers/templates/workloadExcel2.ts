@@ -109,67 +109,74 @@ export async function generateWorkloadExcel2(
       [WorkloadType.Lab]: '(ป)',
     }
 
+    for (let index = 0; index < teacher.workloadList.length - 1; index++) {
+      excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
+    }
+
     // ===== Subject column =====
-    // question about not claim
-    // how to print subject in each row still don't know
-    excel
-      .cells(`C7:I7`)
-      .value(
-        ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
-          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
-        }`
-      )
-      .border('right', 'left')
-      .align('left')
+    for (let index = 0; index < teacher.workloadList.length; index++) {
+      excel
+        .cells(`C${7 + index}:I${7 + index}`)
+        .value(
+          ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
+            NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+          }`
+        )
+        .border('right', 'left')
+        .align('left')
 
-    // ===== class year/section column =====
-    excel
-      .cells(`J7:K7`)
-      .value(`${classYear}${fieldOfStudy}/${section}`)
-      .border('right', 'left')
-      .align('center')
+      excel
+        .cells(`J${7 + index}:K${7 + index}`)
+        .value(`${classYear}${fieldOfStudy}/${section}`)
+        .border('right', 'left')
+        .align('center')
 
-    // ===== pay rate column =====
-    // check not claim subject, subjectType and curriculum for get pay rate
-    excel
-      .cell(`L7`)
-      .value(
-        `${
-          NOT_CLAIM_SUBJECT.includes(subject.code)
-            ? '-'
-            : `${setting.lecturePayRate}`
-        }`
-      )
-      .border('right')
-      .align('right')
+      excel
+        .cell(`L${7 + index}`)
+        .value(
+          `${
+            NOT_CLAIM_SUBJECT.includes(subject.code)
+              ? '-'
+              : `${setting.lecturePayRateNormal}`
+          }`
+        )
+        .border('right')
+        .align('right')
 
-    // ===== hour column =====
-    // check subjectType for get hour
-    excel.cell(`M7`).value(`${subject.credit}`).border('right').align('right')
+      excel
+        .cell(`M${7 + index}`)
+        .value(`${subject.credit}`)
+        .border('right')
+        .align('right')
+    }
   })
 
-  // ===== summary =====
-  // still can't calculate
-  const row = 20
+  let row = teacher.workloadList.length + 7
+  if (row < 18) {
+    for (row; row < 18; row++) {
+      excel.cells(`A${row}:B${row}`).border('right', 'left')
+      excel.cells(`C${row}:I${row}`).border('right')
+      excel.cells(`J${row}:K${row}`).border('right')
+      excel.cell(`L${row}`).border('right')
+      excel.cell(`M${row}`).border('right')
+    }
+  }
+
   excel
-    .cells(`A${row + 1}:L${row + 1}`)
+    .cells(`A${row}:L${row}`)
     .value(`รวมจำนวนชม.ที่สอนทั้งหมด/สัปดาห์`)
     .border('top')
     .align('right')
 
-  excel
-    .cells(`M${row + 1}`)
-    .value(`ชั่วโมงรวม`)
-    .border('box')
-    .align('right')
+  excel.cell(`M${row}`).value(`ชั่วโมงรวม`).border('box').align('right')
 
   // ===== Sign area Teacher =====
   excel
-    .cells(`D${row + 3}:E${row + 3}`)
+    .cells(`D${row + 2}:E${row + 2}`)
     .value(`1.ตรวจสอบความถูกต้องแล้ว`)
     .border('left', 'right', 'top')
     .align('center')
-  for (let i = 4; i < 7; i++) {
+  for (let i = 3; i < 6; i++) {
     excel.cell(`D${row + i}`).border('left')
     excel.cell(`E${row + i}`).border('right')
     excel.cell(`F${row + i}`).border('left')
@@ -180,63 +187,64 @@ export async function generateWorkloadExcel2(
     excel.cell(`K${row + i}`).border('right')
   }
   excel
-    .cells(`D${row + 7}:E${row + 7}`)
+    .cells(`D${row + 6}:E${row + 6}`)
     .value(`(${teacher.title}${teacher.name})`)
     .border('left', 'right')
     .align('center')
   excel
-    .cells(`D${row + 8}:E${row + 8}`)
+    .cells(`D${row + 7}:E${row + 7}`)
     .value(`ผู้จัดทำ/ผู้สอน`)
     .border('left', 'right', 'bottom')
     .align('center')
 
   // ===== Sign area Head =====
   excel
-    .cells(`F${row + 3}:G${row + 3}`)
+    .cells(`F${row + 2}:G${row + 2}`)
     .value(`2.ตรวจสอบความถูกต้องแล้ว`)
     .border('left', 'right', 'top')
     .align('center')
   excel
-    .cells(`F${row + 7}:G${row + 7}`)
+    .cells(`F${row + 6}:G${row + 6}`)
     .value(`(${setting.headName})`)
     .border('left', 'right')
     .align('center')
   excel
-    .cells(`F${row + 8}:G${row + 8}`)
+    .cells(`F${row + 7}:G${row + 7}`)
     .value(`หัวหน้าภาค`)
     .border('left', 'right', 'bottom')
     .align('center')
 
   // ===== Sign area sub dean =====
+  // ===== Add condition =====
   excel
-    .cells(`H${row + 3}:I${row + 3}`)
+    .cells(`H${row + 2}:I${row + 2}`)
     .value(`3.ตรวจสอบความถูกต้องแล้ว`)
     .border('left', 'right', 'top')
     .align('center')
   excel
-    .cells(`H${row + 7}:I${row + 7}`)
+    .cells(`H${row + 6}:I${row + 6}`)
     .value(`(อ่าเอ่อ)`)
     .border('left', 'right')
     .align('center')
   excel
-    .cells(`H${row + 8}:I${row + 8}`)
+    .cells(`H${row + 7}:I${row + 7}`)
     .value(`รองคณบดี/ผู้ตรวจ`)
     .border('left', 'right', 'bottom')
     .align('center')
 
   // ===== Sign area dean =====
   excel
-    .cells(`J${row + 3}:K${row + 3}`)
+    .cells(`J${row + 2}:K${row + 2}`)
     .value(`4.อนุมัติ`)
     .border('left', 'right', 'top')
     .align('center')
   excel
-    .cells(`J${row + 7}:K${row + 7}`)
+    .cells(`J${row + 6}:K${row + 6}`)
     .value(`(${setting.deanName})`)
     .border('left', 'right')
     .align('center')
   excel
-    .cells(`J${row + 8}:K${row + 8}`)
+    .cells(`J${row + 7}:K${row + 7}`)
     .value(`คณบดีคณะวิศวกรรมศาสตร์`)
     .border('left', 'right', 'bottom')
     .align('center')
