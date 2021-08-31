@@ -7,15 +7,39 @@ export class IEditSetting {
 
   @IsString()
   @IsOptional()
+  viceDeanName: string
+
+  @IsString()
+  @IsOptional()
   headName: string
 
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  lecturePayRate: number
+  directorSIIEName: string
 
   @IsNumber()
   @IsOptional()
-  labPayRate: number
+  lecturePayRateNormal: number
+
+  @IsNumber()
+  @IsOptional()
+  labPayRateNormal: number
+
+  @IsNumber()
+  @IsOptional()
+  lecturePayRateInter: number
+
+  @IsNumber()
+  @IsOptional()
+  labPayRateInter: number
+
+  @IsNumber()
+  @IsOptional()
+  lecturePayRateExternal: number
+
+  @IsNumber()
+  @IsOptional()
+  labPayRateExternal: number
 
   @IsNumber()
   @IsOptional()
