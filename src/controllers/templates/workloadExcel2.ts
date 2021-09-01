@@ -8,6 +8,8 @@ import { NotFoundError } from '@errors/notFoundError'
 
 const NOT_CLAIM_SUBJECT = ['']
 
+// inter 01006(FE) 01266(CIE) 13016(SE)
+
 export async function generateWorkloadExcel2(
   response: Response,
   query: IGetWorkloadExcel2Query
@@ -145,7 +147,9 @@ export async function generateWorkloadExcel2(
 
       excel
         .cell(`M${7 + index}`)
-        .value(`${subject.credit}`)
+        .value(
+          `${type == 'LAB' ? `${subject.labHours}` : `${subject.lectureHours}`}`
+        )
         .border('right')
         .align('right')
     }
@@ -223,7 +227,7 @@ export async function generateWorkloadExcel2(
     .align('center')
   excel
     .cells(`H${row + 6}:I${row + 6}`)
-    .value(`(อ่าเอ่อ)`)
+    .value(`(${setting.viceDeanName})`)
     .border('left', 'right')
     .align('center')
   excel
