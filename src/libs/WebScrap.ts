@@ -18,7 +18,7 @@ export class WebScrap {
     this.$ = Cheerio.load(this.html)
   }
 
-  async extractData() {
+  extractData() {
     const $ = this.$
     const tableList = $('table.hoverTable')
     const result: IWebScrapData[] = tableList.toArray().map((table, index) => {
