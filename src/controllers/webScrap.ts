@@ -256,10 +256,12 @@ export class WebScrapController {
 
   // TODO: Remove this when go on production
   @Get('/web-scrap/not-save')
-  async scrapDataFromRegKMITLNotSaveToDatabase() {
-    const academicYear = 2563
-    const semester = 1
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academicYear}&semester=${semester}`
+  @UseBefore(schema(IWebScrapQuery, 'query'))
+  async scrapDataFromRegKMITLNotSaveToDatabase(
+    @QueryParams() query: IWebScrapQuery
+  ) {
+    const { academic_year, semester } = query
+    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
     const webScrap = new WebScrap(URL)
     await webScrap.init()
     const data = webScrap.extractData()
