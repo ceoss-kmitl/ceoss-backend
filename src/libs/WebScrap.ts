@@ -53,8 +53,11 @@ export class WebScrap {
             teacherList: this.extractTeacherInfo(
               $(columnList[16]).text().trim()
             ),
-            time: $(columnList[10]).text().trim(),
-            ...this.extractTimeAndType($(columnList[10]).text().trim()),
+            // Split for removing แสดงวันวัน-เวลาเรียนทั้งหมด
+            time: $(columnList[10]).text().trim().split('\n')[0],
+            ...this.extractTimeAndType(
+              $(columnList[10]).text().trim().split('\n')[0]
+            ),
           })
         })
 
