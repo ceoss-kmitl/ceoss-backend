@@ -56,30 +56,26 @@ export class WebScrapController {
             }
 
             // Step 3: Update or create new workload with the data
+            const workloadTimeList = _section.timeSlotList.map(
+              ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+            )
+
             const workload =
               (await Workload.findOne({
-                relations: ['subject', 'timeList', 'timeList.startSlot'],
+                relations: ['subject', 'timeList'],
                 where: {
                   academicYear: academic_year,
                   semester,
                   subject: { id: subject.id },
                   section: _section.section,
                   dayOfWeek: _section.dayOfWeek,
-                  timeList: { startSlot: _section.timeSlotList[0].startSlot },
                 },
               })) || new Workload()
             workload.subject = subject
             workload.section = _section.section
             workload.type = _section.subjectType
             workload.dayOfWeek = _section.dayOfWeek
-            workload.timeList = _section.timeSlotList.map(
-              ({ startSlot, endSlot }) => {
-                const time = new Time()
-                time.startSlot = startSlot
-                time.endSlot = endSlot
-                return time
-              }
-            )
+            workload.timeList = workloadTimeList
             workload.isCompensated = workload.isCompensated ?? false
             workload.academicYear = academic_year
             workload.semester = semester
@@ -151,30 +147,26 @@ export class WebScrapController {
             subject.isRequired = true
           }
 
+          const workloadTimeList = _section.timeSlotList.map(
+            ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+          )
+
           const workload =
             (await Workload.findOne({
-              relations: ['subject'],
+              relations: ['subject', 'timeList'],
               where: {
                 academicYear: academic_year,
                 semester,
                 subject: { id: subject.id },
                 section: _section.section,
                 dayOfWeek: _section.dayOfWeek,
-                timeList: { startSlot: _section.timeSlotList[0].startSlot },
               },
             })) || new Workload()
           workload.subject = subject
           workload.section = _section.section
           workload.type = _section.subjectType
           workload.dayOfWeek = _section.dayOfWeek
-          workload.timeList = _section.timeSlotList.map(
-            ({ startSlot, endSlot }) => {
-              const time = new Time()
-              time.startSlot = startSlot
-              time.endSlot = endSlot
-              return time
-            }
-          )
+          workload.timeList = workloadTimeList
           workload.isCompensated = false
           workload.academicYear = academic_year
           workload.semester = semester

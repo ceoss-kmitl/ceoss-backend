@@ -124,6 +124,13 @@ export class WorkloadController {
 
     const room = await Room.findOne({ where: { id: roomId } })
 
+    const workloadTimeList = timeList.map(({ startTime, endTime }) =>
+      Time.create({
+        startSlot: mapTimeToTimeSlot(startTime),
+        endSlot: mapTimeToTimeSlot(endTime) - 1,
+      })
+    )
+
     const workload = new Workload()
     workload.subject = subject
     workload.room = room as any
@@ -131,12 +138,7 @@ export class WorkloadController {
     workload.fieldOfStudy = fieldOfStudy
     workload.section = section
     workload.dayOfWeek = dayOfWeek
-    workload.timeList = timeList.map(({ startTime, endTime }) => {
-      const time = new Time()
-      time.startSlot = mapTimeToTimeSlot(startTime)
-      time.endSlot = mapTimeToTimeSlot(endTime) - 1
-      return time
-    })
+    workload.timeList = workloadTimeList
     workload.academicYear = academicYear
     workload.semester = semester
     workload.isCompensated = isCompensated
