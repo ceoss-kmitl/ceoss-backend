@@ -5,11 +5,13 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
+import { Time } from '@models/time'
 
 export enum WorkloadType {
   Lecture = 'LECTURE',
@@ -46,16 +48,8 @@ export class Workload extends BaseEntity {
   @Column({ type: 'enum', enum: DayOfWeek, name: 'day_of_week' })
   dayOfWeek: DayOfWeek
 
-  /**
-   * slot1 - slot 52
-   * 08:00 - 20:00
-   * each slot = 15 mins
-   */
-  @Column({ name: 'start_time_slot' })
-  startTimeSlot: number
-
-  @Column({ name: 'end_time_slot' })
-  endTimeSlot: number
+  @OneToMany(() => Time, (time) => time.workload, { cascade: true })
+  timeList: Time[]
 
   @ManyToOne(() => Room, (room) => room.workloadList)
   @JoinColumn({ name: 'room_id' })
@@ -79,5 +73,19 @@ export class Workload extends BaseEntity {
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
+  }
+
+  public getFirstTimeSlot() {
+    const sortedTimeList = [...this.timeList].sort(
+      (a, b) => a.startSlot - b.startSlot
+    )
+    return sortedTimeList[0].startSlot
+  }
+
+  public getLastTimeSlot() {
+    const sortedTimeList = [...this.timeList].sort(
+      (b, a) => a.startSlot - b.startSlot
+    )
+    return sortedTimeList[0].endSlot
   }
 }

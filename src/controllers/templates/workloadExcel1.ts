@@ -185,8 +185,7 @@ export async function generateWorkloadExcel1(
       type,
       section,
       dayOfWeek,
-      startTimeSlot,
-      endTimeSlot,
+      timeList,
       classYear,
       fieldOfStudy,
     } = workload
@@ -197,8 +196,8 @@ export async function generateWorkloadExcel1(
     }
 
     const row = 7 + (dayOfWeek - 1) * 2
-    let start = Excel.toAlphabet(3 + (startTimeSlot - 1))
-    let end = Excel.toAlphabet(3 + (endTimeSlot - 1))
+    let start = Excel.toAlphabet(3 + (timeList[0].startSlot - 1))
+    let end = Excel.toAlphabet(3 + (timeList[timeList.length - 1].endSlot - 1))
     // Remove 1 slot cause Lunch break have only 3 slot
     if (Excel.toNumber(start) >= 20) {
       start = Excel.toAlphabet(Excel.toNumber(start) - 1)

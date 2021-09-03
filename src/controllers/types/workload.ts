@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Matches,
+  ValidateNested,
 } from 'class-validator'
 
 export class ITeacherWorkloadQuery {
@@ -24,6 +25,16 @@ export class ITeacherWorkloadQuery {
 
 const TIME_REGEX = /^\d{2}:\d{2}$/ // hh:mm, 08:30, 12:05
 
+export class IWorkloadTime {
+  @IsString()
+  @Matches(TIME_REGEX)
+  startTime: string
+
+  @IsString()
+  @Matches(TIME_REGEX)
+  endTime: string
+}
+
 export class ICreateWorkload {
   @IsString()
   teacherId: string
@@ -40,13 +51,8 @@ export class ICreateWorkload {
   @IsEnum(DayOfWeek)
   dayOfWeek: DayOfWeek
 
-  @IsString()
-  @Matches(TIME_REGEX)
-  startTime: string
-
-  @IsString()
-  @Matches(TIME_REGEX)
-  endTime: string
+  @ValidateNested()
+  timeList: IWorkloadTime[]
 
   @IsString()
   @IsOptional()
