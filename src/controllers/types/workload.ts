@@ -1,6 +1,7 @@
 import { DayOfWeek, WorkloadType } from '@models/workload'
 import { Type } from 'class-transformer'
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
@@ -25,7 +26,7 @@ export class ITeacherWorkloadQuery {
 
 const TIME_REGEX = /^\d{2}:\d{2}$/ // hh:mm, 08:30, 12:05
 
-export class IWorkloadTime {
+class IWorkloadTime {
   @IsString()
   @Matches(TIME_REGEX)
   startTime: string
@@ -51,7 +52,9 @@ export class ICreateWorkload {
   @IsEnum(DayOfWeek)
   dayOfWeek: DayOfWeek
 
-  @ValidateNested()
+  @Type(() => IWorkloadTime)
+  @IsArray()
+  @ValidateNested({ each: true })
   timeList: IWorkloadTime[]
 
   @IsString()
