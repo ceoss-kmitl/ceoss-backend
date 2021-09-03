@@ -37,6 +37,8 @@ export async function generateWorkloadExcel1(
       orientation: 'landscape',
       verticalCentered: true,
       horizontalCentered: true,
+      fitToPage: true,
+      printArea: 'A1:BB32',
       margins: {
         top: 0.16,
         bottom: 0.16,
@@ -45,7 +47,6 @@ export async function generateWorkloadExcel1(
         header: 0,
         footer: 0,
       },
-      printArea: 'A1:BB32',
     },
     views: [{ style: 'pageLayout' }],
     properties: {
@@ -232,7 +233,7 @@ export async function generateWorkloadExcel1(
         .align('center')
         .shrink()
 
-      if (i !== timeList.length - 1) {
+      if (timeList[i + 1]?.startSlot - timeList[i]?.endSlot === 2) {
         const breakTime = Excel.toAlphabet(Excel.toNumber(end) + 1)
         excel
           .cells(`${breakTime}${row}:${breakTime}${row + 1}`)
