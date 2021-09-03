@@ -209,10 +209,10 @@ export async function generateWorkloadExcel1(
       let end = Excel.toAlphabet(3 + (timeList[i].endSlot - 1))
 
       // Remove 1 slot because Lunch break have only 3 slot
-      if (Excel.toNumber(start) >= 20) {
+      if (Excel.toNumber(start) >= 23) {
         start = Excel.toAlphabet(Excel.toNumber(start) - 1)
       }
-      if (Excel.toNumber(end) >= 20) {
+      if (Excel.toNumber(end) >= 23) {
         end = Excel.toAlphabet(Excel.toNumber(end) - 1)
       }
 
