@@ -18,7 +18,7 @@ export class WebScrap {
     this.$ = Cheerio.load(this.html)
   }
 
-  async extractData() {
+  extractData() {
     const $ = this.$
     const tableList = $('table.hoverTable')
     const result: IWebScrapData[] = tableList.toArray().map((table, index) => {
@@ -53,8 +53,11 @@ export class WebScrap {
             teacherList: this.extractTeacherInfo(
               $(columnList[16]).text().trim()
             ),
-            time: $(columnList[10]).text().trim(),
-            ...this.extractTimeAndType($(columnList[10]).text().trim()),
+            // Split for removing แสดงวันวัน-เวลาเรียนทั้งหมด
+            time: $(columnList[10]).text().trim().split('\n')[0],
+            ...this.extractTimeAndType(
+              $(columnList[10]).text().trim().split('\n')[0]
+            ),
           })
         })
 
@@ -85,14 +88,28 @@ export class WebScrap {
   private extractTimeAndType(timeStr: string) {
     const [day] = timeStr.match(/[^\s]+\./) ?? [null]
     const [type] = timeStr.match(/\(.{1}\)/) ?? [null]
-    const time = timeStr.match(/\d{2}:\d{2}/g) ?? [null, null]
-    const startTime = time[0]
-    const endTime = time[time.length - 1]
+    const rawTimeList = timeStr.match(/\d{2}:\d{2}/g) ?? [null]
+    const timeList: { startTime: string; endTime: string }[] = []
+
+    let index = 0
+    for (const time of rawTimeList) {
+      if (!timeList[index]) timeList[index] = {} as any
+
+      if (!timeList[index].startTime) {
+        timeList[index].startTime = time ?? 'err'
+        continue
+      }
+      timeList[index].endTime = time ?? 'err'
+      index++
+    }
 
     return {
       dayOfWeek: this.mapDayToDayOfWeek(day),
-      startTimeSlot: this.mapTimeToTimeSlot(startTime),
-      endTimeSlot: this.mapTimeToTimeSlot(endTime) - 1,
+      timeList,
+      timeSlotList: timeList.map(({ startTime, endTime }) => ({
+        startSlot: this.mapTimeToTimeSlot(startTime),
+        endSlot: this.mapTimeToTimeSlot(endTime) - 1,
+      })),
       subjectType: this.mapTypeToWorkloadType(type),
     }
   }
@@ -162,8 +179,8 @@ interface IWebScrapData {
       }[]
       time: string
       dayOfWeek: DayOfWeek
-      startTimeSlot: number
-      endTimeSlot: number
+      timeList: { startTime: string; endTime: string }[]
+      timeSlotList: { startSlot: number; endSlot: number }[]
       subjectType: WorkloadType
     }[]
   }[]
