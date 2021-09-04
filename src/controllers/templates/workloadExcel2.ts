@@ -33,13 +33,17 @@ export async function generateWorkloadExcel2(
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
+      verticalCentered: true,
+      horizontalCentered: true,
+      fitToPage: true,
+      printArea: 'A1:M25',
       margins: {
-        top: 0.35,
-        bottom: 0.1,
+        top: 0.16,
+        bottom: 0.16,
         left: 0.16,
-        right: 0,
-        header: 0.32,
-        footer: 0.32,
+        right: 0.16,
+        header: 0,
+        footer: 0,
       },
     },
     views: [{ style: 'pageLayout' }],
@@ -111,27 +115,31 @@ export async function generateWorkloadExcel2(
       [WorkloadType.Lab]: '(ป)',
     }
 
-    for (let index = 0; index < teacher.workloadList.length - 1; index++) {
-      excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
-    }
+    // for (let index = 0; index < teacher.workloadList.length - 1; index++) {
+    //   excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
+    // }
+
+    // excel.cells(`C7:I7`).border('right', 'left')
 
     // ===== Subject column =====
     for (let index = 0; index < teacher.workloadList.length; index++) {
-      excel
-        .cells(`C${7 + index}:I${7 + index}`)
-        .value(
-          ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
-            NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
-          }`
-        )
-        .border('right', 'left')
-        .align('left')
+      const workload = teacher.workloadList[index]
+      const subject = workload.subject
+      // excel
+      //   .cells(`C${7 + index}:I${7 + index}`)
+      //   .value(
+      //     ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
+      //       NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+      //     }`
+      //   )
+      //   .border('right', 'left')
+      //   .align('left')
 
-      excel
-        .cells(`J${7 + index}:K${7 + index}`)
-        .value(`${classYear}${fieldOfStudy}/${section}`)
-        .border('right', 'left')
-        .align('center')
+      // excel
+      //   .cells(`J${7 + index}:K${7 + index}`)
+      //   .value(`${classYear}${fieldOfStudy}/${section}`)
+      //   .border('right', 'left')
+      //   .align('center')
 
       excel
         .cell(`L${7 + index}`)
