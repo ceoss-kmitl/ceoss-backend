@@ -106,8 +106,12 @@ export async function generateWorkloadExcel2(
     .border('left', 'right')
     .align('center')
 
+  for (let index = 0; index < teacher.workloadList.length - 1; index++) {
+    excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
+  }
+
   // ===== workload =====
-  teacher.workloadList.forEach((workload) => {
+  teacher.workloadList.forEach((workload, index) => {
     const { subject, type, section, classYear, fieldOfStudy } = workload
 
     const subjectType = {
@@ -115,52 +119,41 @@ export async function generateWorkloadExcel2(
       [WorkloadType.Lab]: '(ป)',
     }
 
-    // for (let index = 0; index < teacher.workloadList.length - 1; index++) {
-    //   excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
-    // }
-
-    // excel.cells(`C7:I7`).border('right', 'left')
-
     // ===== Subject column =====
-    for (let index = 0; index < teacher.workloadList.length; index++) {
-      const workload = teacher.workloadList[index]
-      const subject = workload.subject
-      // excel
-      //   .cells(`C${7 + index}:I${7 + index}`)
-      //   .value(
-      //     ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
-      //       NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
-      //     }`
-      //   )
-      //   .border('right', 'left')
-      //   .align('left')
 
-      // excel
-      //   .cells(`J${7 + index}:K${7 + index}`)
-      //   .value(`${classYear}${fieldOfStudy}/${section}`)
-      //   .border('right', 'left')
-      //   .align('center')
+    excel
+      .cells(`C${7 + index}:I${7 + index}`)
+      .value(
+        ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
+          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+        }`
+      )
+      .border('right', 'left')
+      .align('left')
 
-      excel
-        .cell(`L${7 + index}`)
-        .value(
-          `${
-            NOT_CLAIM_SUBJECT.includes(subject.code)
-              ? '-'
-              : `${setting.lecturePayRateNormal}`
-          }`
-        )
-        .border('right')
-        .align('right')
+    excel
+      .cells(`J${7 + index}:K${7 + index}`)
+      .value(`${classYear}${fieldOfStudy}/${section}`)
+      .border('right', 'left')
+      .align('center')
 
-      excel
-        .cell(`M${7 + index}`)
-        .value(
-          `${type == 'LAB' ? `${subject.labHours}` : `${subject.lectureHours}`}`
-        )
-        .border('right')
-        .align('right')
-    }
+    excel
+      .cell(`L${7 + index}`)
+      .value(
+        `${
+          NOT_CLAIM_SUBJECT.includes(subject.code)
+            ? '-'
+            : `${setting.lecturePayRateNormal}`
+        }`
+      )
+      .border('right')
+      .align('right')
+
+    excel
+      .cell(`M${7 + index}`)
+      .value(type === 'LAB' ? subject.labHours : subject.lectureHours)
+      .border('right')
+      .align('right')
   })
 
   let row = teacher.workloadList.length + 7
@@ -180,7 +173,11 @@ export async function generateWorkloadExcel2(
     .border('top')
     .align('right')
 
-  excel.cell(`M${row}`).value(`ชั่วโมงรวม`).border('box').align('right')
+  excel
+    .cell(`M${row}`)
+    .formula(`SUM(M7:M${row - 1})`)
+    .border('box')
+    .align('right')
 
   // ===== Sign area Teacher =====
   excel
