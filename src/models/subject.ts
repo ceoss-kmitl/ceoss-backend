@@ -35,6 +35,12 @@ export class Subject extends BaseEntity {
   @Column({ name: 'independent_hours' })
   independentHours: number
 
+  @Column({ name: 'curriculum_code', default: 'CE' })
+  curriculumCode: string
+
+  @Column({ name: 'is_inter', default: false })
+  isInter: boolean
+
   @OneToMany(() => Workload, (workload) => workload.subject)
   workloadList: Workload[]
 
