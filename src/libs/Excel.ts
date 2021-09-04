@@ -274,6 +274,16 @@ export class Excel {
   }
 
   /**
+   * Make this cell content rotate by `degree`
+   */
+  public rotate(degree: number) {
+    this.activeCell.alignment = {
+      ...this.activeCell.alignment,
+      textRotation: degree,
+    }
+  }
+
+  /**
    * Set width of the active column
    * @example width(Excel.pxCol(10))
    */

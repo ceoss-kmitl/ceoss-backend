@@ -11,6 +11,7 @@ import { Workload } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
+import { Time } from '@models/time'
 import { NotFoundError } from '@errors/notFoundError'
 
 // REG example url
@@ -55,24 +56,26 @@ export class WebScrapController {
             }
 
             // Step 3: Update or create new workload with the data
+            const workloadTimeList = _section.timeSlotList.map(
+              ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+            )
+
             const workload =
               (await Workload.findOne({
-                relations: ['subject'],
+                relations: ['subject', 'timeList'],
                 where: {
                   academicYear: academic_year,
                   semester,
                   subject: { id: subject.id },
                   section: _section.section,
                   dayOfWeek: _section.dayOfWeek,
-                  startTimeSlot: _section.startTimeSlot,
                 },
               })) || new Workload()
             workload.subject = subject
             workload.section = _section.section
             workload.type = _section.subjectType
             workload.dayOfWeek = _section.dayOfWeek
-            workload.startTimeSlot = _section.startTimeSlot
-            workload.endTimeSlot = _section.endTimeSlot
+            workload.timeList = workloadTimeList
             workload.isCompensated = workload.isCompensated ?? false
             workload.academicYear = academic_year
             workload.semester = semester
@@ -144,24 +147,26 @@ export class WebScrapController {
             subject.isRequired = true
           }
 
+          const workloadTimeList = _section.timeSlotList.map(
+            ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+          )
+
           const workload =
             (await Workload.findOne({
-              relations: ['subject'],
+              relations: ['subject', 'timeList'],
               where: {
                 academicYear: academic_year,
                 semester,
                 subject: { id: subject.id },
                 section: _section.section,
                 dayOfWeek: _section.dayOfWeek,
-                startTimeSlot: _section.startTimeSlot,
               },
             })) || new Workload()
           workload.subject = subject
           workload.section = _section.section
           workload.type = _section.subjectType
           workload.dayOfWeek = _section.dayOfWeek
-          workload.startTimeSlot = _section.startTimeSlot
-          workload.endTimeSlot = _section.endTimeSlot
+          workload.timeList = workloadTimeList
           workload.isCompensated = false
           workload.academicYear = academic_year
           workload.semester = semester

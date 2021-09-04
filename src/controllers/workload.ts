@@ -22,6 +22,7 @@ import { DayOfWeek, Workload, WorkloadType } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
+import { Time } from '@models/time'
 import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
@@ -40,7 +41,11 @@ export class WorkloadController {
   @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
   async getTeacherWorkload(@QueryParams() query: ITeacherWorkloadQuery) {
     const teacher = await Teacher.findOne(query.teacher_id, {
-      relations: ['workloadList', 'workloadList.subject'],
+      relations: [
+        'workloadList',
+        'workloadList.subject',
+        'workloadList.timeList',
+      ],
     })
     if (!teacher)
       throw new NotFoundError(`Teacher ${query.teacher_id} is not found`)
@@ -81,8 +86,8 @@ export class WorkloadController {
         code: subject.code,
         name: subject.name,
         section: workload.section,
-        startSlot: workload.startTimeSlot,
-        endSlot: workload.endTimeSlot,
+        startSlot: workload.getFirstTimeSlot(),
+        endSlot: workload.getLastTimeSlot(),
         type: workload.type,
         workloadId: workload.id,
       })
@@ -102,8 +107,7 @@ export class WorkloadController {
       fieldOfStudy,
       section,
       dayOfWeek,
-      startTime,
-      endTime,
+      timeList,
       academicYear,
       semester,
       isCompensated,
@@ -120,6 +124,13 @@ export class WorkloadController {
 
     const room = await Room.findOne({ where: { id: roomId } })
 
+    const workloadTimeList = timeList.map(({ startTime, endTime }) =>
+      Time.create({
+        startSlot: mapTimeToTimeSlot(startTime),
+        endSlot: mapTimeToTimeSlot(endTime) - 1,
+      })
+    )
+
     const workload = new Workload()
     workload.subject = subject
     workload.room = room as any
@@ -127,8 +138,7 @@ export class WorkloadController {
     workload.fieldOfStudy = fieldOfStudy
     workload.section = section
     workload.dayOfWeek = dayOfWeek
-    workload.startTimeSlot = mapTimeToTimeSlot(startTime)
-    workload.endTimeSlot = mapTimeToTimeSlot(endTime) - 1
+    workload.timeList = workloadTimeList
     workload.academicYear = academicYear
     workload.semester = semester
     workload.isCompensated = isCompensated
