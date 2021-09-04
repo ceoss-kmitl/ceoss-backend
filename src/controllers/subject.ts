@@ -34,6 +34,8 @@ export class SubjectController {
       lectureHours,
       labHours,
       independentHours,
+      curriculumCode,
+      isInter,
     } = body
 
     const isExist = await Subject.findOneByCode(code)
@@ -47,6 +49,8 @@ export class SubjectController {
     subject.lectureHours = lectureHours
     subject.labHours = labHours
     subject.independentHours = independentHours
+    subject.curriculumCode = curriculumCode
+    subject.isInter = isInter
 
     await subject.save()
     return 'Created'
@@ -63,6 +67,8 @@ export class SubjectController {
       lectureHours,
       labHours,
       independentHours,
+      curriculumCode,
+      isInter,
     } = body
     const isExist = await Subject.findOneByCode(code)
     const isNotSelf = isExist?.id !== id
@@ -79,6 +85,8 @@ export class SubjectController {
     subject.lectureHours = lectureHours ?? subject.lectureHours
     subject.labHours = labHours ?? subject.labHours
     subject.independentHours = independentHours ?? subject.independentHours
+    subject.curriculumCode = curriculumCode ?? subject.curriculumCode
+    subject.isInter = isInter ?? subject.isInter
 
     await subject.save()
     return 'Edited'

@@ -21,6 +21,12 @@ export class ICreateSubject {
 
   @IsNumber()
   independentHours: number
+
+  @IsString()
+  curriculumCode: string
+
+  @IsBoolean()
+  isInter: boolean
 }
 
 export class IEditSubject {
@@ -51,4 +57,12 @@ export class IEditSubject {
   @IsNumber()
   @IsOptional()
   independentHours: number
+
+  @IsString()
+  @IsOptional()
+  curriculumCode: string
+
+  @IsBoolean()
+  @IsOptional()
+  isInter: boolean
 }
