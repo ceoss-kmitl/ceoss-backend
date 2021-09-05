@@ -3,7 +3,6 @@ import {
   BeforeInsert,
   Column,
   Entity,
-  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryColumn,
@@ -36,7 +35,6 @@ export class Workload extends BaseEntity {
   @ManyToOne(() => Subject, (subject) => subject.workloadList, {
     cascade: true,
   })
-  @JoinColumn({ name: 'subject_id' })
   subject: Subject
 
   @Column()
@@ -45,20 +43,19 @@ export class Workload extends BaseEntity {
   @Column({ type: 'enum', enum: WorkloadType })
   type: WorkloadType
 
-  @Column({ type: 'enum', enum: DayOfWeek, name: 'day_of_week' })
+  @Column({ type: 'enum', enum: DayOfWeek })
   dayOfWeek: DayOfWeek
 
   @OneToMany(() => Time, (time) => time.workload, { cascade: true })
   timeList: Time[]
 
   @ManyToOne(() => Room, (room) => room.workloadList)
-  @JoinColumn({ name: 'room_id' })
   room: Room
 
-  @Column({ name: 'is_compensated' })
+  @Column()
   isCompensated: boolean
 
-  @Column({ name: 'academic_year' })
+  @Column()
   academicYear: number
 
   @Column()
@@ -67,7 +64,7 @@ export class Workload extends BaseEntity {
   @Column()
   fieldOfStudy: string
 
-  @Column({ name: 'class_year' })
+  @Column()
   classYear: number
 
   @BeforeInsert()

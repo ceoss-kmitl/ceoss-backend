@@ -22,18 +22,14 @@ export class Teacher extends BaseEntity {
   @Column()
   title: string
 
-  @Column({ name: 'is_executive' })
+  @Column()
   isExecutive: boolean
 
-  @Column({ default: true, name: 'is_active' })
+  @Column({ default: true })
   isActive: boolean
 
   @ManyToMany(() => Workload, { cascade: true })
-  @JoinTable({
-    name: 'teacher_workload',
-    joinColumn: { name: 'teacher_id' },
-    inverseJoinColumn: { name: 'workload_id' },
-  })
+  @JoinTable({ name: 'teacher_workload' })
   workloadList: Workload[]
 
   @BeforeInsert()

@@ -3,7 +3,6 @@ import {
   BeforeInsert,
   Column,
   Entity,
-  JoinColumn,
   ManyToOne,
   PrimaryColumn,
 } from 'typeorm'
@@ -20,14 +19,13 @@ export class Time extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @Column({ name: 'start_slot' })
+  @Column()
   startSlot: number
 
-  @Column({ name: 'end_slot' })
+  @Column()
   endSlot: number
 
   @ManyToOne(() => Workload, (workload) => workload.timeList)
-  @JoinColumn({ name: 'workload_id' })
   workload: Workload
 
   @BeforeInsert()
