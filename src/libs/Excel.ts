@@ -261,6 +261,7 @@ export class Excel {
    */
   public formula(expression: string) {
     this.activeCell.value = { formula: expression } as ExcelJS.CellValue
+    return this
   }
 
   /**
@@ -271,6 +272,7 @@ export class Excel {
       ...this.activeCell.alignment,
       shrinkToFit: true,
     }
+    return this
   }
 
   /**

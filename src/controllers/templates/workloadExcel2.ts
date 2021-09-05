@@ -6,9 +6,7 @@ import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
-const NOT_CLAIM_SUBJECT = ['']
-
-// inter 01006(FE) 01266(CIE) 13016(SE)
+const NOT_CLAIM_SUBJECT = ['01076311', '01076014', '01076312', '01076014']
 
 export async function generateWorkloadExcel2(
   response: Response,
@@ -106,8 +104,12 @@ export async function generateWorkloadExcel2(
     .border('left', 'right')
     .align('center')
 
+  for (let index = 0; index < teacher.workloadList.length - 1; index++) {
+    excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
+  }
+
   // ===== workload =====
-  teacher.workloadList.forEach((workload) => {
+  teacher.workloadList.forEach((workload, index) => {
     const { subject, type, section, classYear, fieldOfStudy } = workload
 
     const subjectType = {
@@ -115,53 +117,47 @@ export async function generateWorkloadExcel2(
       [WorkloadType.Lab]: '(ป)',
     }
 
-    // for (let index = 0; index < teacher.workloadList.length - 1; index++) {
-    //   excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
-    // }
-
-    // excel.cells(`C7:I7`).border('right', 'left')
-
     // ===== Subject column =====
-    for (let index = 0; index < teacher.workloadList.length; index++) {
-      const workload = teacher.workloadList[index]
-      const subject = workload.subject
-      // excel
-      //   .cells(`C${7 + index}:I${7 + index}`)
-      //   .value(
-      //     ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
-      //       NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
-      //     }`
-      //   )
-      //   .border('right', 'left')
-      //   .align('left')
+    excel
+      .cells(`C${7 + index}:I${7 + index}`)
+      .value(
+        ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
+          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+        }`
+      )
+      .border('right', 'left')
+      .align('left')
 
-      // excel
-      //   .cells(`J${7 + index}:K${7 + index}`)
-      //   .value(`${classYear}${fieldOfStudy}/${section}`)
-      //   .border('right', 'left')
-      //   .align('center')
+    excel
+      .cells(`J${7 + index}:K${7 + index}`)
+      .value(`${classYear}${fieldOfStudy}/${section}`)
+      .border('right', 'left')
+      .align('center')
 
-      excel
-        .cell(`L${7 + index}`)
-        .value(
-          `${
-            NOT_CLAIM_SUBJECT.includes(subject.code)
-              ? '-'
-              : `${setting.lecturePayRateNormal}`
-          }`
-        )
-        .border('right')
-        .align('right')
-
-      excel
-        .cell(`M${7 + index}`)
-        .value(
-          `${type == 'LAB' ? `${subject.labHours}` : `${subject.lectureHours}`}`
-        )
-        .border('right')
-        .align('right')
+    // ===== Pay rate and hour =====
+    let payRate = 0
+    if (subject.isInter === false) {
+      if (type === 'LAB') payRate = setting.labPayRateNormal
+      else payRate = setting.lecturePayRateNormal
+    } else {
+      if (type === 'LAB') payRate = setting.labPayRateInter
+      else payRate = setting.lecturePayRateInter
     }
+
+    excel
+      .cell(`L${7 + index}`)
+      .value(NOT_CLAIM_SUBJECT.includes(subject.code) ? '-' : payRate)
+      .border('right')
+      .align('right')
+
+    excel
+      .cell(`M${7 + index}`)
+      .value(type === 'LAB' ? subject.labHours : subject.lectureHours)
+      .border('right')
+      .align('right')
   })
+
+  // ===== Least 11 rows =====
 
   let row = teacher.workloadList.length + 7
   if (row < 18) {
@@ -174,13 +170,19 @@ export async function generateWorkloadExcel2(
     }
   }
 
+  // ===== Summary =====
+
   excel
     .cells(`A${row}:L${row}`)
     .value(`รวมจำนวนชม.ที่สอนทั้งหมด/สัปดาห์`)
     .border('top')
     .align('right')
 
-  excel.cell(`M${row}`).value(`ชั่วโมงรวม`).border('box').align('right')
+  excel
+    .cell(`M${row}`)
+    .formula(`SUM(M7:M${row - 1})`)
+    .border('box')
+    .align('right')
 
   // ===== Sign area Teacher =====
   excel
@@ -227,7 +229,7 @@ export async function generateWorkloadExcel2(
     .align('center')
 
   // ===== Sign area sub dean =====
-  // ===== Add condition =====
+
   excel
     .cells(`H${row + 2}:I${row + 2}`)
     .value(`3.ตรวจสอบความถูกต้องแล้ว`)
