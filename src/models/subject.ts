@@ -20,25 +20,25 @@ export class Subject extends BaseEntity {
   @Column()
   name: string
 
-  @Column({ name: 'is_required' })
+  @Column()
   isRequired: boolean
 
   @Column()
   credit: number
 
-  @Column({ name: 'lecture_hours' })
+  @Column()
   lectureHours: number
 
-  @Column({ name: 'lab_hours' })
+  @Column()
   labHours: number
 
-  @Column({ name: 'independent_hours' })
+  @Column()
   independentHours: number
 
-  @Column({ name: 'curriculum_code', default: 'CE' })
+  @Column({ default: 'CE' })
   curriculumCode: string
 
-  @Column({ name: 'is_inter', default: false })
+  @Column({ default: false })
   isInter: boolean
 
   @OneToMany(() => Workload, (workload) => workload.subject)
