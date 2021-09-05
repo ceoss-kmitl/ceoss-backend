@@ -6,9 +6,7 @@ import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
-const NOT_CLAIM_SUBJECT = ['']
-
-// inter 01006(FE) 01266(CIE) 13016(SE)
+const NOT_CLAIM_SUBJECT = ['01076311', '01076014', '01076312', '01076014']
 
 export async function generateWorkloadExcel2(
   response: Response,
@@ -120,7 +118,6 @@ export async function generateWorkloadExcel2(
     }
 
     // ===== Subject column =====
-
     excel
       .cells(`C${7 + index}:I${7 + index}`)
       .value(
@@ -137,15 +134,19 @@ export async function generateWorkloadExcel2(
       .border('right', 'left')
       .align('center')
 
+    // ===== Pay rate and hour =====
+    let payRate = 0
+    if (subject.isInter === false) {
+      if (type === 'LAB') payRate = setting.labPayRateNormal
+      else payRate = setting.lecturePayRateNormal
+    } else {
+      if (type === 'LAB') payRate = setting.labPayRateInter
+      else payRate = setting.lecturePayRateInter
+    }
+
     excel
       .cell(`L${7 + index}`)
-      .value(
-        `${
-          NOT_CLAIM_SUBJECT.includes(subject.code)
-            ? '-'
-            : `${setting.lecturePayRateNormal}`
-        }`
-      )
+      .value(NOT_CLAIM_SUBJECT.includes(subject.code) ? '-' : payRate)
       .border('right')
       .align('right')
 
@@ -155,6 +156,8 @@ export async function generateWorkloadExcel2(
       .border('right')
       .align('right')
   })
+
+  // ===== Least 11 rows =====
 
   let row = teacher.workloadList.length + 7
   if (row < 18) {
@@ -166,6 +169,8 @@ export async function generateWorkloadExcel2(
       excel.cell(`M${row}`).border('right')
     }
   }
+
+  // ===== Summary =====
 
   excel
     .cells(`A${row}:L${row}`)
@@ -224,7 +229,7 @@ export async function generateWorkloadExcel2(
     .align('center')
 
   // ===== Sign area sub dean =====
-  // ===== Add condition =====
+
   excel
     .cells(`H${row + 2}:I${row + 2}`)
     .value(`3.ตรวจสอบความถูกต้องแล้ว`)
