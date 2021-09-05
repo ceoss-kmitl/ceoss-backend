@@ -1,4 +1,5 @@
 import { ConnectionOptions } from 'typeorm'
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 
@@ -26,6 +27,7 @@ const defaultConfigs: ConnectionOptions = {
     entitiesDir: rootDir + '/models',
     migrationsDir: rootDir + '/models/migrations',
   },
+  namingStrategy: new SnakeNamingStrategy(),
 }
 
 export const connectionConfigs: ConnectionOptions = isDevelopment
