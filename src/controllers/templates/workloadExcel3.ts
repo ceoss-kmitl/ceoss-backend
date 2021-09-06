@@ -60,13 +60,16 @@ export async function generateWorkloadExcel3(
     },
     properties: {
       defaultColWidth: Excel.pxCol(38),
-      defaultRowHeight: Excel.pxRow(20),
+      defaultRowHeight: Excel.pxRow(19),
     },
   })
 
   // ===== Configue font & width some column =====
   excel.font('TH SarabunPSK')
   excel.cell('B1').width(Excel.pxCol(118))
+  excel.cell('C1').width(Excel.pxCol(46))
+  excel.cell('D1').width(Excel.pxCol(46))
+  excel.cell('E1').width(Excel.pxCol(46))
   excel.cell('F1').width(Excel.pxCol(46))
   excel.cell('G1').width(Excel.pxCol(46))
   excel.cell('H1').width(Excel.pxCol(64))
@@ -310,6 +313,119 @@ export async function generateWorkloadExcel3(
     .border('box', 'bottom-double')
   for (const col of Excel.range('M:Y')) {
     excel.cell(`${col}${currentRow}`).border('box', 'bottom-double')
+  }
+
+  // ===== Render bottom table
+  {
+    let row = currentRow + 2
+    excel
+      .cells(`A${row}:E${row}`)
+      .value('รวมจำนวนหน่วยชั่วโมง/จำนวนเงิน ที่ขอเบิกต่อภาคการศึกษา')
+    row++
+
+    excel.cells(`A${row}:B${row}`).value('ระดับ').border('box').align('center')
+    excel.cell(`C${row}`).value('รวมชั่วโมง').border('box').align('center')
+    excel.cell(`D${row}`).value('ชั่วโมงละ').border('box').align('center')
+    excel.cell(`E${row}`).value('เงินรายได้').border('box').align('center')
+    excel
+      .cells(`F${row}:G${row}`)
+      .value('ขอเบิกเพียง')
+      .border('box')
+      .align('center')
+    row++
+
+    // Row 1
+    excel.cells(`A${row}:B${row}`).value('1. ปริญญาตรี ทั่วไป').border('box')
+    for (const col of Excel.range('C:E')) {
+      excel.cell(`${col}${row}`).border('box')
+    }
+    excel.cells(`F${row}:G${row}`).border('box')
+    row++
+
+    // Row 2
+    excel.cells(`A${row}:B${row}`).value('2. ปริญญาตรี ต่อเนื่อง').border('box')
+    for (const col of Excel.range('C:E')) {
+      excel.cell(`${col}${row}`).border('box')
+    }
+    excel.cells(`F${row}:G${row}`).border('box')
+    row++
+
+    // Row 3
+    excel.cells(`A${row}:B${row}`).value('3. ปริญญาตรี นานาชาติ').border('box')
+    for (const col of Excel.range('C:E')) {
+      excel.cell(`${col}${row}`).border('box')
+    }
+    excel.cells(`F${row}:G${row}`).border('box')
+    row++
+
+    // Row 4
+    excel.cells(`A${row}:B${row}`).value('4. บัณฑิต ทั่วไป').border('box')
+    for (const col of Excel.range('C:E')) {
+      excel.cell(`${col}${row}`).border('box')
+    }
+    excel.cells(`F${row}:G${row}`).border('box')
+    row++
+
+    // Row 5
+    excel.cells(`A${row}:B${row}`).value('5. บัณฑิต นานาชาติ').border('box')
+    for (const col of Excel.range('C:E')) {
+      excel.cell(`${col}${row}`).border('box')
+    }
+    excel.cells(`F${row}:G${row}`).border('box')
+    row++
+
+    // Row 6 : Total
+    excel.cell(`A${row}`).value('รวม').border('box')
+    excel
+      .cells(`B${row}:D${row}`)
+      .formula(`"("&BAHTTEXT(F${row})&")"`)
+      .border('box')
+      .align('center')
+    excel.cell(`E${row}`).border('box')
+    excel.cells(`F${row}:G${row}`).border('box')
+  }
+
+  // ===== Sign area =====
+  {
+    let row = currentRow + 4
+    excel
+      .cells(`H${row}:L${row}`)
+      .value('ขอรับรองว่ามีการเรียนการสอนตามที่เบิก-จ่าย')
+      .align('center')
+    excel
+      .cells(`N${row}:T${row}`)
+      .value('ตรวจสอบแล้วมีการเรียนการสอนตามที่เบิก-จ่าย')
+    excel.cells(`V${row}:W${row}`).value('ผู้อนุมัติ').align('center')
+    row += 3
+
+    excel.cells(`H${row}:J${row}`).value('……………………………..………..').align('center')
+    excel.cells(`O${row}:R${row}`).value('……………………………………...').align('center')
+    excel.cells(`U${row}:Y${row}`).value('……………………………………..').align('center')
+    row++
+
+    excel
+      .cells(`H${row}:K${row}`)
+      .value(`(${teacher.title}${teacher.name})`)
+      .align('center')
+      .shrink()
+    excel
+      .cells(`O${row}:R${row}`)
+      .value(`(${setting.headName})`)
+      .align('center')
+      .shrink()
+    excel
+      .cells(`U${row}:Y${row}`)
+      .value(`(${setting.deanName})`)
+      .align('center')
+      .shrink()
+    row++
+
+    excel.cells(`H${row}:K${row}`).value('ผู้เบิก/ผู้สอน').align('center')
+    excel.cells(`O${row}:R${row}`).value('หัวหน้าภาค').align('center')
+    excel
+      .cells(`U${row}:Y${row}`)
+      .value('คณบดีคณะวิศวกรรมศาสตร์')
+      .align('center')
   }
 
   return excel.createFile(
