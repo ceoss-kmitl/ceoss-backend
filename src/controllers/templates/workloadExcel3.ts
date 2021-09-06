@@ -96,7 +96,8 @@ export async function generateWorkloadExcel3(
   excel.cells('M3:O3').value('☑ พนักงานสถาบันฯ')
   excel.cells('Q3:S3').value('⬜ บัณฑิตศึกษา')
   excel.cells('U2:X2').value(`ภาคการศึกษาที่ ${semester}/${academic_year}`)
-  excel.cells('U3:W3').value('ภาระงานสอน 45')
+  excel.cells('U3:V3').value('ภาระงานสอน')
+  excel.cell('W3').value(150).align('center')
   excel.cell('X3').value('ชม.')
 
   // ===== Table header - Subject day, credit, time =====
@@ -163,11 +164,12 @@ export async function generateWorkloadExcel3(
 
   // ===== Each workload row =====
   let currentDay: DayOfWeek | null = null
+  let currentRow = 7
   const DayName = {
     [DayOfWeek.Monday]: 'จันทร์',
     [DayOfWeek.Tuesday]: 'อังคาร',
     [DayOfWeek.Wednesday]: 'พุธ',
-    [DayOfWeek.Thursday]: 'พฤหัสบดี',
+    [DayOfWeek.Thursday]: 'พฤหัส',
     [DayOfWeek.Friday]: 'ศุกร์',
     [DayOfWeek.Saturday]: 'เสาร์',
     [DayOfWeek.Sunday]: 'อาทิตย์',
@@ -176,7 +178,6 @@ export async function generateWorkloadExcel3(
     [WorkloadType.Lab]: '(ป)',
     [WorkloadType.Lecture]: '(ท)',
   }
-  let currentRow = 7
   for (const workload of teacher.workloadList) {
     for (const time of workload.timeList) {
       const { dayOfWeek, subject, classYear, fieldOfStudy, section } = workload
@@ -235,6 +236,66 @@ export async function generateWorkloadExcel3(
 
       currentRow++
     }
+  }
+  // Fill remaining space
+  for (; currentRow <= 20; currentRow++) {
+    excel.cell(`A${currentRow}`).border('box')
+    excel.cells(`B${currentRow}:E${currentRow}`).border('box')
+    for (const col of Excel.range('F:Y')) {
+      excel.cell(`${col}${currentRow}`).border('box')
+    }
+  }
+
+  // ===== Render table footer - row 1 =====
+  excel.cell(`A${currentRow}`).border('left', 'top-bold')
+  excel
+    .cells(`B${currentRow}:E${currentRow}`)
+    .value('รวมหน่วย ชม. ที่ทำการสอนทั้งสิ้น')
+    .border('top-bold')
+  for (const col of Excel.range('F:K')) {
+    excel.cell(`${col}${currentRow}`).border('box', 'top-bold')
+  }
+  excel
+    .cell(`L${currentRow}`)
+    .formula(`SUM(L7:L${currentRow - 1})`)
+    .align('center')
+    .border('box', 'top-bold')
+  for (const col of Excel.range('M:Y')) {
+    excel.cell(`${col}${currentRow}`).border('box', 'top-bold')
+  }
+  currentRow++
+
+  // ===== Render table footer - row 2 =====
+  excel.cell(`A${currentRow}`).border('left', 'top')
+  excel
+    .cells(`B${currentRow}:E${currentRow}`)
+    .value('หัก หน่วย ชม. ที่ใช้เป็นภาระงานสอน')
+    .border('top')
+  for (const col of Excel.range('F:K')) {
+    excel.cell(`${col}${currentRow}`).border('box')
+  }
+  excel.cell(`L${currentRow}`).formula('W3').align('center').border('box')
+  for (const col of Excel.range('M:Y')) {
+    excel.cell(`${col}${currentRow}`).border('box')
+  }
+  currentRow++
+
+  // ===== Render table footer - row 3 =====
+  excel.cell(`A${currentRow}`).border('left', 'top', 'bottom-double')
+  excel
+    .cells(`B${currentRow}:E${currentRow}`)
+    .value('จำนวนหน่วยชั่วโมงที่เบิกได้')
+    .border('top', 'bottom-double')
+  for (const col of Excel.range('F:K')) {
+    excel.cell(`${col}${currentRow}`).border('box', 'bottom-double')
+  }
+  excel
+    .cell(`L${currentRow}`)
+    .formula(`L${currentRow - 2}-L${currentRow - 1}`)
+    .align('center')
+    .border('box', 'bottom-double')
+  for (const col of Excel.range('M:Y')) {
+    excel.cell(`${col}${currentRow}`).border('box', 'bottom-double')
   }
 
   return excel.createFile(

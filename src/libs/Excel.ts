@@ -138,13 +138,14 @@ export class Excel {
    */
   public border(...borderSide: MyBorderSide[]) {
     borderSide.forEach((side) => {
-      const style: ExcelJS.BorderStyle = side.includes('bold')
-        ? 'medium'
-        : 'thin'
+      let style: ExcelJS.BorderStyle = 'thin'
+      if (side.includes('bold')) style = 'medium'
+      if (side.includes('double')) style = 'double'
 
       switch (side) {
         case 'box':
         case 'box-bold':
+        case 'box-double':
           this.borderTop(style)
           this.borderRight(style)
           this.borderBottom(style)
@@ -152,26 +153,32 @@ export class Excel {
           break
         case 'top':
         case 'top-bold':
+        case 'top-double':
           this.borderTop(style)
           break
         case 'right':
         case 'right-bold':
+        case 'right-double':
           this.borderRight(style)
           break
         case 'bottom':
         case 'bottom-bold':
+        case 'bottom-double':
           this.borderBottom(style)
           break
         case 'left':
         case 'left-bold':
+        case 'left-double':
           this.borderLeft(style)
           break
         case 'diagonal-down':
         case 'diagonal-down-bold':
+        case 'diagonal-down-double':
           this.borderDiagonalLeftTopToRightBottom(style)
           break
         case 'diagonal-up':
         case 'diagonal-up-bold':
+        case 'diagonal-up-double':
           this.borderDiagonalLeftBottomToRightTop(style)
           break
       }
@@ -393,4 +400,7 @@ type MyBaseBorderSide =
   | 'diagonal-down'
   | 'diagonal-up'
 
-type MyBorderSide = MyBaseBorderSide | `${MyBaseBorderSide}-bold`
+type MyBorderSide =
+  | MyBaseBorderSide
+  | `${MyBaseBorderSide}-bold`
+  | `${MyBaseBorderSide}-double`
