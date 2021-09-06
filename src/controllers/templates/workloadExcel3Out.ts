@@ -44,7 +44,7 @@ export async function generateWorkloadExcel3Out(
     },
     views: [{ style: 'pageLayout' }],
     properties: {
-      defaultColWidth: Excel.pxCol(55),
+      defaultColWidth: Excel.pxCol(60),
       defaultRowHeight: Excel.pxRow(28),
     },
   })
@@ -117,6 +117,134 @@ export async function generateWorkloadExcel3Out(
   excel.cell('W3').border('right', 'top')
   excel.cell('W4').border('right')
   excel.cell('W5').value('หมายเหตุ').border('right', 'bottom').align('center')
+
+  // ===== workload =====
+  teacher.workloadList.forEach((workload, index) => {
+    const { subject, type, classYear, dayOfWeek } = workload
+
+    const subjectType = {
+      [WorkloadType.Lecture]: '(ท)',
+      [WorkloadType.Lab]: '(ป)',
+    }
+
+    // ===== Subject column =====
+    const day = [
+      '',
+      'จันทร์',
+      'อังคาร',
+      'พุธ',
+      'พฤหัส',
+      'ศุกร์',
+      'เสาร์',
+      'อาทิตย์',
+    ]
+    excel
+      .cell(`A${6 + index}`)
+      .value(`${day[dayOfWeek]}`)
+      .border('right', 'left')
+      .align('center')
+
+    excel
+      .cells(`B${6 + index}:E${6 + index}`)
+      .value(`${subject.code} ${subject.name} ${subjectType[type]}`)
+      .border('right', 'left')
+      .align('left')
+
+    excel
+      .cell(`F${6 + index}`)
+      .value(`${subject.credit}`)
+      .border('right', 'left')
+      .align('center')
+  })
+
+  // ===== Least 3 rows =====
+  let row = teacher.workloadList.length + 6
+  if (row < 9) {
+    for (row; row < 9; row++) {
+      excel.cell(`A${row}`).border('right', 'left')
+      excel.cells(`B${row}:E${row}`).border('right')
+      for (const col of Excel.range('F:W')) {
+        excel.cell(`${col}${row}`).border('right')
+      }
+    }
+  }
+
+  // ===== Hour Summary =====
+  excel
+    .cells(`A${row}:E${row}`)
+    .value('รวมหน่วยชั่วโมง ที่ทำการสอนทั้งสิ้น')
+    .border('box')
+    .align('center')
+  for (const col of Excel.range('F:U')) {
+    excel.cell(`${col}${row}`).border('box')
+  }
+  excel
+    .cell(`V${row}`)
+    .formula(`SUM(V6:V${row - 1})`)
+    .border('box')
+    .align('center')
+  excel.cell(`W${row}`).border('box')
+
+  // ===== Claim table =====
+  excel.cell(`A${row + 2}`).align('left')
+  excel
+    .cells(`A${row + 3}:B${row + 3}`)
+    .value('ระดับ')
+    .align('center')
+    .border('box')
+
+  const colName = ['รวมชั่วโมง', 'ชั่วโมงละ', 'เงินรายได้', 'เงินงบประมาณ']
+  {
+    let index = 0
+    for (const col of Excel.range('C:F')) {
+      excel
+        .cell(`${col}${row + 3}`)
+        .value(`${colName[index]}`)
+        .border('box')
+        .align('center')
+      index++
+    }
+  }
+  excel
+    .cells(`G${row + 3}:H${row + 3}`)
+    .value('รวมเงินแต่ละระดับ')
+    .align('center')
+    .border('box')
+
+  // ===== degree =====
+  const degree = [
+    '1. ปริญญาตรี ทั่วไป',
+    '2. ปริญญาตรี ต่อเนื่อง',
+    '3. ปริญญาตรี นานาชาติ SE',
+    '4. บัณฑิตทั่วไป',
+    '5. บัณฑิต นานาชาติ',
+  ]
+  {
+    for (let i = 0; i <= 4; i++) {
+      excel
+        .cells(`A${row + 4 + i}:B${row + 4 + i}`)
+        .value(`${degree[i]}`)
+        .border('box')
+        .align('left')
+    }
+  }
+
+  // ===== Claim Summary =====
+  excel
+    .cells(`A${row + 9}:B${row + 9}`)
+    .value('รวม')
+    .border('box')
+    .align('center')
+  excel
+    .cells(`C${row + 9}:F${row + 9}`)
+    .value('กี่บาทถ้วน')
+    .border('box')
+    .align('center')
+  excel
+    .cells(`G${row + 9}:H${row + 9}`)
+    .formula(`SUM(G${row + 4}:H${row + 8})`)
+    .border('box')
+    .align('center')
 
   return excel.createFile(`03_ใบเบิกค่าสอน อาจารย์ภายนอก_${teacher.name}`)
 }
