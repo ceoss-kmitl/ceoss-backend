@@ -1,9 +1,14 @@
 import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
+import { mapTimeSlotToTime } from '@libs/mapper'
 import { IGetWorkloadExcel3Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
+import { DayOfWeek, WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
+
+// CEPP, PROJECT1, PROJECT2
+const FILTERED_SUBJECT = ['01076014', '01076311', '01076312']
 
 export async function generateWorkloadExcel3(
   response: Response,
@@ -20,10 +25,18 @@ export async function generateWorkloadExcel3(
   })
   if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+  teacher.workloadList = teacher.workloadList
+    .filter(
+      (workload) =>
+        workload.academicYear === academic_year &&
+        workload.semester === semester &&
+        !FILTERED_SUBJECT.includes(workload.subject.code)
+    )
+    .sort(
+      (a, b) =>
+        a.dayOfWeek - b.dayOfWeek ||
+        a.timeList[0].startSlot - b.timeList[0].startSlot
+    )
 
   const setting = await Setting.get()
 
@@ -149,6 +162,80 @@ export async function generateWorkloadExcel3(
   excel.cells('Y5:Y6').value('หมายเหตุ').border('box').align('center', 'top')
 
   // ===== Each workload row =====
+  let currentDay: DayOfWeek | null = null
+  const DayName = {
+    [DayOfWeek.Monday]: 'จันทร์',
+    [DayOfWeek.Tuesday]: 'อังคาร',
+    [DayOfWeek.Wednesday]: 'พุธ',
+    [DayOfWeek.Thursday]: 'พฤหัสบดี',
+    [DayOfWeek.Friday]: 'ศุกร์',
+    [DayOfWeek.Saturday]: 'เสาร์',
+    [DayOfWeek.Sunday]: 'อาทิตย์',
+  }
+  const SubjectType = {
+    [WorkloadType.Lab]: '(ป)',
+    [WorkloadType.Lecture]: '(ท)',
+  }
+  let currentRow = 7
+  for (const workload of teacher.workloadList) {
+    for (const time of workload.timeList) {
+      const { dayOfWeek, subject, classYear, fieldOfStudy, section } = workload
+
+      // Render Day
+      if (dayOfWeek !== currentDay) {
+        currentDay = workload.dayOfWeek
+        excel
+          .cell(`A${currentRow}`)
+          .value(DayName[currentDay])
+          .border('box')
+          .align('center')
+      } else {
+        excel.cell(`A${currentRow}`).border('box')
+      }
+
+      // Render subject
+      excel
+        .cells(`B${currentRow}:E${currentRow}`)
+        .value(`${subject.code} ${subject.name} ${SubjectType[workload.type]}`)
+        .border('box')
+        .shrink()
+
+      // Render credit
+      excel
+        .cell(`F${currentRow}`)
+        .value(
+          `${subject.credit}(${subject.lectureHours}-${subject.labHours}-${subject.independentHours})`
+        )
+        .border('box')
+        .align('center')
+
+      // Render class room
+      excel
+        .cell(`G${currentRow}`)
+        .value(`ปี ${classYear} ${fieldOfStudy}/${section}`)
+        .border('box')
+        .align('center')
+        .shrink()
+
+      // Render time
+      excel.cell(`H${currentRow}`).border('box')
+      excel.cell(`I${currentRow}`).border('box')
+      {
+        const column = workload.type === WorkloadType.Lecture ? 'H' : 'I'
+        const startTime = mapTimeSlotToTime(time.startSlot, '.')
+        const endTime = mapTimeSlotToTime(time.endSlot, '.')
+        excel
+          .cell(`${column}${currentRow}`)
+          .value(`${startTime}-${endTime}`)
+          .align('center')
+          .shrink()
+      }
+
+      // Render hours per week
+
+      currentRow++
+    }
+  }
 
   return excel.createFile(
     `03_ใบเบิกค่าสอน ${semester}-${String(academic_year).substr(2, 2)} คอม-${
