@@ -13,7 +13,11 @@ export async function generateWorkloadExcel3Out(
   const { teacher_id, academic_year, semester } = query
 
   const teacher = await Teacher.findOne(teacher_id, {
-    relations: ['workloadList', 'workloadList.subject'],
+    relations: [
+      'workloadList',
+      'workloadList.subject',
+      'workloadList.timeList',
+    ],
   })
   if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
 
@@ -152,7 +156,91 @@ export async function generateWorkloadExcel3Out(
 
     excel
       .cell(`F${6 + index}`)
-      .value(`${subject.credit}`)
+      .value(
+        `${subject.credit}(${subject.lectureHours}-${subject.labHours}-${subject.independentHours})`
+      )
+      .border('right', 'left')
+      .align('center')
+
+    excel
+      .cell(`G${6 + index}`)
+      .value(`ปี ${classYear} ${subject.curriculumCode}`)
+      .border('right', 'left')
+      .align('center')
+
+    if (type === 'LECTURE') {
+      excel
+        .cell(`H${6 + index}`)
+        .value(`${workload.getFirstTimeSlot()}-${workload.getLastTimeSlot()}`)
+        .border('right', 'left')
+        .align('center')
+      excel.cell(`I${6 + index}`).border('right', 'left')
+    } else if (type === 'LAB') {
+      excel
+        .cell(`I${6 + index}`)
+        .value(`${workload.getFirstTimeSlot()}-${workload.getLastTimeSlot()}`)
+        .border('right', 'left')
+        .align('center')
+      excel.cell(`H${6 + index}`).border('right', 'left')
+    }
+
+    if (subject.isInter == true) {
+      excel
+        .cell(`J${6 + index}`)
+        .value('-')
+        .border('right', 'left')
+        .align('center')
+      if (type === 'LECTURE') {
+        excel
+          .cell(`K${6 + index}`)
+          .value(subject.lectureHours)
+          .border('right', 'left')
+          .align('center')
+      } else if (type === 'LAB') {
+        excel
+          .cell(`K${6 + index}`)
+          .value(subject.labHours)
+          .border('right', 'left')
+          .align('center')
+      }
+    } else {
+      excel
+        .cell(`K${6 + index}`)
+        .value('-')
+        .border('right', 'left')
+        .align('center')
+      if (type === 'LECTURE') {
+        excel
+          .cell(`J${6 + index}`)
+          .value(subject.lectureHours)
+          .border('right', 'left')
+          .align('center')
+      } else if (type === 'LAB') {
+        excel
+          .cell(`J${6 + index}`)
+          .value(subject.labHours)
+          .border('right', 'left')
+          .align('center')
+      }
+    }
+    excel
+      .cell(`L${6 + index}`)
+      .value('-')
+      .border('right', 'left')
+      .align('center')
+    excel
+      .cell(`M${6 + index}`)
+      .value('-')
+      .border('right', 'left')
+      .align('center')
+
+    for (const col of Excel.range('N:V')) {
+      excel.cell(`${col}6`).border('right', 'left')
+    }
+
+    excel
+      .cell(`W${6 + index}`)
+      .value(`เบิก ${subject.curriculumCode}`)
       .border('right', 'left')
       .align('center')
   })
@@ -186,7 +274,10 @@ export async function generateWorkloadExcel3Out(
   excel.cell(`W${row}`).border('box')
 
   // ===== Claim table =====
-  excel.cell(`A${row + 2}`).align('left')
+  excel
+    .cell(`A${row + 2}`)
+    .value('รวมจำนวนหน่วยชั่วโมง/จำนวนเงิน ที่ขอเบิกต่อภาคการศึกษา')
+    .align('left')
   excel
     .cells(`A${row + 3}:B${row + 3}`)
     .value('ระดับ')
@@ -226,6 +317,14 @@ export async function generateWorkloadExcel3Out(
         .value(`${degree[i]}`)
         .border('box')
         .align('left')
+    }
+  }
+  {
+    for (let i = 4; i <= 8; i++) {
+      for (const col of Excel.range('C:F')) {
+        excel.cell(`${col}${row + i}`).border('box')
+      }
+      excel.cells(`G${row + i}:H${row + i}`).border('box')
     }
   }
 
