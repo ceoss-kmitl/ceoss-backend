@@ -233,7 +233,21 @@ export async function generateWorkloadExcel3(
       }
 
       // Render hours per week
+      let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
+      if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+      excel
+        .cell(`J${currentRow}`)
+        .value(hoursUnit)
+        .border('box')
+        .align('center')
+      excel.cell(`K${currentRow}`).value(15).border('box').align('center')
+      excel
+        .cell(`L${currentRow}`)
+        .formula(`J${currentRow}*K${currentRow}`)
+        .border('box')
+        .align('center')
 
+      // End of this row. Starting new row in new loop
       currentRow++
     }
   }
