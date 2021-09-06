@@ -246,5 +246,75 @@ export async function generateWorkloadExcel3Out(
     .border('box')
     .align('center')
 
+  // ===== Sign area =====
+  excel.fontSize(14)
+  excel
+    .cells(`B${row + 11}:E${row + 11}`)
+    .value('ขอรับรองว่ามีการเรียนการสอนตามที่เบิก-จ่าย')
+    .align('center')
+  excel
+    .cells(`B${row + 13}:E${row + 13}`)
+    .value('...........................................')
+    .align('center')
+  excel
+    .cells(`B${row + 14}:E${row + 14}`)
+    .value(`(${teacher.title}${teacher.name})`)
+    .align('center')
+  excel
+    .cells(`B${row + 15}:E${row + 15}`)
+    .value('ผู้ทำ(ผู้สอน)')
+    .align('center')
+
+  excel
+    .cells(`F${row + 11}:J${row + 11}`)
+    .value('ตรวจสอบแล้วมีการเรียนการสอนตามที่เบิก-จ่าย')
+    .align('center')
+  excel
+    .cells(`F${row + 13}:J${row + 13}`)
+    .value('...........................................')
+    .align('center')
+  excel
+    .cells(`F${row + 14}:J${row + 14}`)
+    .value(`(${setting.headName})`)
+    .align('center')
+  excel
+    .cells(`F${row + 15}:J${row + 15}`)
+    .value('หัวหน้าภาค')
+    .align('center')
+
+  excel
+    .cells(`K${row + 11}:O${row + 11}`)
+    .value('ตรวจสอบแล้วมีการสอนตามที่เบิก-จ่าย')
+    .align('center')
+  excel
+    .cells(`K${row + 13}:O${row + 13}`)
+    .value('...........................................')
+    .align('center')
+  excel
+    .cells(`K${row + 14}:O${row + 14}`)
+    .value(`(${setting.directorSIIEName})`)
+    .align('center')
+  excel
+    .cells(`K${row + 15}:O${row + 15}`)
+    .value('ผู้อำนวยการ SIIE')
+    .align('center')
+
+  excel
+    .cells(`P${row + 11}:S${row + 11}`)
+    .value('ผู้อนุมัติ')
+    .align('center')
+  excel
+    .cells(`P${row + 13}:S${row + 13}`)
+    .value('...........................................')
+    .align('center')
+  excel
+    .cells(`P${row + 14}:S${row + 14}`)
+    .value(`(${setting.deanName})`)
+    .align('center')
+  excel
+    .cells(`P${row + 15}:S${row + 15}`)
+    .value('คณบดีคณะวิศวกรรมศาสตร์')
+    .align('center')
+
   return excel.createFile(`03_ใบเบิกค่าสอน อาจารย์ภายนอก_${teacher.name}`)
 }
