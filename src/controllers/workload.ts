@@ -116,6 +116,7 @@ export class WorkloadController {
       subjectId,
       roomId,
       type,
+      degree,
       fieldOfStudy,
       section,
       dayOfWeek,
@@ -147,6 +148,7 @@ export class WorkloadController {
     workload.subject = subject
     workload.room = room as any
     workload.type = type
+    workload.degree = degree
     workload.fieldOfStudy = fieldOfStudy
     workload.section = section
     workload.dayOfWeek = dayOfWeek

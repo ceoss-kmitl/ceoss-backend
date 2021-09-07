@@ -1,4 +1,4 @@
-import { DayOfWeek, WorkloadType } from '@models/workload'
+import { DayOfWeek, Degree, WorkloadType } from '@models/workload'
 import { Type } from 'class-transformer'
 import {
   IsArray,
@@ -69,6 +69,9 @@ export class ICreateWorkload {
 
   @IsNumber()
   semester: number
+
+  @IsEnum(Degree)
+  degree: Degree
 
   @IsString()
   fieldOfStudy: string
