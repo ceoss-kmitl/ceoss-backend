@@ -34,7 +34,7 @@ export async function generateWorkloadExcel5(
       verticalCentered: true,
       horizontalCentered: true,
       fitToPage: true,
-      printArea: 'A1:M25',
+      printArea: 'A1:S22',
       margins: {
         top: 0.16,
         bottom: 0.16,
@@ -50,4 +50,78 @@ export async function generateWorkloadExcel5(
       defaultRowHeight: Excel.pxRow(28),
     },
   })
+
+  // ===== Title =====
+  excel.font('TH SarabunPSK').fontSize(16)
+  excel
+    .cells('A1:S1')
+    .value(
+      `หลักฐานการเบิกจ่ายเงินค่าสอนพิเศษและค่าสอนเกินภาระงานสอนในสถาบันอุดมศึกษา`
+    )
+    .bold()
+    .align('center')
+  excel
+    .cells('A2:S2')
+    .value(
+      `ส่วนราชการ ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ ภาคการศึกษาที่ ${semester} พ.ศ. ${academic_year}`
+    )
+    .align('center')
+
+  const row = 13
+
+  // ===== Sign area =====
+  excel
+    .cells(`C${row + 1}:G${row + 1}`)
+    .value('(15) ผู้อนุมัติ')
+    .align('center')
+    .border('top')
+  excel
+    .cells(`C${row + 3}:G${row + 3}`)
+    .value('ลงชื่อ ...........................................')
+    .align('center')
+  excel
+    .cells(`C${row + 4}:G${row + 4}`)
+    .value(`(${setting.deanName})`)
+    .align('center')
+  excel
+    .cells(`C${row + 5}:G${row + 5}`)
+    .value('ตำแหน่ง คณบดีคณะวิศวกรรมศาสตร์')
+    .align('center')
+  excel
+    .cells(`C${row + 6}:G${row + 6}`)
+    .value('วันที่ ...........................................')
+    .align('center')
+
+  excel
+    .cells(`K${row + 1}:O${row + 1}`)
+    .value('(16) ผู้จ่ายเงิน')
+    .align('center')
+    .border('top')
+  excel
+    .cells(`K${row + 3}:O${row + 3}`)
+    .value('ลงชื่อ ...........................................')
+    .align('center')
+  excel
+    .cells(`K${row + 4}:O${row + 4}`)
+    .value(`( ........................................... )`)
+    .align('center')
+  excel
+    .cells(`K${row + 5}:O${row + 5}`)
+    .value('ตำแหน่ง ...........................................')
+    .align('center')
+  excel
+    .cells(`K${row + 6}:O${row + 6}`)
+    .value('วันที่ ...........................................')
+    .align('center')
+
+  for (const col of Excel.range('A:S')) {
+    excel.cell(`${col}${row + 7}`).border('top')
+  }
+  for (let i = 1; i < row + 7; i++) {
+    excel.cell(`U${i}`).border('left')
+  }
+
+  return excel.createFile(
+    `05_หลักฐาน ${semester}-${String(academic_year).substr(2, 2)} คอมพิวเตอร์`
+  )
 }
