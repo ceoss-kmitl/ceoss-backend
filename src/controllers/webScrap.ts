@@ -183,7 +183,7 @@ export class WebScrapController {
               teacher = new Teacher()
               teacher.title = _teacher.title
               teacher.name = _teacher.name
-              teacher.isExecutive = false
+              teacher.executiveRole = ''
               teacher.workloadList = []
             }
 
@@ -218,7 +218,7 @@ export class WebScrapController {
               teacher = new Teacher()
               teacher.title = _teacher.title
               teacher.name = _teacher.name
-              teacher.isExecutive = false
+              teacher.executiveRole = ''
             }
             await teacher.save()
           }
