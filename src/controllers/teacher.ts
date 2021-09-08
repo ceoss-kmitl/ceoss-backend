@@ -36,12 +36,12 @@ export class TeacherController {
   @Post('/teacher')
   @UseBefore(schema(ICreateTeacher))
   async createTeacher(@Body() body: ICreateTeacher) {
-    const { name, title, isExecutive, isActive } = body
+    const { name, title, executiveRole, isActive } = body
 
     const teacher = new Teacher()
     teacher.name = name
     teacher.title = title
-    teacher.isExecutive = isExecutive
+    teacher.executiveRole = executiveRole
     teacher.isActive = isActive
 
     await teacher.save()
@@ -51,14 +51,14 @@ export class TeacherController {
   @Put('/teacher/:id')
   @UseBefore(schema(IEditTeacher))
   async edit(@Param('id') id: string, @Body() body: IEditTeacher) {
-    const { name, title, isExecutive, isActive } = body
+    const { name, title, executiveRole, isActive } = body
 
     const teacher = await Teacher.findOne(id)
     if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
 
     teacher.name = name ?? teacher.name
     teacher.title = title ?? teacher.title
-    teacher.isExecutive = isExecutive ?? teacher.isExecutive
+    teacher.executiveRole = executiveRole ?? teacher.executiveRole
     teacher.isActive = isActive ?? teacher.isActive
 
     await teacher.save()
