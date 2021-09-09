@@ -3,6 +3,7 @@ import {
   BeforeInsert,
   Column,
   Entity,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryColumn,
@@ -11,6 +12,7 @@ import { nanoid } from 'nanoid'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Time } from '@models/time'
+import { Teacher } from '@models/teacher'
 
 export enum WorkloadType {
   Lecture = 'LECTURE',
@@ -27,6 +29,14 @@ export enum DayOfWeek {
   Sunday,
 }
 
+export enum Degree {
+  Bachelor = 'BACHELOR',
+  BachelorCon = 'BACHELOR_CONTINUE',
+  BachelorInter = 'BACHELOR_INTER',
+  Pundit = 'PUNDIT',
+  PunditInter = 'PUNDIT_INTER',
+}
+
 @Entity()
 export class Workload extends BaseEntity {
   @PrimaryColumn()
@@ -36,6 +46,9 @@ export class Workload extends BaseEntity {
     cascade: true,
   })
   subject: Subject
+
+  @ManyToMany(() => Teacher)
+  teacherList: Teacher[]
 
   @Column()
   section: number
@@ -60,6 +73,9 @@ export class Workload extends BaseEntity {
 
   @Column()
   semester: number
+
+  @Column({ type: 'enum', enum: Degree })
+  degree: Degree
 
   @Column()
   fieldOfStudy: string
