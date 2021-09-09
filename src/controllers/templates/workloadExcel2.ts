@@ -26,6 +26,8 @@ export async function generateWorkloadExcel2(
 
   const setting = await Setting.get()
 
+  let claimInter = false
+
   // ===== Excel setup =====
   const excel = new Excel(response, {
     pageSetup: {
@@ -128,11 +130,21 @@ export async function generateWorkloadExcel2(
       .border('right', 'left')
       .align('left')
 
-    excel
-      .cells(`J${7 + index}:K${7 + index}`)
-      .value(`${classYear}${fieldOfStudy}/${section}`)
-      .border('right', 'left')
-      .align('center')
+    if (subject.isInter === false) {
+      excel
+        .cells(`J${7 + index}:K${7 + index}`)
+        .value(`${classYear}${fieldOfStudy}/${section}`)
+        .border('right', 'left')
+        .align('center')
+    } else {
+      excel
+        .cells(`J${7 + index}:K${7 + index}`)
+        .value(
+          `${classYear}${subject.curriculumCode}/${section} (นานาชาติ ${subject.curriculumCode})`
+        )
+        .border('right', 'left')
+        .align('center')
+    }
 
     // ===== Pay rate and hour =====
     let payRate = 0
@@ -140,6 +152,7 @@ export async function generateWorkloadExcel2(
       if (type === 'LAB') payRate = setting.labPayRateNormal
       else payRate = setting.lecturePayRateNormal
     } else {
+      claimInter = true
       if (type === 'LAB') payRate = setting.labPayRateInter
       else payRate = setting.lecturePayRateInter
     }
@@ -230,21 +243,39 @@ export async function generateWorkloadExcel2(
 
   // ===== Sign area sub dean =====
 
-  excel
-    .cells(`H${row + 2}:I${row + 2}`)
-    .value(`3.ตรวจสอบความถูกต้องแล้ว`)
-    .border('left', 'right', 'top')
-    .align('center')
-  excel
-    .cells(`H${row + 6}:I${row + 6}`)
-    .value(`(${setting.viceDeanName})`)
-    .border('left', 'right')
-    .align('center')
-  excel
-    .cells(`H${row + 7}:I${row + 7}`)
-    .value(`รองคณบดี/ผู้ตรวจ`)
-    .border('left', 'right', 'bottom')
-    .align('center')
+  if (claimInter == false) {
+    excel
+      .cells(`H${row + 2}:I${row + 2}`)
+      .value(`3.ตรวจสอบความถูกต้องแล้ว`)
+      .border('left', 'right', 'top')
+      .align('center')
+    excel
+      .cells(`H${row + 6}:I${row + 6}`)
+      .value(`(${setting.viceDeanName})`)
+      .border('left', 'right')
+      .align('center')
+    excel
+      .cells(`H${row + 7}:I${row + 7}`)
+      .value(`รองคณบดี/ผู้ตรวจ`)
+      .border('left', 'right', 'bottom')
+      .align('center')
+  } else {
+    excel
+      .cells(`H${row + 2}:I${row + 2}`)
+      .value(`3.ตรวจสอบความถูกต้องแล้ว`)
+      .border('left', 'right', 'top')
+      .align('center')
+    excel
+      .cells(`H${row + 6}:I${row + 6}`)
+      .value(`(${setting.directorSIIEName})`)
+      .border('left', 'right')
+      .align('center')
+    excel
+      .cells(`H${row + 7}:I${row + 7}`)
+      .value(`ผู้อำนวยการ SIIE`)
+      .border('left', 'right', 'bottom')
+      .align('center')
+  }
 
   // ===== Sign area dean =====
   excel
