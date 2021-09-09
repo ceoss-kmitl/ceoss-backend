@@ -25,7 +25,9 @@ export class Time extends BaseEntity {
   @Column()
   endSlot: number
 
-  @ManyToOne(() => Workload, (workload) => workload.timeList)
+  @ManyToOne(() => Workload, (workload) => workload.timeList, {
+    onDelete: 'CASCADE',
+  })
   workload: Workload
 
   @BeforeInsert()

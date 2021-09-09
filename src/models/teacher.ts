@@ -22,8 +22,8 @@ export class Teacher extends BaseEntity {
   @Column()
   title: string
 
-  @Column()
-  isExecutive: boolean
+  @Column({ default: '' })
+  executiveRole: string
 
   @Column({ default: true })
   isActive: boolean
@@ -39,5 +39,9 @@ export class Teacher extends BaseEntity {
 
   static findByName(name: string, options: FindOneOptions<Teacher> = {}) {
     return this.findOne({ where: { name }, ...options })
+  }
+
+  public getFullName() {
+    return `${this.title}${this.name}`
   }
 }

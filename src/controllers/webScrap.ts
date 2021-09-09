@@ -7,7 +7,7 @@ import {
 import { IWebScrapQuery } from '@controllers/types/webScrap'
 import { schema } from '@middlewares/schema'
 import { WebScrap } from '@libs/WebScrap'
-import { Workload } from '@models/workload'
+import { Degree, Workload } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
@@ -79,6 +79,7 @@ export class WebScrapController {
             workload.isCompensated = workload.isCompensated ?? false
             workload.academicYear = academic_year
             workload.semester = semester
+            workload.degree = Degree.Bachelor
             workload.fieldOfStudy = 'D'
             workload.classYear = _classYear.classYear
 
@@ -170,6 +171,7 @@ export class WebScrapController {
           workload.isCompensated = false
           workload.academicYear = academic_year
           workload.semester = semester
+          workload.degree = Degree.Bachelor
           workload.fieldOfStudy = 'D'
           workload.classYear = _classYear.classYear
 
@@ -181,7 +183,7 @@ export class WebScrapController {
               teacher = new Teacher()
               teacher.title = _teacher.title
               teacher.name = _teacher.name
-              teacher.isExecutive = false
+              teacher.executiveRole = ''
               teacher.workloadList = []
             }
 
@@ -216,7 +218,7 @@ export class WebScrapController {
               teacher = new Teacher()
               teacher.title = _teacher.title
               teacher.name = _teacher.name
-              teacher.isExecutive = false
+              teacher.executiveRole = ''
             }
             await teacher.save()
           }
