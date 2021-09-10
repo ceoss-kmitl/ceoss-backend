@@ -28,6 +28,8 @@ export async function generateWorkloadExcel3Out(
 
   const setting = await Setting.get()
 
+  let claimDegree = 'BACHELOR'
+
   // ===== Excel setup =====
   const excel = new Excel(response, {
     pageSetup: {
@@ -53,14 +55,30 @@ export async function generateWorkloadExcel3Out(
     },
   })
 
-  // ===== Title =====
+  // ===== Configue height & width =====
   excel.font('TH SarabunPSK').fontSize(14)
+  excel.cell('A1').width(Excel.pxCol(46))
+  excel.cell('B1').width(Excel.pxCol(115))
+  excel.cell('F1').width(Excel.pxCol(80))
+  excel.cell('H1').width(Excel.pxCol(72))
+  excel.cell('I1').width(Excel.pxCol(72))
+  excel.cell('J1').width(Excel.pxCol(35))
+  excel.cell('L1').width(Excel.pxCol(35))
+  excel.cell('N1').width(Excel.pxCol(30))
+  excel.cell('O1').width(Excel.pxCol(30))
+  excel.cell('P1').width(Excel.pxCol(30))
+  excel.cell('Q1').width(Excel.pxCol(30))
+  excel.cell('R1').width(Excel.pxCol(30))
+  excel.cell('S1').width(Excel.pxCol(30))
+  excel.cell('T1').width(Excel.pxCol(30))
+  excel.cell('U1').width(Excel.pxCol(45))
+  excel.cell('V1').width(Excel.pxCol(45))
+
+  // ===== Title =====
   excel.cell('H1').value(`ใบเบิกค่าสอนพิเศษ (อาจารย์ภายนอก)`).align('left')
   excel.cell('A2').value(`ผู้สอน`).align('left')
   excel.cell('B2').value(`${teacher.title}${teacher.name}`).align('left')
   excel.cell('E2').value(`ตำแหน่ง อาจารย์พิเศษ/อาจารย์ภายนอก`).align('left')
-  excel.cell('I2').value(`☑ ปริญญาตรี`).align('left')
-  excel.cell('L2').value(`⬜ บัณฑิตศึกษา`).align('left')
   excel
     .cell('O2')
     .value(`ภาคการศึกษาที่ ${semester}/${academic_year}`)
@@ -96,7 +114,7 @@ export async function generateWorkloadExcel3Out(
   excel.cell('L5').value('ทั่วไป').border('box').align('center')
   excel.cell('M5').value('นานาชาติ').border('box').align('center')
 
-  excel.cells('N3:T3').value('เดือน??????').border('box').align('center')
+  excel.cells('N3:T3').value('เดือนกันยายน').border('box').align('center')
   {
     let week = 0
     for (const col of Excel.range('N:T')) {
@@ -124,7 +142,7 @@ export async function generateWorkloadExcel3Out(
 
   // ===== workload =====
   teacher.workloadList.forEach((workload, index) => {
-    const { subject, type, classYear, dayOfWeek } = workload
+    const { subject, type, classYear, dayOfWeek, degree } = workload
 
     const subjectType = {
       [WorkloadType.Lecture]: '(ท)',
@@ -145,27 +163,25 @@ export async function generateWorkloadExcel3Out(
     excel
       .cell(`A${6 + index}`)
       .value(`${day[dayOfWeek]}`)
-      .border('right', 'left')
+      .border('box')
       .align('center')
 
     excel
       .cells(`B${6 + index}:E${6 + index}`)
       .value(`${subject.code} ${subject.name} ${subjectType[type]}`)
-      .border('right', 'left')
+      .border('box')
       .align('left')
 
     excel
       .cell(`F${6 + index}`)
-      .value(
-        `${subject.credit}(${subject.lectureHours}-${subject.labHours}-${subject.independentHours})`
-      )
-      .border('right', 'left')
+      .value(subject.getFullCredit())
+      .border('box')
       .align('center')
 
     excel
       .cell(`G${6 + index}`)
       .value(`ปี ${classYear} ${subject.curriculumCode}`)
-      .border('right', 'left')
+      .border('box')
       .align('center')
 
     if (type === 'LECTURE') {
@@ -174,74 +190,130 @@ export async function generateWorkloadExcel3Out(
         .value(`${workload.getFirstTimeSlot()}-${workload.getLastTimeSlot()}`)
         .border('right', 'left')
         .align('center')
-      excel.cell(`I${6 + index}`).border('right', 'left')
+      excel.cell(`I${6 + index}`).border('box')
     } else if (type === 'LAB') {
       excel
         .cell(`I${6 + index}`)
         .value(`${workload.getFirstTimeSlot()}-${workload.getLastTimeSlot()}`)
         .border('right', 'left')
         .align('center')
-      excel.cell(`H${6 + index}`).border('right', 'left')
+      excel.cell(`H${6 + index}`).border('box')
     }
 
-    if (subject.isInter == true) {
+    claimDegree = degree
+
+    if (degree === 'BACHELOR') {
+      if (subject.isInter == true) {
+        excel
+          .cell(`J${6 + index}`)
+          .value('-')
+          .border('box')
+          .align('center')
+        if (type === 'LECTURE') {
+          excel
+            .cell(`K${6 + index}`)
+            .value(subject.lectureHours)
+            .border('box')
+            .align('center')
+        } else if (type === 'LAB') {
+          excel
+            .cell(`K${6 + index}`)
+            .value(subject.labHours)
+            .border('box')
+            .align('center')
+        }
+      } else {
+        excel
+          .cell(`K${6 + index}`)
+          .value('-')
+          .border('box')
+          .align('center')
+        if (type === 'LECTURE') {
+          excel
+            .cell(`J${6 + index}`)
+            .value(subject.lectureHours)
+            .border('box')
+            .align('center')
+        } else if (type === 'LAB') {
+          excel
+            .cell(`J${6 + index}`)
+            .value(subject.labHours)
+            .border('box')
+            .align('center')
+        }
+      }
+
+      excel
+        .cell(`L${6 + index}`)
+        .value('-')
+        .border('box')
+        .align('center')
+      excel
+        .cell(`M${6 + index}`)
+        .value('-')
+        .border('box')
+        .align('center')
+    } else {
+      if (subject.isInter == true) {
+        excel
+          .cell(`L${6 + index}`)
+          .value('-')
+          .border('box')
+          .align('center')
+        if (type === 'LECTURE') {
+          excel
+            .cell(`M${6 + index}`)
+            .value(subject.lectureHours)
+            .border('box')
+            .align('center')
+        } else if (type === 'LAB') {
+          excel
+            .cell(`M${6 + index}`)
+            .value(subject.labHours)
+            .border('box')
+            .align('center')
+        }
+      } else {
+        excel
+          .cell(`M${6 + index}`)
+          .value('-')
+          .border('box')
+          .align('center')
+        if (type === 'LECTURE') {
+          excel
+            .cell(`L${6 + index}`)
+            .value(subject.lectureHours)
+            .border('box')
+            .align('center')
+        } else if (type === 'LAB') {
+          excel
+            .cell(`L${6 + index}`)
+            .value(subject.labHours)
+            .border('box')
+            .align('center')
+        }
+      }
+
       excel
         .cell(`J${6 + index}`)
         .value('-')
-        .border('right', 'left')
+        .border('box')
         .align('center')
-      if (type === 'LECTURE') {
-        excel
-          .cell(`K${6 + index}`)
-          .value(subject.lectureHours)
-          .border('right', 'left')
-          .align('center')
-      } else if (type === 'LAB') {
-        excel
-          .cell(`K${6 + index}`)
-          .value(subject.labHours)
-          .border('right', 'left')
-          .align('center')
-      }
-    } else {
       excel
         .cell(`K${6 + index}`)
         .value('-')
-        .border('right', 'left')
+        .border('box')
         .align('center')
-      if (type === 'LECTURE') {
-        excel
-          .cell(`J${6 + index}`)
-          .value(subject.lectureHours)
-          .border('right', 'left')
-          .align('center')
-      } else if (type === 'LAB') {
-        excel
-          .cell(`J${6 + index}`)
-          .value(subject.labHours)
-          .border('right', 'left')
-          .align('center')
-      }
     }
-    excel
-      .cell(`L${6 + index}`)
-      .value('-')
-      .border('right', 'left')
-      .align('center')
-    excel
-      .cell(`M${6 + index}`)
-      .value('-')
-      .border('right', 'left')
-      .align('center')
 
     for (const col of Excel.range('N:V')) {
-      excel.cell(`${col}6`).border('right', 'left')
+      excel.cell(`${col}6`).border('box')
     }
 
     excel
       .cell(`W${6 + index}`)
       .value(`เบิก ${subject.curriculumCode}`)
-      .border('right', 'left')
+      .border('box')
       .align('center')
   })
 
@@ -249,10 +321,10 @@ export async function generateWorkloadExcel3Out(
   let row = teacher.workloadList.length + 6
   if (row < 9) {
     for (row; row < 9; row++) {
-      excel.cell(`A${row}`).border('right', 'left')
-      excel.cells(`B${row}:E${row}`).border('right')
+      excel.cell(`A${row}`).border('box')
+      excel.cells(`B${row}:E${row}`).border('box')
       for (const col of Excel.range('F:W')) {
-        excel.cell(`${col}${row}`).border('right')
+        excel.cell(`${col}${row}`).border('box')
       }
     }
   }
@@ -302,6 +374,15 @@ export async function generateWorkloadExcel3Out(
     .align('center')
     .border('box')
 
+  // ===== degree title=====
+  if (claimDegree == 'BACHELOR') {
+    excel.cell('I2').value(`☑ ปริญญาตรี`).align('left')
+    excel.cell('L2').value(`⬜ บัณฑิตศึกษา`).align('left')
+  } else {
+    excel.cell('I2').value(`⬜ ปริญญาตรี`).align('left')
+    excel.cell('L2').value(`☑ บัณฑิตศึกษา`).align('left')
+  }
+
   // ===== degree =====
   const degree = [
     '1. ปริญญาตรี ทั่วไป',
@@ -328,6 +409,29 @@ export async function generateWorkloadExcel3Out(
     }
   }
 
+  //
+  if (claimDegree == 'BACHELOR') {
+    excel
+      .cell(`C${row + 4}`)
+      .formula(`SUM(V${row})`)
+      .border('box')
+    excel.cell(`D${row + 4}`).border('box')
+    excel.cell(`E${row + 4}`).border('box')
+    excel
+      .cell(`G${row + 4}`)
+      .formula(`SUM(C${row + 4}:F${row + 4})`)
+      .border('box')
+  }
+  // } else if (claimDegree == 'BACHELOR_CONTINUE') {
+  //   excel.cell(`A${row + 9}`).border('box')
+  // } else if (claimDegree == 'BACHELOR_INTER') {
+  //   excel.cell(`A${row + 9}`).border('box')
+  // } else if (claimDegree == 'PUNDIT') {
+  //   excel.cell(`A${row + 9}`).border('box')
+  // } else if (claimDegree == 'PUNDIT_INTER') {
+  //   excel.cell(`A${row + 9}`).border('box')
+  // }
+
   // ===== Claim Summary =====
   excel
     .cells(`A${row + 9}:B${row + 9}`)
@@ -336,7 +440,7 @@ export async function generateWorkloadExcel3Out(
     .align('center')
   excel
     .cells(`C${row + 9}:F${row + 9}`)
-    .value('กี่บาทถ้วน')
+    .formula(`"("&BAHTTEXT(G${row + 9})&")"`)
     .border('box')
     .align('center')
   excel
@@ -399,19 +503,19 @@ export async function generateWorkloadExcel3Out(
     .align('center')
 
   excel
-    .cells(`P${row + 11}:S${row + 11}`)
+    .cells(`P${row + 11}:V${row + 11}`)
     .value('ผู้อนุมัติ')
     .align('center')
   excel
-    .cells(`P${row + 13}:S${row + 13}`)
+    .cells(`P${row + 13}:V${row + 13}`)
     .value('...........................................')
     .align('center')
   excel
-    .cells(`P${row + 14}:S${row + 14}`)
+    .cells(`P${row + 14}:V${row + 14}`)
     .value(`(${setting.deanName})`)
     .align('center')
   excel
-    .cells(`P${row + 15}:S${row + 15}`)
+    .cells(`P${row + 15}:V${row + 15}`)
     .value('คณบดีคณะวิศวกรรมศาสตร์')
     .align('center')
 
