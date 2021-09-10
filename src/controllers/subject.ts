@@ -94,11 +94,9 @@ export class SubjectController {
 
   @Delete('/subject/:id')
   async delete(@Param('id') id: string) {
-    const subject = await Subject.findOne(id, { relations: ['workloadList'] })
+    const subject = await Subject.findOne(id)
     if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
 
-    subject.workloadList = []
-    await subject.save()
     await subject.remove()
     return 'Deleted'
   }

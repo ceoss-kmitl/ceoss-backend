@@ -44,6 +44,7 @@ export class Workload extends BaseEntity {
 
   @ManyToOne(() => Subject, (subject) => subject.workloadList, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
   subject: Subject
 
@@ -62,7 +63,7 @@ export class Workload extends BaseEntity {
   @OneToMany(() => Time, (time) => time.workload, { cascade: true })
   timeList: Time[]
 
-  @ManyToOne(() => Room, (room) => room.workloadList)
+  @ManyToOne(() => Room, (room) => room.workloadList, { onDelete: 'CASCADE' })
   room: Room
 
   @Column()
