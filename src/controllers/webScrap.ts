@@ -209,6 +209,8 @@ export class WebScrapController {
     await webScrap.init()
     const data = webScrap.extractData()
 
+    const savedTeacher = []
+
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
         for (const _section of _subject.sectionList) {
@@ -220,13 +222,14 @@ export class WebScrapController {
               teacher.name = _teacher.name
               teacher.executiveRole = ''
             }
+            savedTeacher.push(teacher)
             await teacher.save()
           }
         }
       }
     }
 
-    return 'Scrap Teacher-Only OK'
+    return savedTeacher
   }
 
   // TODO: Remove this when go on production
@@ -241,6 +244,8 @@ export class WebScrapController {
     await webScrap.init()
     const data = webScrap.extractData()
 
+    const savedSubject = []
+
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
         let subject = await Subject.findOneByCode(_subject.subjectCode)
@@ -254,11 +259,12 @@ export class WebScrapController {
           subject.independentHours = _subject.independentHours
           subject.isRequired = true
         }
+        savedSubject.push(subject)
         await subject.save()
       }
     }
 
-    return 'Scrap Subject-Only OK'
+    return savedSubject
   }
 
   // TODO: Remove this when go on production
