@@ -256,11 +256,23 @@ export class Excel {
   }
 
   /**
-   * Set formula of this cell BUT also have to give it a result
-   * @example formula('SUM(A1:A5)', 96)
+   * Set excel formula of this cell
+   * @example formula('SUM(A1:A5)')
    */
   public formula(expression: string) {
     this.activeCell.value = { formula: expression } as ExcelJS.CellValue
+    return this
+  }
+
+  /**
+   * Set number format of this cell
+   * @example
+   * excel.value(20).numberFormat('0.00') => '20.00'
+   * excel.value(3.56).numberFormat('0.0') => '3.6'
+   * excel.value(4000).numberFormat('0,000') => '4,000'
+   */
+  public numberFormat(format: string) {
+    this.activeCell.numFmt = format
     return this
   }
 
