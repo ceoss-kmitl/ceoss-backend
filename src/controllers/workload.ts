@@ -18,9 +18,9 @@ import {
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
 import { generateWorkloadExcel2 } from '@controllers/templates/workloadExcel2'
-import { mapTimeToTimeSlot } from '@libs/mapper'
+import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
 import { schema } from '@middlewares/schema'
-import { DayOfWeek, Workload, WorkloadType } from '@models/workload'
+import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
@@ -69,23 +69,26 @@ export class WorkloadController {
     )
 
     const result = [] as {
-      dayInWeek: DayOfWeek
-      subjectList: {
+      workloadList: {
         id: string
-        workloadId: string
+        subjectId: string
         code: string
         name: string
         section: number
+        type: WorkloadType
+        fieldOfStudy: string
+        degree: Degree
+        classYear: number
+        dayOfWeek: DayOfWeek
         startSlot: number
         endSlot: number
-        type: WorkloadType
+        timeList: { start: string; end: string }[]
       }[]
     }[]
 
     for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
       result.push({
-        dayInWeek: day,
-        subjectList: [],
+        workloadList: [],
       })
     }
 
@@ -93,15 +96,23 @@ export class WorkloadController {
       const thatDay = result[workload.dayOfWeek - 1]
       const { subject } = workload
 
-      thatDay.subjectList.push({
-        id: subject.id,
+      thatDay.workloadList.push({
+        id: workload.id,
+        subjectId: subject.id,
         code: subject.code,
         name: subject.name,
         section: workload.section,
+        type: workload.type,
+        fieldOfStudy: workload.fieldOfStudy,
+        degree: workload.degree,
+        classYear: workload.classYear,
+        dayOfWeek: workload.dayOfWeek,
         startSlot: workload.getFirstTimeSlot(),
         endSlot: workload.getLastTimeSlot(),
-        type: workload.type,
-        workloadId: workload.id,
+        timeList: workload.timeList.map((time) => ({
+          start: mapTimeSlotToTime(time.startSlot),
+          end: mapTimeSlotToTime(time.endSlot + 1),
+        })),
       })
     })
 
