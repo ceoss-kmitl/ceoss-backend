@@ -3,7 +3,6 @@ import {
   BeforeInsert,
   Column,
   Entity,
-  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryColumn,
@@ -12,7 +11,7 @@ import { nanoid } from 'nanoid'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Time } from '@models/time'
-import { Teacher } from '@models/teacher'
+import { TeacherWorkload } from '@models/teacherWorkload'
 
 export enum WorkloadType {
   Lecture = 'LECTURE',
@@ -43,13 +42,15 @@ export class Workload extends BaseEntity {
   id: string
 
   @ManyToOne(() => Subject, (subject) => subject.workloadList, {
-    cascade: true,
     onDelete: 'CASCADE',
   })
   subject: Subject
 
-  @ManyToMany(() => Teacher)
-  teacherList: Teacher[]
+  @OneToMany(
+    () => TeacherWorkload,
+    (teacherWorkload) => teacherWorkload.workload
+  )
+  teacherWorkloadList: TeacherWorkload[]
 
   @Column()
   section: number
@@ -60,7 +61,9 @@ export class Workload extends BaseEntity {
   @Column({ type: 'enum', enum: DayOfWeek })
   dayOfWeek: DayOfWeek
 
-  @OneToMany(() => Time, (time) => time.workload, { cascade: true })
+  @OneToMany(() => Time, (time) => time.workload, {
+    cascade: true,
+  })
   timeList: Time[]
 
   @ManyToOne(() => Room, (room) => room.workloadList, { onDelete: 'CASCADE' })
@@ -101,5 +104,21 @@ export class Workload extends BaseEntity {
       (b, a) => a.startSlot - b.startSlot
     )
     return sortedTimeList[0].endSlot
+  }
+
+  public getTeacherList() {
+    return this.teacherWorkloadList.map(
+      (teacherWorkload) => teacherWorkload.teacher
+    )
+  }
+
+  public getWeekCount(teacherId: string) {
+    const teacherWorkload = this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+    if (!teacherWorkload) return -1
+    return teacherWorkload.weekCount
   }
 }

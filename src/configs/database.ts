@@ -7,7 +7,7 @@ async function connect() {
     await createConnection(connectionConfigs)
     Logger.info('Database connected')
   } catch (err) {
-    Logger.error('Can not connect to database')
+    Logger.error('Can not connect to database', err)
     process.exit(1)
   }
 }

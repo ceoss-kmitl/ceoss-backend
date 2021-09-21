@@ -26,6 +26,7 @@ import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
 import { NotFoundError } from '@errors/notFoundError'
+import { TeacherWorkload } from '@models/teacherWorkload'
 
 @JsonController()
 export class WorkloadController {
@@ -54,19 +55,23 @@ export class WorkloadController {
   async getTeacherWorkload(@QueryParams() query: ITeacherWorkloadQuery) {
     const teacher = await Teacher.findOne(query.teacher_id, {
       relations: [
-        'workloadList',
-        'workloadList.subject',
-        'workloadList.timeList',
+        'teacherWorkloadList',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload.subject',
+        'teacherWorkloadList.workload.timeList',
+        'teacherWorkloadList.workload.teacherWorkloadList',
+        'teacherWorkloadList.workload.teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
       ],
     })
     if (!teacher)
       throw new NotFoundError(`Teacher ${query.teacher_id} is not found`)
 
-    teacher.workloadList = teacher.workloadList.filter(
-      (workload) =>
-        workload.academicYear === query.academic_year &&
-        workload.semester === query.semester
-    )
+    teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
+      academicYear: query.academic_year,
+      semester: query.semester,
+    })
 
     const result = [] as {
       workloadList: {
@@ -83,6 +88,7 @@ export class WorkloadController {
         startSlot: number
         endSlot: number
         timeList: { start: string; end: string }[]
+        teacherList: { id: string; name: string; weekCount: number }[]
       }[]
     }[]
 
@@ -92,7 +98,7 @@ export class WorkloadController {
       })
     }
 
-    teacher.workloadList.forEach((workload) => {
+    for (const workload of teacher.getWorkloadList()) {
       const thatDay = result[workload.dayOfWeek - 1]
       const { subject } = workload
 
@@ -113,8 +119,13 @@ export class WorkloadController {
           start: mapTimeSlotToTime(time.startSlot),
           end: mapTimeSlotToTime(time.endSlot + 1),
         })),
+        teacherList: workload.getTeacherList().map((teacher) => ({
+          id: teacher.id,
+          name: teacher.getFullName(),
+          weekCount: workload.getWeekCount(teacher.id),
+        })),
       })
-    })
+    }
 
     return result
   }
@@ -169,7 +180,10 @@ export class WorkloadController {
     workload.isCompensated = isCompensated
     workload.classYear = classYear
 
-    teacher.workloadList.push(workload)
+    const teacherWorkload = new TeacherWorkload()
+    teacherWorkload.workload = workload
+
+    teacher.teacherWorkloadList.push(teacherWorkload)
     await teacher.save()
     return 'OK'
   }
