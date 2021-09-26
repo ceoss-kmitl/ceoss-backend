@@ -54,7 +54,10 @@ export class TeacherController {
     const { name, title, executiveRole, isActive } = body
 
     const teacher = await Teacher.findOne(id)
-    if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher ${id} is not found`,
+      ])
 
     teacher.name = name ?? teacher.name
     teacher.title = title ?? teacher.title
@@ -68,7 +71,10 @@ export class TeacherController {
   @Delete('/teacher/:id')
   async delete(@Param('id') id: string) {
     const teacher = await Teacher.findOne(id)
-    if (!teacher) throw new NotFoundError(`Teacher ${id} is not found`)
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher ${id} is not found`,
+      ])
 
     await teacher.remove()
     return 'Deleted'

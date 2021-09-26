@@ -17,7 +17,10 @@ export async function generateWorkloadExcel2(
   const teacher = await Teacher.findOne(teacher_id, {
     relations: ['workloadList', 'workloadList.subject'],
   })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+  if (!teacher)
+    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+      `Teacher ${teacher_id} is not found`,
+    ])
 
   teacher.workloadList = teacher.workloadList.filter(
     (workload) =>
