@@ -60,7 +60,9 @@ export class WorkloadController {
       ],
     })
     if (!teacher)
-      throw new NotFoundError(`Teacher ${query.teacher_id} is not found`)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher ${query.teacher_id} is not found`,
+      ])
 
     teacher.workloadList = teacher.workloadList.filter(
       (workload) =>
@@ -130,10 +132,16 @@ export class WorkloadController {
     const teacher = await Teacher.findOne(teacherId, {
       relations: ['workloadList'],
     })
-    if (!teacher) throw new NotFoundError(`Teacher ${teacherId} is not found`)
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher ${teacherId} is not found`,
+      ])
 
     const subject = await Subject.findOne(subjectId)
-    if (!subject) throw new NotFoundError(`Subject ${subjectId} is not found`)
+    if (!subject)
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject ${subjectId} is not found`,
+      ])
 
     const room = await Room.findOne({ where: { id: roomId } })
 
@@ -166,7 +174,10 @@ export class WorkloadController {
   @Delete('/workload/:id')
   async discardWorkload(@Param('id') id: string) {
     const workload = await Workload.findOne(id)
-    if (!workload) throw new NotFoundError(`Workload ${id} is not found`)
+    if (!workload)
+      throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
+        `Workload ${id} is not found`,
+      ])
 
     await workload.remove()
     return 'Workload discarded'

@@ -27,8 +27,7 @@ export const schema =
         }
       })
 
-      const message = resultArray.join(', ')
-      next(new SchemaError(message))
+      next(new SchemaError('รูปแบบข้อมูลไม่ถูกต้อง', resultArray))
     }
     next()
   }

@@ -10,11 +10,13 @@ export const ErrorHandler =
       return res.status(err.statusCode).send({
         name: err.name,
         message: err.message,
+        errorList: err.errorList,
       })
     }
 
     res.status(error.statusCode).send({
       name: error.name,
       message: error.message,
+      errorList: error.errorList,
     })
   }

@@ -21,7 +21,10 @@ export async function generateWorkloadExcel1(
       'workloadList.timeList',
     ],
   })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+  if (!teacher)
+    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+      `Teacher ${teacher_id} is not found`,
+    ])
 
   teacher.workloadList = teacher.workloadList.filter(
     (workload) =>
