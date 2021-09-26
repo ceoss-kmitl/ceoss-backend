@@ -6,7 +6,8 @@ export class InternalServerError extends BaseError {
     super({
       statusCode: 500,
       name: `InternalServerError(${errorName})`,
-      message: error.message || 'Internal server error',
+      message: `มีข้อผิดพลาดบางอย่างเกิดขึ้น`,
+      errorList: [error.message],
     })
   }
 }
