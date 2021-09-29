@@ -15,17 +15,21 @@ export async function generateWorkloadExcel2(
   const { teacher_id, academic_year, semester } = query
 
   const teacher = await Teacher.findOne(teacher_id, {
-    relations: ['workloadList', 'workloadList.subject'],
+    relations: [
+      'teacherWorkloadList',
+      'teacherWorkloadList.workload',
+      'teacherWorkloadList.workload.subject',
+    ],
   })
   if (!teacher)
     throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
       `Teacher ${teacher_id} is not found`,
     ])
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+  teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
+    academicYear: academic_year,
+    semester,
+  })
 
   const setting = await Setting.get()
 
@@ -109,12 +113,12 @@ export async function generateWorkloadExcel2(
     .border('left', 'right')
     .align('center')
 
-  for (let index = 0; index < teacher.workloadList.length - 1; index++) {
+  for (let index = 0; index < teacher.getWorkloadList().length - 1; index++) {
     excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
   }
 
   // ===== workload =====
-  teacher.workloadList.forEach((workload, index) => {
+  teacher.getWorkloadList().forEach((workload, index) => {
     const { subject, type, section, classYear, fieldOfStudy } = workload
 
     const subjectType = {
@@ -175,7 +179,7 @@ export async function generateWorkloadExcel2(
 
   // ===== Least 11 rows =====
 
-  let row = teacher.workloadList.length + 7
+  let row = teacher.getWorkloadList().length + 7
   if (row < 18) {
     for (row; row < 18; row++) {
       excel.cells(`A${row}:B${row}`).border('right', 'left')

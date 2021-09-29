@@ -16,9 +16,10 @@ export async function generateWorkloadExcel1(
 
   const teacher = await Teacher.findOne(teacher_id, {
     relations: [
-      'workloadList',
-      'workloadList.subject',
-      'workloadList.timeList',
+      'teacherWorkloadList',
+      'teacherWorkloadList.workload',
+      'teacherWorkloadList.workload.subject',
+      'teacherWorkloadList.workload.timeList',
     ],
   })
   if (!teacher)
@@ -26,10 +27,10 @@ export async function generateWorkloadExcel1(
       `Teacher ${teacher_id} is not found`,
     ])
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+  teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
+    academicYear: academic_year,
+    semester,
+  })
 
   const setting = await Setting.get()
 
@@ -190,7 +191,7 @@ export async function generateWorkloadExcel1(
 
   // ===== Workload of teacher =====
   excel.fontSize(13)
-  teacher.workloadList.forEach((workload) => {
+  teacher.getWorkloadList().forEach((workload) => {
     const {
       subject,
       type,
