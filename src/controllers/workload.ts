@@ -6,12 +6,14 @@ import {
   JsonController,
   Param,
   Post,
+  Put,
   QueryParams,
   Res,
   UseBefore,
 } from 'routing-controllers'
 import {
   ICreateWorkload,
+  IEditWorkload,
   IGetWorkloadExcel1Query,
   IGetWorkloadExcel2Query,
   ITeacherWorkloadQuery,
@@ -25,8 +27,8 @@ import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
-import { NotFoundError } from '@errors/notFoundError'
 import { TeacherWorkload } from '@models/teacherWorkload'
+import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
 export class WorkloadController {
@@ -88,7 +90,11 @@ export class WorkloadController {
         startSlot: number
         endSlot: number
         timeList: { start: string; end: string }[]
-        teacherList: { id: string; name: string; weekCount: number }[]
+        teacherList: {
+          teacherId: string
+          weekCount: number
+          isClaim: boolean
+        }[]
       }[]
     }[]
 
@@ -120,9 +126,9 @@ export class WorkloadController {
           end: mapTimeSlotToTime(time.endSlot + 1),
         })),
         teacherList: workload.getTeacherList().map((teacher) => ({
-          id: teacher.id,
-          name: teacher.getFullName(),
+          teacherId: teacher.id,
           weekCount: workload.getWeekCount(teacher.id),
+          isClaim: workload.getIsClaim(teacher.id),
         })),
       })
     }
@@ -186,6 +192,37 @@ export class WorkloadController {
     teacher.teacherWorkloadList.push(teacherWorkload)
     await teacher.save()
     return 'OK'
+  }
+
+  @Put('/workload/:id')
+  @UseBefore(schema(IEditWorkload))
+  async editWorkload(@Param('id') id: string, @Body() body: IEditWorkload) {
+    const { teacherList } = body
+    const workload = await Workload.findOne({
+      where: { id },
+      relations: [
+        'teacherWorkloadList',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.teacher',
+      ],
+    })
+    if (!workload) throw new NotFoundError('ไม่พบภาระงานดังกล่าว')
+
+    const tmpTeacherWorkloadList = []
+    for (const teacher of teacherList) {
+      const teacherWorkload = workload.getTeacherWorkload(teacher.teacherId)
+      if (!teacherWorkload) throw new NotFoundError('ไม่พบภาระงานดังกล่าว')
+
+      teacherWorkload.isClaim = teacher.isClaim
+      teacherWorkload.weekCount = teacher.weekCount
+
+      tmpTeacherWorkloadList.push(teacherWorkload)
+    }
+
+    for (const tw of tmpTeacherWorkloadList) {
+      await tw.save()
+    }
+    return 'Workload Edited'
   }
 
   @Delete('/workload/:id')

@@ -112,6 +112,14 @@ export class Workload extends BaseEntity {
     )
   }
 
+  public getTeacherWorkload(teacherId: string) {
+    return this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+  }
+
   public getWeekCount(teacherId: string) {
     const teacherWorkload = this.teacherWorkloadList.find(
       (teacherWorkload) =>
@@ -120,5 +128,15 @@ export class Workload extends BaseEntity {
     )
     if (!teacherWorkload) return -1
     return teacherWorkload.weekCount
+  }
+
+  public getIsClaim(teacherId: string) {
+    const teacherWorkload = this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+    if (!teacherWorkload) return false
+    return teacherWorkload.isClaim
   }
 }

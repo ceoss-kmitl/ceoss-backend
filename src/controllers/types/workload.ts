@@ -80,6 +80,24 @@ export class ICreateWorkload {
   classYear: number
 }
 
+class IEditWorkloadTeacherList {
+  @IsString()
+  teacherId: string
+
+  @IsNumber()
+  weekCount: number
+
+  @IsBoolean()
+  isClaim: boolean
+}
+
+export class IEditWorkload {
+  @Type(() => IEditWorkloadTeacherList)
+  @ValidateNested({ each: true })
+  @IsArray()
+  teacherList: IEditWorkloadTeacherList[]
+}
+
 export class IGetWorkloadExcel1Query {
   @IsString()
   teacher_id: string

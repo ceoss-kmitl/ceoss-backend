@@ -18,4 +18,7 @@ export class TeacherWorkload extends BaseEntity {
 
   @Column({ default: 15 })
   weekCount: number
+
+  @Column({ default: true })
+  isClaim: boolean
 }
