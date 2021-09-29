@@ -226,8 +226,8 @@ export class WorkloadController {
   }
 
   @Delete('/workload/:id')
-  async discardWorkload(@Param('id') id: string) {
-    const workload = await Workload.findOne(id)
+  async deleteWorkload(@Param('id') id: string) {
+    const workload = await Workload.findOne({ where: { id } })
     if (!workload) throw new NotFoundError(`Workload ${id} is not found`)
 
     await workload.remove()
