@@ -95,6 +95,7 @@ export class WorkloadController {
           weekCount: number
           isClaim: boolean
         }[]
+        isClaim: boolean
       }[]
     }[]
 
@@ -130,6 +131,7 @@ export class WorkloadController {
           weekCount: workload.getWeekCount(teacher.id),
           isClaim: workload.getIsClaim(teacher.id),
         })),
+        isClaim: workload.getIsClaim(query.teacher_id),
       })
     }
 
@@ -140,7 +142,7 @@ export class WorkloadController {
   @UseBefore(schema(ICreateWorkload))
   async createWorkload(@Body() body: ICreateWorkload) {
     const {
-      teacherId,
+      teacherList,
       subjectId,
       roomId,
       type,
@@ -151,21 +153,15 @@ export class WorkloadController {
       timeList,
       academicYear,
       semester,
-      isCompensated,
       classYear,
     } = body
 
-    const teacher = await Teacher.findOne(teacherId, {
-      relations: ['workloadList'],
-    })
-    if (!teacher) throw new NotFoundError(`Teacher ${teacherId} is not found`)
-
-    const subject = await Subject.findOne(subjectId)
+    const subject = await Subject.findOne({ where: { id: subjectId } })
     if (!subject) throw new NotFoundError(`Subject ${subjectId} is not found`)
 
     const room = await Room.findOne({ where: { id: roomId } })
 
-    const workloadTimeList = timeList.map(({ startTime, endTime }) =>
+    const workloadTimeList = timeList.map(([startTime, endTime]) =>
       Time.create({
         startSlot: mapTimeToTimeSlot(startTime),
         endSlot: mapTimeToTimeSlot(endTime) - 1,
@@ -183,14 +179,25 @@ export class WorkloadController {
     workload.timeList = workloadTimeList
     workload.academicYear = academicYear
     workload.semester = semester
-    workload.isCompensated = isCompensated
     workload.classYear = classYear
+    workload.isCompensated = false
 
-    const teacherWorkload = new TeacherWorkload()
-    teacherWorkload.workload = workload
+    for (const _teacher of teacherList) {
+      const teacher = await Teacher.findOne({
+        where: { id: _teacher.teacherId },
+        relations: ['teacherWorkloadList'],
+      })
+      if (!teacher) throw new NotFoundError('ไม่พบรายชื่อผู้สอน')
 
-    teacher.teacherWorkloadList.push(teacherWorkload)
-    await teacher.save()
+      const teacherWorkload = new TeacherWorkload()
+      teacherWorkload.workload = await workload.save()
+      teacherWorkload.teacher = teacher
+      teacherWorkload.isClaim = _teacher.isClaim
+      teacherWorkload.weekCount = _teacher.weekCount
+
+      await teacherWorkload.save()
+    }
+
     return 'OK'
   }
 
