@@ -96,9 +96,9 @@ export class WebScrapController {
     }
 
     if (subjectErrorList.length > 0) {
-      throw new NotFoundError(
-        `Subject not found: ${[...new Set(subjectErrorList)].join(', ')}`
-      )
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject not found: ${[...new Set(subjectErrorList)].join(', ')}`,
+      ])
     }
 
     const todayDate = new Date()

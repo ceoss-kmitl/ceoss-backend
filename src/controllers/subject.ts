@@ -39,7 +39,10 @@ export class SubjectController {
     } = body
 
     const isExist = await Subject.findOneByCode(code)
-    if (isExist) throw new BadRequestError(`Subject ${code} already exist`)
+    if (isExist)
+      throw new BadRequestError('มีวิชานี้อยู่แล้วในระบบ', [
+        `Subject ${code} already exist`,
+      ])
 
     const subject = new Subject()
     subject.code = code
@@ -73,10 +76,15 @@ export class SubjectController {
     const isExist = await Subject.findOneByCode(code)
     const isNotSelf = isExist?.id !== id
     if (isExist && isNotSelf)
-      throw new BadRequestError(`Subject ${id} already exist`)
+      throw new BadRequestError('มีวิชานี้อยู่แล้วในระบบ', [
+        `Subject ${id} already exist`,
+      ])
 
     const subject = await Subject.findOne(id)
-    if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
+    if (!subject)
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject ${id} is not found`,
+      ])
 
     subject.code = code ?? subject.code
     subject.name = name ?? subject.name
@@ -95,7 +103,10 @@ export class SubjectController {
   @Delete('/subject/:id')
   async delete(@Param('id') id: string) {
     const subject = await Subject.findOne(id)
-    if (!subject) throw new NotFoundError(`Subject ${id} is not found`)
+    if (!subject)
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject ${id} is not found`,
+      ])
 
     await subject.remove()
     return 'Deleted'

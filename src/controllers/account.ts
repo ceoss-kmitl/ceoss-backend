@@ -25,7 +25,10 @@ export class AccountController {
   @Get('/account/:id')
   async findById(@Param('id') id: string) {
     const account = await Account.findOne(id)
-    if (!account) throw new NotFoundError(`Account ${id} is not found`)
+    if (!account)
+      throw new NotFoundError('ไม่พบบัญชีดังกล่าว', [
+        `Account ${id} is not found`,
+      ])
 
     return {
       id: account.id,
@@ -39,7 +42,10 @@ export class AccountController {
   async create(@Body() body: ICreateAccount) {
     const { username, password, isAdmin } = body
     const isExist = await Account.findOneByUsername(username)
-    if (isExist) throw new BadRequestError('Account already exist')
+    if (isExist)
+      throw new BadRequestError('มีบัญชีนี้อยู่แล้วในระบบ', [
+        'Account already exist',
+      ])
 
     const account = new Account()
     account.username = username
@@ -55,10 +61,16 @@ export class AccountController {
   async edit(@Param('id') id: string, @Body() body: IEditAccount) {
     const { username, password, isAdmin } = body
     const isExist = await Account.findOneByUsername(username)
-    if (isExist) throw new BadRequestError('This username has been used')
+    if (isExist)
+      throw new BadRequestError('ชื่อนี้ถูกใช้ไปแล้ว', [
+        'This username has been used',
+      ])
 
     const account = await Account.findOne(id)
-    if (!account) throw new NotFoundError(id)
+    if (!account)
+      throw new NotFoundError('ไม่พบบัญชีดังกล่าว', [
+        `Account ${id} is not found`,
+      ])
 
     account.username = username ?? account.username
     account.password = password ?? account.password
@@ -71,7 +83,10 @@ export class AccountController {
   @Delete('/account/:id')
   async delete(@Param('id') id: string) {
     const account = await Account.findOne(id)
-    if (!account) throw new NotFoundError(`Account ${id} is not found`)
+    if (!account)
+      throw new NotFoundError('ไม่พบบัญชีดังกล่าว', [
+        `Account ${id} is not found`,
+      ])
 
     await account.softRemove()
     return 'Account deleted'
