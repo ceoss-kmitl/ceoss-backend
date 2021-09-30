@@ -16,17 +16,17 @@ export function mapTimeToTimeSlot(time: string) {
  * slot1 - slot 52
  * 08:00 - 20:00
  * each slot = 15 mins
- * @param timeSlot ex. 1, 12
+ * @param timeSlot ex. 1, 6
  */
-export function mapTimeSlotToTime(timeSlot: number) {
+export function mapTimeSlotToTime(timeSlot: number, seperator = ':') {
   const START_HOURS = 8
-  let min = (timeSlot - 1) * 15
-  let hr = START_HOURS
-  while (min >= 60) {
-    min -= 60
-    hr++
+  let minutes = (timeSlot - 1) * 15
+  let hours = 0
+  while (minutes >= 60) {
+    hours += 1
+    minutes -= 60
   }
-  const hrString = String(hr).padStart(2, '0')
-  const minString = String(min).padStart(2, '0')
-  return `${hrString}:${minString}`
+  const hr = `${String(hours + START_HOURS).padStart(2, '0')}`
+  const min = `${String(minutes).padStart(2, '0')}`
+  return `${hr}${seperator}${min}`
 }
