@@ -19,16 +19,16 @@ export class Time extends BaseEntity {
   @PrimaryColumn()
   id: string
 
+  @ManyToOne(() => Workload, (workload) => workload.timeList, {
+    onDelete: 'CASCADE',
+  })
+  workload: Workload
+
   @Column()
   startSlot: number
 
   @Column()
   endSlot: number
-
-  @ManyToOne(() => Workload, (workload) => workload.timeList, {
-    onDelete: 'CASCADE',
-  })
-  workload: Workload
 
   @BeforeInsert()
   private beforeInsert() {

@@ -13,6 +13,7 @@ import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { Time } from '@models/time'
 import { NotFoundError } from '@errors/notFoundError'
+import { TeacherWorkload } from '@models/teacherWorkload'
 
 // REG example url
 // http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=2563&semester=1
@@ -40,7 +41,7 @@ export class WebScrapController {
           for (const _teacher of _section.teacherList) {
             // Step 1: Find teacher in DB. If not found then skip to next teacher
             const teacher = await Teacher.findByName(_teacher.name, {
-              relations: ['workloadList'],
+              relations: ['teacherWorkloadList'],
             })
             if (!teacher) {
               continue
@@ -55,46 +56,50 @@ export class WebScrapController {
               continue
             }
 
-            // Step 3: Update or create new workload with the data
-            const workloadTimeList = _section.timeSlotList.map(
-              ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
-            )
+            // Step 3: Find workload in DB. If not found then create it
+            let workload = await Workload.findOne({
+              relations: ['subject', 'timeList', 'teacherWorkloadList'],
+              where: {
+                academicYear: academic_year,
+                semester,
+                subject: { id: subject.id },
+                section: _section.section,
+                dayOfWeek: _section.dayOfWeek,
+              },
+            })
+            if (!workload) {
+              workload = new Workload()
+              workload.subject = subject
+              workload.section = _section.section
+              workload.type = _section.subjectType
+              workload.dayOfWeek = _section.dayOfWeek
+              workload.isCompensated = workload.isCompensated ?? false
+              workload.academicYear = academic_year
+              workload.semester = semester
+              workload.degree = Degree.Bachelor
+              workload.fieldOfStudy = 'D'
+              workload.classYear = _classYear.classYear
+              workload.timeList = _section.timeSlotList.map(
+                ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+              )
+              await workload.save()
 
-            const workload =
-              (await Workload.findOne({
-                relations: ['subject', 'timeList'],
-                where: {
-                  academicYear: academic_year,
-                  semester,
-                  subject: { id: subject.id },
-                  section: _section.section,
-                  dayOfWeek: _section.dayOfWeek,
-                },
-              })) || new Workload()
-            workload.subject = subject
-            workload.section = _section.section
-            workload.type = _section.subjectType
-            workload.dayOfWeek = _section.dayOfWeek
-            workload.timeList = workloadTimeList
-            workload.isCompensated = workload.isCompensated ?? false
-            workload.academicYear = academic_year
-            workload.semester = semester
-            workload.degree = Degree.Bachelor
-            workload.fieldOfStudy = 'D'
-            workload.classYear = _classYear.classYear
+              // Step 4: Link workload to teacher then save!
+              const teacherWorkload = new TeacherWorkload()
+              teacherWorkload.workload = workload
+              teacherWorkload.teacher = teacher
 
-            // Step 4: Link workload to teacher then save!
-            teacher.workloadList.push(workload)
-            await teacher.save()
+              await teacherWorkload.save()
+            }
           }
         }
       }
     }
 
     if (subjectErrorList.length > 0) {
-      throw new NotFoundError(
-        `Subject not found: ${[...new Set(subjectErrorList)].join(', ')}`
-      )
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject not found: ${[...new Set(subjectErrorList)].join(', ')}`,
+      ])
     }
 
     const todayDate = new Date()
@@ -136,25 +141,33 @@ export class WebScrapController {
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
         for (const _section of _subject.sectionList) {
-          let subject = await Subject.findOneByCode(_subject.subjectCode)
-          if (!subject) {
-            subject = new Subject()
-            subject.code = _subject.subjectCode
-            subject.name = _subject.subjectName
-            subject.credit = _subject.credit
-            subject.lectureHours = _subject.lectureHours
-            subject.labHours = _subject.labHours
-            subject.independentHours = _subject.independentHours
-            subject.isRequired = true
-          }
+          for (const _teacher of _section.teacherList) {
+            // Step 1: Find teacher in DB. If not found then create
+            let teacher = await Teacher.findByName(_teacher.name)
+            if (!teacher) {
+              teacher = new Teacher()
+              teacher.title = _teacher.title
+              teacher.name = _teacher.name
+              await teacher.save()
+            }
 
-          const workloadTimeList = _section.timeSlotList.map(
-            ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
-          )
+            // Step 2: Find subject in DB. If not found then create
+            let subject = await Subject.findOneByCode(_subject.subjectCode)
+            if (!subject) {
+              subject = new Subject()
+              subject.code = _subject.subjectCode
+              subject.name = _subject.subjectName
+              subject.credit = _subject.credit
+              subject.lectureHours = _subject.lectureHours
+              subject.labHours = _subject.labHours
+              subject.independentHours = _subject.independentHours
+              subject.isRequired = true
+              await subject.save()
+            }
 
-          const workload =
-            (await Workload.findOne({
-              relations: ['subject', 'timeList'],
+            // Step 3: Find workload in DB. If not found then create
+            let workload = await Workload.findOne({
+              relations: ['subject', 'timeList', 'teacherWorkloadList'],
               where: {
                 academicYear: academic_year,
                 semester,
@@ -162,33 +175,31 @@ export class WebScrapController {
                 section: _section.section,
                 dayOfWeek: _section.dayOfWeek,
               },
-            })) || new Workload()
-          workload.subject = subject
-          workload.section = _section.section
-          workload.type = _section.subjectType
-          workload.dayOfWeek = _section.dayOfWeek
-          workload.timeList = workloadTimeList
-          workload.isCompensated = false
-          workload.academicYear = academic_year
-          workload.semester = semester
-          workload.degree = Degree.Bachelor
-          workload.fieldOfStudy = 'D'
-          workload.classYear = _classYear.classYear
-
-          for (const _teacher of _section.teacherList) {
-            let teacher = await Teacher.findByName(_teacher.name, {
-              relations: ['workloadList'],
             })
-            if (!teacher) {
-              teacher = new Teacher()
-              teacher.title = _teacher.title
-              teacher.name = _teacher.name
-              teacher.executiveRole = ''
-              teacher.workloadList = []
-            }
+            if (!workload) {
+              workload = new Workload()
+              workload.subject = subject
+              workload.section = _section.section
+              workload.type = _section.subjectType
+              workload.dayOfWeek = _section.dayOfWeek
+              workload.isCompensated = workload.isCompensated ?? false
+              workload.academicYear = academic_year
+              workload.semester = semester
+              workload.degree = Degree.Bachelor
+              workload.fieldOfStudy = 'D'
+              workload.classYear = _classYear.classYear
+              workload.timeList = _section.timeSlotList.map(
+                ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+              )
+              await workload.save()
 
-            teacher.workloadList.push(workload)
-            await teacher.save()
+              // Step 4: Link workload to teacher then save!
+              const teacherWorkload = new TeacherWorkload()
+              teacherWorkload.teacher = teacher
+              teacherWorkload.workload = workload
+
+              await teacherWorkload.save()
+            }
           }
         }
       }
@@ -209,6 +220,8 @@ export class WebScrapController {
     await webScrap.init()
     const data = webScrap.extractData()
 
+    const savedTeacher = []
+
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
         for (const _section of _subject.sectionList) {
@@ -220,13 +233,14 @@ export class WebScrapController {
               teacher.name = _teacher.name
               teacher.executiveRole = ''
             }
+            savedTeacher.push(teacher)
             await teacher.save()
           }
         }
       }
     }
 
-    return 'Scrap Teacher-Only OK'
+    return savedTeacher
   }
 
   // TODO: Remove this when go on production
@@ -241,6 +255,8 @@ export class WebScrapController {
     await webScrap.init()
     const data = webScrap.extractData()
 
+    const savedSubject = []
+
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
         let subject = await Subject.findOneByCode(_subject.subjectCode)
@@ -254,11 +270,12 @@ export class WebScrapController {
           subject.independentHours = _subject.independentHours
           subject.isRequired = true
         }
+        savedSubject.push(subject)
         await subject.save()
       }
     }
 
-    return 'Scrap Subject-Only OK'
+    return savedSubject
   }
 
   // TODO: Remove this when go on production

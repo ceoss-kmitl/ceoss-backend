@@ -7,7 +7,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  Matches,
   ValidateNested,
 } from 'class-validator'
 
@@ -24,21 +23,22 @@ export class ITeacherWorkloadQuery {
   semester: number
 }
 
-const TIME_REGEX = /^\d{2}:\d{2}$/ // hh:mm, 08:30, 12:05
-
-class IWorkloadTime {
+class ITeacherList {
   @IsString()
-  @Matches(TIME_REGEX)
-  startTime: string
+  teacherId: string
 
-  @IsString()
-  @Matches(TIME_REGEX)
-  endTime: string
+  @IsNumber()
+  weekCount: number
+
+  @IsBoolean()
+  isClaim: boolean
 }
 
 export class ICreateWorkload {
-  @IsString()
-  teacherId: string
+  @Type(() => ITeacherList)
+  @IsArray()
+  @ValidateNested({ each: true })
+  teacherList: ITeacherList[]
 
   @IsString()
   subjectId: string
@@ -52,17 +52,12 @@ export class ICreateWorkload {
   @IsEnum(DayOfWeek)
   dayOfWeek: DayOfWeek
 
-  @Type(() => IWorkloadTime)
-  @IsArray()
-  @ValidateNested({ each: true })
-  timeList: IWorkloadTime[]
+  @IsArray({ each: true })
+  timeList: string[][]
 
   @IsString()
   @IsOptional()
-  roomId: string
-
-  @IsBoolean()
-  isCompensated: boolean
+  roomId?: string
 
   @IsNumber()
   academicYear: number
@@ -80,6 +75,24 @@ export class ICreateWorkload {
   classYear: number
 }
 
+class IEditWorkloadTeacherList {
+  @IsString()
+  teacherId: string
+
+  @IsNumber()
+  weekCount: number
+
+  @IsBoolean()
+  isClaim: boolean
+}
+
+export class IEditWorkload {
+  @Type(() => IEditWorkloadTeacherList)
+  @ValidateNested({ each: true })
+  @IsArray()
+  teacherList: IEditWorkloadTeacherList[]
+}
+
 export class IGetWorkloadExcel1Query {
   @IsString()
   teacher_id: string
@@ -94,6 +107,19 @@ export class IGetWorkloadExcel1Query {
 }
 
 export class IGetWorkloadExcel2Query {
+  @IsString()
+  teacher_id: string
+
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
+}
+
+export class IGetWorkloadExcel3Query {
   @IsString()
   teacher_id: string
 
