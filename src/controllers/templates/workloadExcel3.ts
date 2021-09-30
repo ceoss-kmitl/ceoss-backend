@@ -18,24 +18,27 @@ export async function generateWorkloadExcel3(
 
   const teacher = await Teacher.findOne(teacher_id, {
     relations: [
-      'workloadList',
-      'workloadList.subject',
-      'workloadList.timeList',
+      'teacherWorkloadList',
+      'teacherWorkloadList.workload',
+      'teacherWorkloadList.workload.timeList',
+      'teacherWorkloadList.workload.subject',
     ],
   })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+  if (!teacher)
+    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+      `Teacher ${teacher_id} is not found`,
+    ])
 
-  teacher.workloadList = teacher.workloadList
-    .filter(
-      (workload) =>
-        workload.academicYear === academic_year &&
-        workload.semester === semester &&
-        !FILTERED_SUBJECT.includes(workload.subject.code)
-    )
+  teacher.teacherWorkloadList = teacher
+    .filterTeacherWorkloadList({
+      academicYear: academic_year,
+      semester,
+    })
+    .filter((tw) => !FILTERED_SUBJECT.includes(tw.workload.subject.code))
     .sort(
       (a, b) =>
-        a.dayOfWeek - b.dayOfWeek ||
-        a.timeList[0].startSlot - b.timeList[0].startSlot
+        a.workload.dayOfWeek - b.workload.dayOfWeek ||
+        a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
     )
 
   const setting = await Setting.get()
@@ -181,7 +184,7 @@ export async function generateWorkloadExcel3(
     [WorkloadType.Lab]: '(ป)',
     [WorkloadType.Lecture]: '(ท)',
   }
-  for (const workload of teacher.workloadList) {
+  for (const workload of teacher.getWorkloadList()) {
     for (const time of workload.timeList) {
       const { dayOfWeek, subject, classYear, fieldOfStudy, section } = workload
 

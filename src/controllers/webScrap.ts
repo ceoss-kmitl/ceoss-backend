@@ -56,40 +56,41 @@ export class WebScrapController {
               continue
             }
 
-            // Step 3: Update or create new workload with the data
-            const workloadTimeList = _section.timeSlotList.map(
-              ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
-            )
+            // Step 3: Find workload in DB. If not found then create it
+            let workload = await Workload.findOne({
+              relations: ['subject', 'timeList', 'teacherWorkloadList'],
+              where: {
+                academicYear: academic_year,
+                semester,
+                subject: { id: subject.id },
+                section: _section.section,
+                dayOfWeek: _section.dayOfWeek,
+              },
+            })
+            if (!workload) {
+              workload = new Workload()
+              workload.subject = subject
+              workload.section = _section.section
+              workload.type = _section.subjectType
+              workload.dayOfWeek = _section.dayOfWeek
+              workload.isCompensated = workload.isCompensated ?? false
+              workload.academicYear = academic_year
+              workload.semester = semester
+              workload.degree = Degree.Bachelor
+              workload.fieldOfStudy = 'D'
+              workload.classYear = _classYear.classYear
+              workload.timeList = _section.timeSlotList.map(
+                ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+              )
+              await workload.save()
 
-            const workload =
-              (await Workload.findOne({
-                relations: ['subject', 'timeList'],
-                where: {
-                  academicYear: academic_year,
-                  semester,
-                  subject: { id: subject.id },
-                  section: _section.section,
-                  dayOfWeek: _section.dayOfWeek,
-                },
-              })) || new Workload()
-            workload.subject = subject
-            workload.section = _section.section
-            workload.type = _section.subjectType
-            workload.dayOfWeek = _section.dayOfWeek
-            workload.timeList = workloadTimeList
-            workload.isCompensated = workload.isCompensated ?? false
-            workload.academicYear = academic_year
-            workload.semester = semester
-            workload.degree = Degree.Bachelor
-            workload.fieldOfStudy = 'D'
-            workload.classYear = _classYear.classYear
+              // Step 4: Link workload to teacher then save!
+              const teacherWorkload = new TeacherWorkload()
+              teacherWorkload.workload = workload
+              teacherWorkload.teacher = teacher
 
-            // Step 4: Link workload to teacher then save!
-            const teacherWorkload = new TeacherWorkload()
-            teacherWorkload.workload = workload
-            teacherWorkload.teacher = teacher
-
-            await teacherWorkload.save()
+              await teacherWorkload.save()
+            }
           }
         }
       }
@@ -164,44 +165,41 @@ export class WebScrapController {
               await subject.save()
             }
 
-            // Step 3: Create new workload with the data
-            const workload =
-              (await Workload.findOne({
-                relations: ['subject', 'timeList'],
-                where: {
-                  academicYear: academic_year,
-                  semester,
-                  subject: { id: subject.id },
-                  section: _section.section,
-                  dayOfWeek: _section.dayOfWeek,
-                },
-              })) || new Workload()
+            // Step 3: Find workload in DB. If not found then create
+            let workload = await Workload.findOne({
+              relations: ['subject', 'timeList', 'teacherWorkloadList'],
+              where: {
+                academicYear: academic_year,
+                semester,
+                subject: { id: subject.id },
+                section: _section.section,
+                dayOfWeek: _section.dayOfWeek,
+              },
+            })
+            if (!workload) {
+              workload = new Workload()
+              workload.subject = subject
+              workload.section = _section.section
+              workload.type = _section.subjectType
+              workload.dayOfWeek = _section.dayOfWeek
+              workload.isCompensated = workload.isCompensated ?? false
+              workload.academicYear = academic_year
+              workload.semester = semester
+              workload.degree = Degree.Bachelor
+              workload.fieldOfStudy = 'D'
+              workload.classYear = _classYear.classYear
+              workload.timeList = _section.timeSlotList.map(
+                ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
+              )
+              await workload.save()
 
-            const workloadTimeList = _section.timeSlotList.map(
-              ({ startSlot, endSlot }) =>
-                Time.create({ startSlot, endSlot, workload })
-            )
-            workload.subject = subject
-            workload.section = _section.section
-            workload.type = _section.subjectType
-            workload.dayOfWeek = _section.dayOfWeek
-            workload.timeList = workloadTimeList
-            workload.isCompensated = workload.isCompensated ?? false
-            workload.academicYear = academic_year
-            workload.semester = semester
-            workload.degree = Degree.Bachelor
-            workload.fieldOfStudy = 'D'
-            workload.classYear = _classYear.classYear
-            await workload.save()
+              // Step 4: Link workload to teacher then save!
+              const teacherWorkload = new TeacherWorkload()
+              teacherWorkload.teacher = teacher
+              teacherWorkload.workload = workload
 
-            console.log(workload.timeList)
-
-            // Step 4: Link workload to teacher then save!
-            const teacherWorkload = new TeacherWorkload()
-            teacherWorkload.teacher = teacher
-            teacherWorkload.workload = workload
-
-            await teacherWorkload.save()
+              await teacherWorkload.save()
+            }
           }
         }
       }
