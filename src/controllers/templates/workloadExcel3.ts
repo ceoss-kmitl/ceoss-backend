@@ -4,11 +4,13 @@ import { mapTimeSlotToTime } from '@libs/mapper'
 import { IGetWorkloadExcel3Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { DayOfWeek, WorkloadType } from '@models/workload'
+import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
 // CEPP, PROJECT1, PROJECT2
 const FILTERED_SUBJECT = ['01076014', '01076311', '01076312']
+
+const REMARK_CLAIM = ['FE', 'SE', 'CIE']
 
 export async function generateWorkloadExcel3(
   response: Response,
@@ -19,6 +21,7 @@ export async function generateWorkloadExcel3(
   const teacher = await Teacher.findOne(teacher_id, {
     relations: [
       'teacherWorkloadList',
+      'teacherWorkloadList.teacher',
       'teacherWorkloadList.workload',
       'teacherWorkloadList.workload.timeList',
       'teacherWorkloadList.workload.subject',
@@ -34,7 +37,9 @@ export async function generateWorkloadExcel3(
       academicYear: academic_year,
       semester,
     })
-    .filter((tw) => !FILTERED_SUBJECT.includes(tw.workload.subject.code))
+    .filter(
+      (tw) => !FILTERED_SUBJECT.includes(tw.workload.subject.code) && tw.isClaim
+    )
     .sort(
       (a, b) =>
         a.workload.dayOfWeek - b.workload.dayOfWeek ||
@@ -66,6 +71,58 @@ export async function generateWorkloadExcel3(
       defaultRowHeight: Excel.pxRow(19),
     },
   })
+
+  // Variable to check which degree has claimed
+  const isClaimDegree = {
+    [Degree.Bachelor]: false,
+    [Degree.BachelorCon]: false,
+    [Degree.BachelorInter]: false,
+    [Degree.Pundit]: false,
+    [Degree.PunditInter]: false,
+  }
+
+  // Use for render summary table at the bottom left
+  type ISummary = {
+    degreeThai: string
+    degree: Degree
+    payRate: number
+    totalHours: number
+    subList?: (Omit<ISummary, 'subList'> & { fieldOfStudy: string })[]
+  }
+  const summaryClaim: ISummary[] = [
+    {
+      degreeThai: 'ปริญญาตรี ทั่วไป',
+      degree: Degree.Bachelor,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+    },
+    {
+      degreeThai: 'ปริญญาตรี ต่อเนื่อง',
+      degree: Degree.BachelorCon,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+    },
+    {
+      degreeThai: 'ปริญญาตรี นานาชาติ',
+      degree: Degree.BachelorInter,
+      payRate: setting.lecturePayRateInter,
+      totalHours: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'บัณฑิต ทั่วไป',
+      degree: Degree.Pundit,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+    },
+    {
+      degreeThai: 'บัณฑิต นานาชาติ',
+      degree: Degree.PunditInter,
+      payRate: setting.lecturePayRateInter,
+      totalHours: 0,
+      subList: [],
+    },
+  ]
 
   // ===== Configue font & width some column =====
   excel.font('TH SarabunPSK')
@@ -239,19 +296,75 @@ export async function generateWorkloadExcel3(
       }
 
       // Render hours per week
+      for (const col of Excel.range('J:Y')) {
+        excel.cell(`${col}${currentRow}`).border('box').align('center')
+      }
       let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
       if (workload.type === WorkloadType.Lab) hoursUnit /= 2
-      excel
-        .cell(`J${currentRow}`)
-        .value(hoursUnit)
-        .border('box')
-        .align('center')
-      excel.cell(`K${currentRow}`).value(15).border('box').align('center')
-      excel
-        .cell(`L${currentRow}`)
-        .formula(`J${currentRow}*K${currentRow}`)
-        .border('box')
-        .align('center')
+      const DegreeMapper = {
+        [Degree.Bachelor]: 'JKL',
+        [Degree.BachelorCon]: 'MNO',
+        [Degree.BachelorInter]: 'PQR',
+        [Degree.Pundit]: 'STU',
+        [Degree.PunditInter]: 'VWX',
+      }
+      {
+        const col = DegreeMapper[workload.degree]
+        isClaimDegree[workload.degree] = true
+
+        excel.cell(`${col[0]}${currentRow}`).value(hoursUnit)
+        excel
+          .cell(`${col[1]}${currentRow}`)
+          .value(teacher.getWeekCount(workload.id))
+        excel
+          .cell(`${col[2]}${currentRow}`)
+          .formula(`${col[0]}${currentRow}*${col[1]}${currentRow}`)
+
+        // Store total hours
+        summaryClaim.forEach((s) => {
+          const hr = hoursUnit * teacher.getWeekCount(workload.id)
+
+          // Inter degree
+          if (
+            s.degree === workload.degree &&
+            [Degree.BachelorInter, Degree.PunditInter].includes(s.degree)
+          ) {
+            const sub = s.subList?.find(
+              (sub) => sub.fieldOfStudy === fieldOfStudy
+            )
+            if (!sub) {
+              s.subList?.push({
+                degree: workload.degree,
+                degreeThai:
+                  workload.degree === Degree.BachelorInter
+                    ? 'ปริญญาตรี'
+                    : 'บัณฑิต' + ` ${workload.fieldOfStudy}`,
+                payRate: setting.lecturePayRateInter,
+                totalHours: hr,
+                fieldOfStudy: workload.fieldOfStudy,
+              })
+            }
+            s.subList?.forEach((sub) => {
+              if (sub.fieldOfStudy === fieldOfStudy) {
+                sub.totalHours += hr
+              }
+            })
+          }
+          // Normal degree
+          else if (s.degree === workload.degree) {
+            s.totalHours += hr
+          }
+        })
+
+        // Render remark (หมายเหตุ)
+        if (REMARK_CLAIM.includes(fieldOfStudy)) {
+          excel
+            .cell(`Y${currentRow}`)
+            .value(`เบิก ${workload.fieldOfStudy}`)
+            .align('center')
+            .shrink()
+        }
+      }
 
       // End of this row. Starting new row in new loop
       currentRow++
@@ -272,16 +385,25 @@ export async function generateWorkloadExcel3(
     .cells(`B${currentRow}:E${currentRow}`)
     .value('รวมหน่วย ชม. ที่ทำการสอนทั้งสิ้น')
     .border('top-bold')
-  for (const col of Excel.range('F:K')) {
-    excel.cell(`${col}${currentRow}`).border('box', 'top-bold')
+
+  // Border every cell in row
+  for (const col of Excel.range('F:Y')) {
+    excel.cell(`${col}${currentRow}`).border('box', 'top-bold').align('center')
   }
-  excel
-    .cell(`L${currentRow}`)
-    .formula(`SUM(L7:L${currentRow - 1})`)
-    .align('center')
-    .border('box', 'top-bold')
-  for (const col of Excel.range('M:Y')) {
-    excel.cell(`${col}${currentRow}`).border('box', 'top-bold')
+
+  // Calculate hours summary each of degree
+  for (const [degree, col] of [
+    [Degree.Bachelor, 'L'],
+    [Degree.BachelorCon, 'O'],
+    [Degree.BachelorInter, 'R'],
+    [Degree.Pundit, 'U'],
+    [Degree.PunditInter, 'X'],
+  ]) {
+    if (isClaimDegree[degree as Degree]) {
+      excel
+        .cell(`${col}${currentRow}`)
+        .formula(`SUM(${col}7:${col}${currentRow - 1})`)
+    }
   }
   currentRow++
 
@@ -320,6 +442,7 @@ export async function generateWorkloadExcel3(
 
   // ===== Render bottom table
   {
+    const lastTableRow = currentRow
     let row = currentRow + 2
     excel
       .cells(`A${row}:E${row}`)
@@ -337,56 +460,74 @@ export async function generateWorkloadExcel3(
       .align('center')
     row++
 
-    // Row 1
-    excel.cells(`A${row}:B${row}`).value('1. ปริญญาตรี ทั่วไป').border('box')
-    for (const col of Excel.range('C:E')) {
-      excel.cell(`${col}${row}`).border('box')
-    }
-    excel.cells(`F${row}:G${row}`).border('box')
-    row++
+    // Render degree
+    let order = 1
+    summaryClaim.forEach((summary) => {
+      // Draw outline
+      for (const col of Excel.range('C:F')) {
+        excel
+          .cell(`${col}${row}`)
+          .border('box')
+          .align('center')
+          .numberFormat('#,###')
+      }
+      excel.cells(`F${row}:G${row}`).border('box')
 
-    // Row 2
-    excel.cells(`A${row}:B${row}`).value('2. ปริญญาตรี ต่อเนื่อง').border('box')
-    for (const col of Excel.range('C:E')) {
-      excel.cell(`${col}${row}`).border('box')
-    }
-    excel.cells(`F${row}:G${row}`).border('box')
-    row++
+      // Inter row summary
+      if (summary.subList?.length) {
+        summary.subList.forEach((sub) => {
+          excel
+            .cells(`A${row}:B${row}`)
+            .value(`${order}. ${sub.degreeThai}`)
+            .border('box')
+          if (sub.totalHours) {
+            excel.cell(`C${row}`).value(sub.totalHours)
+            excel.cell(`D${row}`).value(sub.payRate)
+            excel.cell(`E${row}`).formula(`C${row}*D${row}`)
+            excel.cell(`F${row}`).formula(`E${row}`)
+          }
+          order++
+          row++
+        })
+      }
+      // Normal row summary
+      else {
+        excel
+          .cells(`A${row}:B${row}`)
+          .value(`${order}. ${summary.degreeThai}`)
+          .border('box')
+        if (summary.totalHours) {
+          excel.cell(`C${row}`).value(Math.max(0, summary.totalHours - 150))
+          excel.cell(`D${row}`).value(summary.payRate)
+          excel.cell(`E${row}`).formula(`C${row}*D${row}`)
+          excel.cell(`F${row}`).formula(`E${row}`)
+        }
+        order++
+        row++
+      }
+    })
 
-    // Row 3
-    excel.cells(`A${row}:B${row}`).value('3. ปริญญาตรี นานาชาติ').border('box')
-    for (const col of Excel.range('C:E')) {
-      excel.cell(`${col}${row}`).border('box')
-    }
-    excel.cells(`F${row}:G${row}`).border('box')
-    row++
-
-    // Row 4
-    excel.cells(`A${row}:B${row}`).value('4. บัณฑิต ทั่วไป').border('box')
-    for (const col of Excel.range('C:E')) {
-      excel.cell(`${col}${row}`).border('box')
-    }
-    excel.cells(`F${row}:G${row}`).border('box')
-    row++
-
-    // Row 5
-    excel.cells(`A${row}:B${row}`).value('5. บัณฑิต นานาชาติ').border('box')
-    for (const col of Excel.range('C:E')) {
-      excel.cell(`${col}${row}`).border('box')
-    }
-    excel.cells(`F${row}:G${row}`).border('box')
-    row++
-
-    // Row 6 : Total
+    // Last row: Total
     excel.cell(`A${row}`).value('รวม').border('box')
     excel
       .cells(`B${row}:D${row}`)
       .formula(`"("&BAHTTEXT(F${row})&")"`)
       .border('box')
       .align('center')
-    excel.cell(`E${row}`).border('box')
-    excel.cells(`F${row}:G${row}`).border('box')
+    excel
+      .cell(`E${row}`)
+      .border('box')
+      .align('center')
+      .formula(`SUM(E${lastTableRow + 4}:E${row - 1})`)
+      .numberFormat('#,###')
+    excel
+      .cells(`F${row}:G${row}`)
+      .border('box')
+      .align('center')
+      .formula(`SUM(F${lastTableRow + 4}:F${row - 1})`)
+      .numberFormat('#,###')
   }
+  console.log(summaryClaim)
 
   // ===== Sign area =====
   {
