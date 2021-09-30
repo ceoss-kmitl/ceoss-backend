@@ -131,3 +131,16 @@ export class IGetWorkloadExcel3Query {
   @IsNumber()
   semester: number
 }
+
+export class IGetWorkloadExcel3OutQuery {
+  @IsString()
+  teacher_id: string
+
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
+}
