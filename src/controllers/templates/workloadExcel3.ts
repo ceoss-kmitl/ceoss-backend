@@ -601,7 +601,6 @@ export async function generateWorkloadExcel3(
       .formula(`SUM(F${lastTableRow + 4}:F${row - 1})`)
       .numberFormat('#,###')
   }
-  console.log(JSON.stringify(summaryClaim, null, 2))
 
   // ===== Sign area =====
   {
