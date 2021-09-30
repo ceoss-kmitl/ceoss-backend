@@ -1,9 +1,10 @@
 import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
+import { mapTimeSlotToTime } from '@libs/mapper'
 import { IGetWorkloadExcel3OutQuery } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
+import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel3Out(
@@ -14,21 +15,30 @@ export async function generateWorkloadExcel3Out(
 
   const teacher = await Teacher.findOne(teacher_id, {
     relations: [
-      'workloadList',
-      'workloadList.subject',
-      'workloadList.timeList',
+      'teacherWorkloadList',
+      'teacherWorkloadList.teacher',
+      'teacherWorkloadList.workload',
+      'teacherWorkloadList.workload.timeList',
+      'teacherWorkloadList.workload.subject',
     ],
   })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+  if (!teacher)
+    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+      `Teacher ${teacher_id} is not found`,
+    ])
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+  teacher.teacherWorkloadList = teacher
+    .filterTeacherWorkloadList({
+      academicYear: academic_year,
+      semester,
+    })
+    .sort(
+      (a, b) =>
+        a.workload.dayOfWeek - b.workload.dayOfWeek ||
+        a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
+    )
 
   const setting = await Setting.get()
-
-  let claimDegree = 'BACHELOR'
 
   // ===== Excel setup =====
   const excel = new Excel(response, {
@@ -54,6 +64,67 @@ export async function generateWorkloadExcel3Out(
       defaultRowHeight: Excel.pxRow(28),
     },
   })
+
+  // Variable to check which degree has claimed
+  const isClaimDegree = {
+    [Degree.Bachelor]: false,
+    [Degree.BachelorCon]: false,
+    [Degree.BachelorInter]: false,
+    [Degree.Pundit]: false,
+    [Degree.PunditInter]: false,
+  }
+
+  // Use for render summary table at the bottom left
+  type ISummary = {
+    degreeThai: string
+    degree: Degree
+    payRate: number
+    totalHours: number
+    claimAmount: number
+    subList: (Omit<ISummary, 'subList'> & { fieldOfStudy: string })[]
+  }
+  const summaryClaim: ISummary[] = [
+    {
+      degreeThai: 'ปริญญาตรี ทั่วไป',
+      degree: Degree.Bachelor,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'ปริญญาตรี ต่อเนื่อง',
+      degree: Degree.BachelorCon,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'ปริญญาตรี นานาชาติ',
+      degree: Degree.BachelorInter,
+      payRate: setting.lecturePayRateInter,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'บัณฑิต ทั่วไป',
+      degree: Degree.Pundit,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'บัณฑิต นานาชาติ',
+      degree: Degree.PunditInter,
+      payRate: setting.lecturePayRateInter,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+  ]
 
   // ===== Configue height & width =====
   excel.font('TH SarabunPSK').fontSize(14)
@@ -140,185 +211,109 @@ export async function generateWorkloadExcel3Out(
   excel.cell('W4').border('right')
   excel.cell('W5').value('หมายเหตุ').border('right', 'bottom').align('center')
 
+  let currentDay: DayOfWeek | null = null
+  const DayName = {
+    [DayOfWeek.Monday]: 'จันทร์',
+    [DayOfWeek.Tuesday]: 'อังคาร',
+    [DayOfWeek.Wednesday]: 'พุธ',
+    [DayOfWeek.Thursday]: 'พฤหัส',
+    [DayOfWeek.Friday]: 'ศุกร์',
+    [DayOfWeek.Saturday]: 'เสาร์',
+    [DayOfWeek.Sunday]: 'อาทิตย์',
+  }
+
+  const subjectType = {
+    [WorkloadType.Lecture]: '(ท)',
+    [WorkloadType.Lab]: '(ป)',
+  }
+
   // ===== workload =====
-  teacher.workloadList.forEach((workload, index) => {
-    const { subject, type, classYear, dayOfWeek, degree } = workload
+  teacher.getWorkloadList().forEach((workload, index) => {
+    for (const time of workload.timeList) {
+      const { subject, type, classYear, dayOfWeek } = workload
 
-    const subjectType = {
-      [WorkloadType.Lecture]: '(ท)',
-      [WorkloadType.Lab]: '(ป)',
-    }
+      // ===== Subject column =====
 
-    // ===== Subject column =====
-    const day = [
-      '',
-      'จันทร์',
-      'อังคาร',
-      'พุธ',
-      'พฤหัส',
-      'ศุกร์',
-      'เสาร์',
-      'อาทิตย์',
-    ]
-    excel
-      .cell(`A${6 + index}`)
-      .value(`${day[dayOfWeek]}`)
-      .border('box')
-      .align('center')
-
-    excel
-      .cells(`B${6 + index}:E${6 + index}`)
-      .value(`${subject.code} ${subject.name} ${subjectType[type]}`)
-      .border('box')
-      .align('left')
-
-    excel
-      .cell(`F${6 + index}`)
-      .value(subject.getFullCredit())
-      .border('box')
-      .align('center')
-
-    excel
-      .cell(`G${6 + index}`)
-      .value(`ปี ${classYear} ${subject.curriculumCode}`)
-      .border('box')
-      .align('center')
-
-    if (type === 'LECTURE') {
-      excel
-        .cell(`H${6 + index}`)
-        .value(`${workload.getFirstTimeSlot()}-${workload.getLastTimeSlot()}`)
-        .border('right', 'left')
-        .align('center')
-      excel.cell(`I${6 + index}`).border('box')
-    } else if (type === 'LAB') {
-      excel
-        .cell(`I${6 + index}`)
-        .value(`${workload.getFirstTimeSlot()}-${workload.getLastTimeSlot()}`)
-        .border('right', 'left')
-        .align('center')
-      excel.cell(`H${6 + index}`).border('box')
-    }
-
-    claimDegree = degree
-
-    if (degree === 'BACHELOR') {
-      if (subject.isInter == true) {
+      if (dayOfWeek !== currentDay) {
+        currentDay = workload.dayOfWeek
         excel
-          .cell(`J${6 + index}`)
-          .value('-')
-          .border('box')
+          .cell(`A${6 + index}`)
+          .value(DayName[currentDay])
+          .border('left', 'right')
           .align('center')
-        if (type === 'LECTURE') {
-          excel
-            .cell(`K${6 + index}`)
-            .value(subject.lectureHours)
-            .border('box')
-            .align('center')
-        } else if (type === 'LAB') {
-          excel
-            .cell(`K${6 + index}`)
-            .value(subject.labHours)
-            .border('box')
-            .align('center')
-        }
-      } else {
+      }
+
+      excel
+        .cells(`B${6 + index}:E${6 + index}`)
+        .value(`${subject.code} ${subject.name} ${subjectType[type]}`)
+        .border('left', 'right')
+        .align('left')
+        .shrink()
+
+      excel
+        .cell(`F${6 + index}`)
+        .value(subject.getFullCredit())
+        .border('left', 'right')
+        .align('center')
+
+      excel
+        .cell(`G${6 + index}`)
+        .value(`ปี ${classYear} ${subject.curriculumCode}`)
+        .border('left', 'right')
+        .align('center')
+
+      excel.cell(`H${6 + index}`).border('left', 'right')
+      excel.cell(`I${6 + index}`).border('left', 'right')
+      {
+        const column = workload.type === WorkloadType.Lecture ? 'H' : 'I'
+        const startTime = mapTimeSlotToTime(time.startSlot, '.')
+        const endTime = mapTimeSlotToTime(time.endSlot, '.')
         excel
-          .cell(`K${6 + index}`)
-          .value('-')
-          .border('box')
+          .cell(`${column}${6 + index}`)
+          .value(`${startTime}-${endTime}`)
           .align('center')
-        if (type === 'LECTURE') {
+          .shrink()
+      }
+
+      const DegreeMapper = {
+        [Degree.Bachelor]: 'J',
+        [Degree.BachelorCon]: '',
+        [Degree.BachelorInter]: 'K',
+        [Degree.Pundit]: 'L',
+        [Degree.PunditInter]: 'M',
+      }
+      for (const col of Excel.range('J:N')) {
+        const col2 = DegreeMapper[workload.degree]
+        isClaimDegree[workload.degree] = true
+        if (col === col2) {
           excel
-            .cell(`J${6 + index}`)
+            .cell(`${col}${6 + index}`)
             .value(subject.lectureHours)
-            .border('box')
+            .border('left', 'right')
             .align('center')
-        } else if (type === 'LAB') {
+        } else {
           excel
-            .cell(`J${6 + index}`)
-            .value(subject.labHours)
-            .border('box')
+            .cell(`${col}${6 + index}`)
+            .value('-')
+            .border('left', 'right')
             .align('center')
         }
       }
 
-      excel
-        .cell(`L${6 + index}`)
-        .value('-')
-        .border('box')
-        .align('center')
-      excel
-        .cell(`M${6 + index}`)
-        .value('-')
-        .border('box')
-        .align('center')
-    } else {
-      if (subject.isInter == true) {
-        excel
-          .cell(`L${6 + index}`)
-          .value('-')
-          .border('box')
-          .align('center')
-        if (type === 'LECTURE') {
-          excel
-            .cell(`M${6 + index}`)
-            .value(subject.lectureHours)
-            .border('box')
-            .align('center')
-        } else if (type === 'LAB') {
-          excel
-            .cell(`M${6 + index}`)
-            .value(subject.labHours)
-            .border('box')
-            .align('center')
-        }
-      } else {
-        excel
-          .cell(`M${6 + index}`)
-          .value('-')
-          .border('box')
-          .align('center')
-        if (type === 'LECTURE') {
-          excel
-            .cell(`L${6 + index}`)
-            .value(subject.lectureHours)
-            .border('box')
-            .align('center')
-        } else if (type === 'LAB') {
-          excel
-            .cell(`L${6 + index}`)
-            .value(subject.labHours)
-            .border('box')
-            .align('center')
-        }
+      for (const col of Excel.range('N:V')) {
+        excel.cell(`${col}6`).border('box')
       }
 
       excel
-        .cell(`J${6 + index}`)
-        .value('-')
-        .border('box')
-        .align('center')
-      excel
-        .cell(`K${6 + index}`)
-        .value('-')
+        .cell(`W${6 + index}`)
+        .value(`เบิก ${subject.curriculumCode}`)
         .border('box')
         .align('center')
     }
-
-    for (const col of Excel.range('N:V')) {
-      excel.cell(`${col}6`).border('box')
-    }
-
-    excel
-      .cell(`W${6 + index}`)
-      .value(`เบิก ${subject.curriculumCode}`)
-      .border('box')
-      .align('center')
   })
 
   // ===== Least 3 rows =====
-  let row = teacher.workloadList.length + 6
+  let row = teacher.teacherWorkloadList.length + 6
   if (row < 9) {
     for (row; row < 9; row++) {
       excel.cell(`A${row}`).border('box')
@@ -375,7 +370,10 @@ export async function generateWorkloadExcel3Out(
     .border('box')
 
   // ===== degree title=====
-  if (claimDegree == 'BACHELOR') {
+  if (
+    isClaimDegree[Degree.Bachelor] === true ||
+    isClaimDegree[Degree.BachelorInter] === true
+  ) {
     excel.cell('I2').value(`☑ ปริญญาตรี`).align('left')
     excel.cell('L2').value(`⬜ บัณฑิตศึกษา`).align('left')
   } else {
@@ -408,29 +406,6 @@ export async function generateWorkloadExcel3Out(
       excel.cells(`G${row + i}:H${row + i}`).border('box')
     }
   }
-
-  //
-  if (claimDegree == 'BACHELOR') {
-    excel
-      .cell(`C${row + 4}`)
-      .formula(`SUM(V${row})`)
-      .border('box')
-    excel.cell(`D${row + 4}`).border('box')
-    excel.cell(`E${row + 4}`).border('box')
-    excel
-      .cell(`G${row + 4}`)
-      .formula(`SUM(C${row + 4}:F${row + 4})`)
-      .border('box')
-  }
-  // } else if (claimDegree == 'BACHELOR_CONTINUE') {
-  //   excel.cell(`A${row + 9}`).border('box')
-  // } else if (claimDegree == 'BACHELOR_INTER') {
-  //   excel.cell(`A${row + 9}`).border('box')
-  // } else if (claimDegree == 'PUNDIT') {
-  //   excel.cell(`A${row + 9}`).border('box')
-  // } else if (claimDegree == 'PUNDIT_INTER') {
-  //   excel.cell(`A${row + 9}`).border('box')
-  // }
 
   // ===== Claim Summary =====
   excel
