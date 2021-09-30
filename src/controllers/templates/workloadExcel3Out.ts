@@ -74,58 +74,6 @@ export async function generateWorkloadExcel3Out(
     [Degree.PunditInter]: false,
   }
 
-  // Use for render summary table at the bottom left
-  type ISummary = {
-    degreeThai: string
-    degree: Degree
-    payRate: number
-    totalHours: number
-    claimAmount: number
-    subList: (Omit<ISummary, 'subList'> & { fieldOfStudy: string })[]
-  }
-  const summaryClaim: ISummary[] = [
-    {
-      degreeThai: 'ปริญญาตรี ทั่วไป',
-      degree: Degree.Bachelor,
-      payRate: setting.lecturePayRateNormal,
-      totalHours: 0,
-      claimAmount: 0,
-      subList: [],
-    },
-    {
-      degreeThai: 'ปริญญาตรี ต่อเนื่อง',
-      degree: Degree.BachelorCon,
-      payRate: setting.lecturePayRateNormal,
-      totalHours: 0,
-      claimAmount: 0,
-      subList: [],
-    },
-    {
-      degreeThai: 'ปริญญาตรี นานาชาติ',
-      degree: Degree.BachelorInter,
-      payRate: setting.lecturePayRateInter,
-      totalHours: 0,
-      claimAmount: 0,
-      subList: [],
-    },
-    {
-      degreeThai: 'บัณฑิต ทั่วไป',
-      degree: Degree.Pundit,
-      payRate: setting.lecturePayRateNormal,
-      totalHours: 0,
-      claimAmount: 0,
-      subList: [],
-    },
-    {
-      degreeThai: 'บัณฑิต นานาชาติ',
-      degree: Degree.PunditInter,
-      payRate: setting.lecturePayRateInter,
-      totalHours: 0,
-      claimAmount: 0,
-      subList: [],
-    },
-  ]
-
   // ===== Configue height & width =====
   excel.font('TH SarabunPSK').fontSize(14)
   excel.cell('A1').width(Excel.pxCol(46))
@@ -222,16 +170,23 @@ export async function generateWorkloadExcel3Out(
     [DayOfWeek.Sunday]: 'อาทิตย์',
   }
 
-  const subjectType = {
+  const SubjectType = {
     [WorkloadType.Lecture]: '(ท)',
     [WorkloadType.Lab]: '(ป)',
   }
 
   // ===== workload =====
   teacher.getWorkloadList().forEach((workload, index) => {
-    for (const time of workload.timeList) {
-      const { subject, type, classYear, dayOfWeek } = workload
+    const { subject, type, classYear, dayOfWeek } = workload
 
+    excel
+      .cells(`B${6 + index}:E${6 + index}`)
+      .value(`${subject.code} ${subject.name} ${SubjectType[type]}`)
+      .border('left', 'right')
+      .align('left')
+      .shrink()
+
+    for (const time of workload.timeList) {
       // ===== Subject column =====
 
       if (dayOfWeek !== currentDay) {
@@ -242,13 +197,6 @@ export async function generateWorkloadExcel3Out(
           .border('left', 'right')
           .align('center')
       }
-
-      excel
-        .cells(`B${6 + index}:E${6 + index}`)
-        .value(`${subject.code} ${subject.name} ${subjectType[type]}`)
-        .border('left', 'right')
-        .align('left')
-        .shrink()
 
       excel
         .cell(`F${6 + index}`)
@@ -282,7 +230,7 @@ export async function generateWorkloadExcel3Out(
         [Degree.Pundit]: 'L',
         [Degree.PunditInter]: 'M',
       }
-      for (const col of Excel.range('J:N')) {
+      for (const col of Excel.range('J:M')) {
         const col2 = DegreeMapper[workload.degree]
         isClaimDegree[workload.degree] = true
         if (col === col2) {
@@ -301,13 +249,28 @@ export async function generateWorkloadExcel3Out(
       }
 
       for (const col of Excel.range('N:V')) {
-        excel.cell(`${col}6`).border('box')
+        excel.cell(`${col}${6 + index}`).border('left', 'right')
       }
+
+      excel
+        .cell(`U${6 + index}`)
+        .value(teacher.getWeekCount(workload.id))
+        .border('left', 'right')
+        .align('center')
+
+      // รอแก้เป็น week count outsider + มีข้อมูลวันที่
+      const hr = subject.lectureHours * teacher.getWeekCount(workload.id)
+
+      excel
+        .cell(`V${6 + index}`)
+        .value(hr)
+        .border('left', 'right')
+        .align('center')
 
       excel
         .cell(`W${6 + index}`)
         .value(`เบิก ${subject.curriculumCode}`)
-        .border('box')
+        .border('left', 'right')
         .align('center')
     }
   })
@@ -316,10 +279,10 @@ export async function generateWorkloadExcel3Out(
   let row = teacher.teacherWorkloadList.length + 6
   if (row < 9) {
     for (row; row < 9; row++) {
-      excel.cell(`A${row}`).border('box')
-      excel.cells(`B${row}:E${row}`).border('box')
+      excel.cell(`A${row}`).border('left', 'right')
+      excel.cells(`B${row}:E${row}`).border('left', 'right')
       for (const col of Excel.range('F:W')) {
-        excel.cell(`${col}${row}`).border('box')
+        excel.cell(`${col}${row}`).border('left', 'right')
       }
     }
   }
@@ -401,10 +364,38 @@ export async function generateWorkloadExcel3Out(
   {
     for (let i = 4; i <= 8; i++) {
       for (const col of Excel.range('C:F')) {
-        excel.cell(`${col}${row + i}`).border('box')
+        excel
+          .cell(`${col}${row + i}`)
+          .border('box')
+          .align('center')
       }
-      excel.cells(`G${row + i}:H${row + i}`).border('box')
+      excel
+        .cells(`G${row + i}:H${row + i}`)
+        .border('box')
+        .align('center')
     }
+  }
+  // แก้ caculate ในกรณีที่ไม่ได้มีวิชาเดียว
+  if (isClaimDegree[Degree.Bachelor] === true) {
+    excel.cell(`C${row + 4}`).formula(`SUM(V${row})`)
+    excel.cell(`D${row + 4}`).value(setting.lecturePayRateNormal)
+    excel.cell(`E${row + 4}`).formula(`C${row + 4} * D${row + 4}`)
+    excel.cell(`G${row + 4}`).formula(`SUM(E${row + 4})`)
+  } else if (isClaimDegree[Degree.BachelorInter] === true) {
+    excel.cell(`C${row + 6}`).formula(`SUM(V${row})`)
+    excel.cell(`D${row + 6}`).value(setting.lecturePayRateInter)
+    excel.cell(`E${row + 6}`).formula(`C${row + 6} * D${row + 6}`)
+    excel.cell(`G${row + 6}`).formula(`SUM(E${row + 6})`)
+  } else if (isClaimDegree[Degree.Pundit] === true) {
+    excel.cell(`C${row + 7}`).formula(`SUM(V${row})`)
+    excel.cell(`D${row + 7}`).value(setting.lecturePayRateNormal)
+    excel.cell(`E${row + 7}`).formula(`C${row + 7} * D${row + 7}`)
+    excel.cell(`G${row + 7}`).formula(`SUM(E${row + 7})`)
+  } else if (isClaimDegree[Degree.PunditInter] === true) {
+    excel.cell(`C${row + 8}`).formula(`SUM(V${row})`)
+    excel.cell(`D${row + 8}`).value(setting.lecturePayRateInter)
+    excel.cell(`E${row + 8}`).formula(`C${row + 8} * D${row + 8}`)
+    excel.cell(`G${row + 8}`).formula(`SUM(E${row + 8})`)
   }
 
   // ===== Claim Summary =====
