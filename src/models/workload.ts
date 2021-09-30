@@ -11,6 +11,7 @@ import { nanoid } from 'nanoid'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Time } from '@models/time'
+import { TeacherWorkload } from '@models/teacherWorkload'
 
 export enum WorkloadType {
   Lecture = 'LECTURE',
@@ -27,15 +28,29 @@ export enum DayOfWeek {
   Sunday,
 }
 
+export enum Degree {
+  Bachelor = 'BACHELOR',
+  BachelorCon = 'BACHELOR_CONTINUE',
+  BachelorInter = 'BACHELOR_INTER',
+  Pundit = 'PUNDIT',
+  PunditInter = 'PUNDIT_INTER',
+}
+
 @Entity()
 export class Workload extends BaseEntity {
   @PrimaryColumn()
   id: string
 
   @ManyToOne(() => Subject, (subject) => subject.workloadList, {
-    cascade: true,
+    onDelete: 'CASCADE',
   })
   subject: Subject
+
+  @OneToMany(
+    () => TeacherWorkload,
+    (teacherWorkload) => teacherWorkload.workload
+  )
+  teacherWorkloadList: TeacherWorkload[]
 
   @Column()
   section: number
@@ -46,10 +61,12 @@ export class Workload extends BaseEntity {
   @Column({ type: 'enum', enum: DayOfWeek })
   dayOfWeek: DayOfWeek
 
-  @OneToMany(() => Time, (time) => time.workload, { cascade: true })
+  @OneToMany(() => Time, (time) => time.workload, {
+    cascade: true,
+  })
   timeList: Time[]
 
-  @ManyToOne(() => Room, (room) => room.workloadList)
+  @ManyToOne(() => Room, (room) => room.workloadList, { onDelete: 'CASCADE' })
   room: Room
 
   @Column()
@@ -60,6 +77,9 @@ export class Workload extends BaseEntity {
 
   @Column()
   semester: number
+
+  @Column({ type: 'enum', enum: Degree })
+  degree: Degree
 
   @Column()
   fieldOfStudy: string
@@ -84,5 +104,39 @@ export class Workload extends BaseEntity {
       (b, a) => a.startSlot - b.startSlot
     )
     return sortedTimeList[0].endSlot
+  }
+
+  public getTeacherList() {
+    return this.teacherWorkloadList.map(
+      (teacherWorkload) => teacherWorkload.teacher
+    )
+  }
+
+  public getTeacherWorkload(teacherId: string) {
+    return this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+  }
+
+  public getWeekCount(teacherId: string) {
+    const teacherWorkload = this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+    if (!teacherWorkload) return -1
+    return teacherWorkload.weekCount
+  }
+
+  public getIsClaim(teacherId: string) {
+    const teacherWorkload = this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+    if (!teacherWorkload) return false
+    return teacherWorkload.isClaim
   }
 }
