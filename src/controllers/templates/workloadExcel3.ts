@@ -135,8 +135,11 @@ export async function generateWorkloadExcel3(
     },
   ]
 
-  // ชั่วโมงภาระงาน
+  // For render at the top right of file only
   const WORKLOAD_HOURS = teacher.executiveRole ? 75 : 150
+
+  // For calculation
+  const WORKLOAD_HOURS_THESHOLD = 150
 
   // ===== Configue font & width some column =====
   excel.font('TH SarabunPSK')
@@ -458,7 +461,9 @@ export async function generateWorkloadExcel3(
         excel
           .cell(`${col}${currentRow}`)
           .formula(
-            `IF(${col}${currentRow - 1}<150,${col}${currentRow - 1},150)`
+            `IF(${col}${currentRow - 1}<${WORKLOAD_HOURS_THESHOLD},${col}${
+              currentRow - 1
+            },${WORKLOAD_HOURS_THESHOLD})`
           )
       }
     }
@@ -574,7 +579,10 @@ export async function generateWorkloadExcel3(
           .value(`${order}. ${summary.degreeThai}`)
           .border('box')
 
-        const claimAmount = Math.max(0, summary.totalHours - 150)
+        const claimAmount = Math.max(
+          0,
+          summary.totalHours - WORKLOAD_HOURS_THESHOLD
+        )
         if (claimAmount) {
           excel.cell(`C${row}`).value(claimAmount)
           excel.cell(`D${row}`).value(summary.payRate).numberFormat('#,###')
