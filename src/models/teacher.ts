@@ -72,4 +72,14 @@ export class Teacher extends BaseEntity {
     if (!teacherWorkload) return -1
     return teacherWorkload.weekCount
   }
+
+  public getIsClaim(workloadId: string) {
+    const teacherWorkload = this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === this.id &&
+        teacherWorkload.workload.id == workloadId
+    )
+    if (!teacherWorkload) return false
+    return teacherWorkload.isClaim
+  }
 }

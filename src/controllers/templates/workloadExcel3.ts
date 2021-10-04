@@ -544,12 +544,12 @@ export async function generateWorkloadExcel3(
               Math.min(sub.totalHours * sub.payRate, interClaimRemaining)
             )
             excel.cell(`C${row}`).value(sub.totalHours)
-            excel.cell(`D${row}`).value(sub.payRate).numberFormat('#,###')
+            excel.cell(`D${row}`).value(sub.payRate).numberFormat('#,##0')
             excel
               .cell(`E${row}`)
               .formula(`C${row}*D${row}`)
-              .numberFormat('#,###')
-            excel.cell(`F${row}`).value(tmpClaimAmount).numberFormat('#,###')
+              .numberFormat('#,##0')
+            excel.cell(`F${row}`).value(tmpClaimAmount).numberFormat('#,##0')
             interClaimRemaining -= tmpClaimAmount
           }
           order++
@@ -572,9 +572,9 @@ export async function generateWorkloadExcel3(
         const claimAmount = Math.max(0, summary.totalHours - 150)
         if (claimAmount) {
           excel.cell(`C${row}`).value(claimAmount)
-          excel.cell(`D${row}`).value(summary.payRate).numberFormat('#,###')
-          excel.cell(`E${row}`).formula(`C${row}*D${row}`).numberFormat('#,###')
-          excel.cell(`F${row}`).formula(`E${row}`).numberFormat('#,###')
+          excel.cell(`D${row}`).value(summary.payRate).numberFormat('#,##0')
+          excel.cell(`E${row}`).formula(`C${row}*D${row}`).numberFormat('#,##0')
+          excel.cell(`F${row}`).formula(`E${row}`).numberFormat('#,##0')
         }
         order++
         row++
@@ -593,13 +593,13 @@ export async function generateWorkloadExcel3(
       .border('box')
       .align('center')
       .formula(`SUM(E${lastTableRow + 4}:E${row - 1})`)
-      .numberFormat('#,###')
+      .numberFormat('#,##0')
     excel
       .cells(`F${row}:G${row}`)
       .border('box')
       .align('center')
       .formula(`SUM(F${lastTableRow + 4}:F${row - 1})`)
-      .numberFormat('#,###')
+      .numberFormat('#,##0')
   }
 
   // ===== Sign area =====

@@ -273,6 +273,7 @@ export class Excel {
 
   /**
    * Set number format of this cell
+   * @tutorial https://www.ablebits.com/office-addins-blog/2016/07/07/custom-excel-number-format/
    * @example
    * excel.value(20).numberFormat('0.00') => '20.00'
    * excel.value(3.56).numberFormat('0.0') => '3.6'

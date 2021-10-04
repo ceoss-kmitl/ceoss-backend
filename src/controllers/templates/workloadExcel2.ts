@@ -6,8 +6,6 @@ import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
-const NOT_CLAIM_SUBJECT = ['01076311', '01076014', '01076312', '01076014']
-
 export async function generateWorkloadExcel2(
   response: Response,
   query: IGetWorkloadExcel2Query
@@ -18,6 +16,9 @@ export async function generateWorkloadExcel2(
     relations: [
       'teacherWorkloadList',
       'teacherWorkloadList.workload',
+      'teacherWorkloadList.workload.teacherWorkloadList',
+      'teacherWorkloadList.workload.teacherWorkloadList.teacher',
+      'teacherWorkloadList.teacher',
       'teacherWorkloadList.workload.subject',
     ],
   })
@@ -53,7 +54,6 @@ export async function generateWorkloadExcel2(
         footer: 0,
       },
     },
-    views: [{ style: 'pageLayout' }],
     properties: {
       defaultColWidth: Excel.pxCol(90),
       defaultRowHeight: Excel.pxRow(28),
@@ -127,11 +127,12 @@ export async function generateWorkloadExcel2(
     }
 
     // ===== Subject column =====
+    const isSubjectClaim = teacher.getIsClaim(workload.id)
     excel
       .cells(`C${7 + index}:I${7 + index}`)
       .value(
         ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
-          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+          isSubjectClaim ? '' : ' ไม่เบิก'
         }`
       )
       .border('right', 'left')
@@ -166,15 +167,20 @@ export async function generateWorkloadExcel2(
 
     excel
       .cell(`L${7 + index}`)
-      .value(NOT_CLAIM_SUBJECT.includes(subject.code) ? '-' : payRate)
+      .value(isSubjectClaim ? payRate : '-')
       .border('right')
-      .align('right')
+      .align(isSubjectClaim ? 'right' : 'center')
+      .numberFormat('0.00?')
 
+    const teacherCount = workload.getTeacherList().length
+    const hoursCount =
+      (type === 'LAB' ? subject.labHours : subject.lectureHours) / teacherCount
     excel
       .cell(`M${7 + index}`)
-      .value(type === 'LAB' ? subject.labHours : subject.lectureHours)
+      .value(hoursCount)
       .border('right')
       .align('right')
+      .numberFormat('0.00?')
   })
 
   // ===== Least 11 rows =====
@@ -201,6 +207,7 @@ export async function generateWorkloadExcel2(
   excel
     .cell(`M${row}`)
     .formula(`SUM(M7:M${row - 1})`)
+    .numberFormat('0.00?')
     .border('box')
     .align('right')
 
