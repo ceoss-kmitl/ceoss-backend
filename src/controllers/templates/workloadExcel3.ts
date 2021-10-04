@@ -135,6 +135,12 @@ export async function generateWorkloadExcel3(
     },
   ]
 
+  // For render at the top right of file only
+  const WORKLOAD_HOURS = teacher.executiveRole ? 75 : 150
+
+  // For calculation
+  const WORKLOAD_HOURS_THESHOLD = 150
+
   // ===== Configue font & width some column =====
   excel.font('TH SarabunPSK')
   excel.cell('B1').width(Excel.pxCol(118))
@@ -171,7 +177,7 @@ export async function generateWorkloadExcel3(
   excel.cells('Q3:S3').value('⬜ บัณฑิตศึกษา')
   excel.cells('U2:X2').value(`ภาคการศึกษาที่ ${semester}/${academic_year}`)
   excel.cells('U3:V3').value('ภาระงานสอน')
-  excel.cell('W3').value(150).align('center')
+  excel.cell('W3').value(WORKLOAD_HOURS).align('center')
   excel.cell('X3').value('ชม.')
 
   // ===== Table header - Subject day, credit, time =====
@@ -301,7 +307,7 @@ export async function generateWorkloadExcel3(
       {
         const column = workload.type === WorkloadType.Lecture ? 'H' : 'I'
         const startTime = mapTimeSlotToTime(time.startSlot, '.')
-        const endTime = mapTimeSlotToTime(time.endSlot, '.')
+        const endTime = mapTimeSlotToTime(time.endSlot + 1, '.')
         excel
           .cell(`${column}${currentRow}`)
           .value(`${startTime}-${endTime}`)
@@ -454,7 +460,11 @@ export async function generateWorkloadExcel3(
       else {
         excel
           .cell(`${col}${currentRow}`)
-          .formula(`IF(${col}${currentRow - 1}<W3,${col}${currentRow - 1},W3)`)
+          .formula(
+            `IF(${col}${currentRow - 1}<${WORKLOAD_HOURS_THESHOLD},${col}${
+              currentRow - 1
+            },${WORKLOAD_HOURS_THESHOLD})`
+          )
       }
     }
   }
@@ -569,7 +579,10 @@ export async function generateWorkloadExcel3(
           .value(`${order}. ${summary.degreeThai}`)
           .border('box')
 
-        const claimAmount = Math.max(0, summary.totalHours - 150)
+        const claimAmount = Math.max(
+          0,
+          summary.totalHours - WORKLOAD_HOURS_THESHOLD
+        )
         if (claimAmount) {
           excel.cell(`C${row}`).value(claimAmount)
           excel.cell(`D${row}`).value(summary.payRate).numberFormat('#,##0')
