@@ -215,7 +215,7 @@ export async function generateWorkloadExcel3Out(
       {
         const column = workload.type === WorkloadType.Lecture ? 'H' : 'I'
         const startTime = mapTimeSlotToTime(time.startSlot, '.')
-        const endTime = mapTimeSlotToTime(time.endSlot, '.')
+        const endTime = mapTimeSlotToTime(time.endSlot + 1, '.')
         excel
           .cell(`${column}${6 + index}`)
           .value(`${startTime}-${endTime}`)
@@ -378,24 +378,60 @@ export async function generateWorkloadExcel3Out(
   // แก้ caculate ในกรณีที่ไม่ได้มีวิชาเดียว
   if (isClaimDegree[Degree.Bachelor] === true) {
     excel.cell(`C${row + 4}`).formula(`SUM(V${row})`)
-    excel.cell(`D${row + 4}`).value(setting.lecturePayRateNormal)
-    excel.cell(`E${row + 4}`).formula(`C${row + 4} * D${row + 4}`)
-    excel.cell(`G${row + 4}`).formula(`SUM(E${row + 4})`)
+    excel
+      .cell(`D${row + 4}`)
+      .value(setting.lecturePayRateNormal)
+      .numberFormat('#,##0')
+    excel
+      .cell(`E${row + 4}`)
+      .formula(`C${row + 4} * D${row + 4}`)
+      .numberFormat('#,##0')
+    excel
+      .cell(`G${row + 4}`)
+      .formula(`SUM(E${row + 4})`)
+      .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.BachelorInter] === true) {
     excel.cell(`C${row + 6}`).formula(`SUM(V${row})`)
-    excel.cell(`D${row + 6}`).value(setting.lecturePayRateInter)
-    excel.cell(`E${row + 6}`).formula(`C${row + 6} * D${row + 6}`)
-    excel.cell(`G${row + 6}`).formula(`SUM(E${row + 6})`)
+    excel
+      .cell(`D${row + 6}`)
+      .value(setting.lecturePayRateInter)
+      .numberFormat('#,##0')
+    excel
+      .cell(`E${row + 6}`)
+      .formula(`C${row + 6} * D${row + 6}`)
+      .numberFormat('#,##0')
+    excel
+      .cell(`G${row + 6}`)
+      .formula(`SUM(E${row + 6})`)
+      .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.Pundit] === true) {
     excel.cell(`C${row + 7}`).formula(`SUM(V${row})`)
-    excel.cell(`D${row + 7}`).value(setting.lecturePayRateNormal)
-    excel.cell(`E${row + 7}`).formula(`C${row + 7} * D${row + 7}`)
-    excel.cell(`G${row + 7}`).formula(`SUM(E${row + 7})`)
+    excel
+      .cell(`D${row + 7}`)
+      .value(setting.lecturePayRateNormal)
+      .numberFormat('#,##0')
+    excel
+      .cell(`E${row + 7}`)
+      .formula(`C${row + 7} * D${row + 7}`)
+      .numberFormat('#,##0')
+    excel
+      .cell(`G${row + 7}`)
+      .formula(`SUM(E${row + 7})`)
+      .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.PunditInter] === true) {
     excel.cell(`C${row + 8}`).formula(`SUM(V${row})`)
-    excel.cell(`D${row + 8}`).value(setting.lecturePayRateInter)
-    excel.cell(`E${row + 8}`).formula(`C${row + 8} * D${row + 8}`)
-    excel.cell(`G${row + 8}`).formula(`SUM(E${row + 8})`)
+    excel
+      .cell(`D${row + 8}`)
+      .value(setting.lecturePayRateInter)
+      .numberFormat('#,##0')
+    excel
+      .cell(`E${row + 8}`)
+      .formula(`C${row + 8} * D${row + 8}`)
+      .numberFormat('#,##0')
+    excel
+      .cell(`G${row + 8}`)
+      .formula(`SUM(E${row + 8})`)
+      .numberFormat('#,##0')
   }
 
   // ===== Claim Summary =====
@@ -414,6 +450,7 @@ export async function generateWorkloadExcel3Out(
     .formula(`SUM(G${row + 4}:H${row + 8})`)
     .border('box')
     .align('center')
+    .numberFormat('#,##0')
 
   // ===== Sign area =====
   excel.fontSize(14)
