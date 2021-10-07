@@ -1,12 +1,18 @@
 import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
+// import { mapTimeSlotToTime } from '@libs/mapper'
 import { IGetWorkloadExcel5Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
+// import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
-const NOT_CLAIM_SUBJECT = ['01076311', '01076014', '01076312', '01076014']
+// CEPP, PROJECT1, PROJECT2
+// const FILTERED_SUBJECT = ['01076014', '01076311', '01076312']
+
+// const REMARK_CLAIM = ['FE', 'SE', 'CIE']
+
+// const INTER_CLAIM_ORDER = ['CIE', 'SE']
 
 export async function generateWorkloadExcel5(
   response: Response,
@@ -15,14 +21,29 @@ export async function generateWorkloadExcel5(
   const { teacher_id, academic_year, semester } = query
 
   const teacher = await Teacher.findOne(teacher_id, {
-    relations: ['workloadList', 'workloadList.subject'],
+    relations: [
+      'teacherWorkloadList',
+      'teacherWorkloadList.teacher',
+      'teacherWorkloadList.workload',
+      'teacherWorkloadList.workload.timeList',
+      'teacherWorkloadList.workload.subject',
+    ],
   })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+  if (!teacher)
+    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+      `Teacher ${teacher_id} is not found`,
+    ])
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+  teacher.teacherWorkloadList = teacher
+    .filterTeacherWorkloadList({
+      academicYear: academic_year,
+      semester,
+    })
+    .sort(
+      (a, b) =>
+        a.workload.dayOfWeek - b.workload.dayOfWeek ||
+        a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
+    )
 
   const setting = await Setting.get()
 

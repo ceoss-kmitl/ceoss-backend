@@ -52,4 +52,9 @@ export class Subject extends BaseEntity {
   static findOneByCode(code: string) {
     return this.findOne({ where: { code } })
   }
+
+  /** Example: 3(3-3-0) */
+  public getFullCredit() {
+    return `${this.credit}(${this.lectureHours}-${this.labHours}-${this.independentHours})`
+  }
 }

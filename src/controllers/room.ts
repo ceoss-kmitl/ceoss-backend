@@ -41,7 +41,8 @@ export class RoomController {
     const { name, capacity } = body
 
     const room = await Room.findOne(id)
-    if (!room) throw new NotFoundError(`Room ${id} is not found`)
+    if (!room)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
 
     room.name = name ?? room.name
     room.capacity = capacity ?? room.capacity
@@ -53,7 +54,8 @@ export class RoomController {
   @Delete('/room/:id')
   async deleteRoom(@Param('id') id: string) {
     const room = await Room.findOne(id)
-    if (!room) throw new NotFoundError(`Room ${id} is not found`)
+    if (!room)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
 
     await room.remove()
     return 'Room deleted'

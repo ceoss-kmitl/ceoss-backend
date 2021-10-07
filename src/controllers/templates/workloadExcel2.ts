@@ -6,8 +6,6 @@ import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
-const NOT_CLAIM_SUBJECT = ['01076311', '01076014', '01076312', '01076014']
-
 export async function generateWorkloadExcel2(
   response: Response,
   query: IGetWorkloadExcel2Query
@@ -15,16 +13,28 @@ export async function generateWorkloadExcel2(
   const { teacher_id, academic_year, semester } = query
 
   const teacher = await Teacher.findOne(teacher_id, {
-    relations: ['workloadList', 'workloadList.subject'],
+    relations: [
+      'teacherWorkloadList',
+      'teacherWorkloadList.workload',
+      'teacherWorkloadList.workload.teacherWorkloadList',
+      'teacherWorkloadList.workload.teacherWorkloadList.teacher',
+      'teacherWorkloadList.teacher',
+      'teacherWorkloadList.workload.subject',
+    ],
   })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+  if (!teacher)
+    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+      `Teacher ${teacher_id} is not found`,
+    ])
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+  teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
+    academicYear: academic_year,
+    semester,
+  })
 
   const setting = await Setting.get()
+
+  let claimInter = false
 
   // ===== Excel setup =====
   const excel = new Excel(response, {
@@ -44,7 +54,6 @@ export async function generateWorkloadExcel2(
         footer: 0,
       },
     },
-    views: [{ style: 'pageLayout' }],
     properties: {
       defaultColWidth: Excel.pxCol(90),
       defaultRowHeight: Excel.pxRow(28),
@@ -104,12 +113,12 @@ export async function generateWorkloadExcel2(
     .border('left', 'right')
     .align('center')
 
-  for (let index = 0; index < teacher.workloadList.length - 1; index++) {
+  for (let index = 0; index < teacher.getWorkloadList().length - 1; index++) {
     excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
   }
 
   // ===== workload =====
-  teacher.workloadList.forEach((workload, index) => {
+  teacher.getWorkloadList().forEach((workload, index) => {
     const { subject, type, section, classYear, fieldOfStudy } = workload
 
     const subjectType = {
@@ -118,21 +127,32 @@ export async function generateWorkloadExcel2(
     }
 
     // ===== Subject column =====
+    const isSubjectClaim = teacher.getIsClaim(workload.id)
     excel
       .cells(`C${7 + index}:I${7 + index}`)
       .value(
         ` - ${subject.code} ${subject.name} ${subjectType[type]} ${
-          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+          isSubjectClaim ? '' : ' ไม่เบิก'
         }`
       )
       .border('right', 'left')
       .align('left')
 
-    excel
-      .cells(`J${7 + index}:K${7 + index}`)
-      .value(`${classYear}${fieldOfStudy}/${section}`)
-      .border('right', 'left')
-      .align('center')
+    if (subject.isInter === false) {
+      excel
+        .cells(`J${7 + index}:K${7 + index}`)
+        .value(`${classYear}${fieldOfStudy}/${section}`)
+        .border('right', 'left')
+        .align('center')
+    } else {
+      excel
+        .cells(`J${7 + index}:K${7 + index}`)
+        .value(
+          `${classYear}${subject.curriculumCode}/${section} (นานาชาติ ${subject.curriculumCode})`
+        )
+        .border('right', 'left')
+        .align('center')
+    }
 
     // ===== Pay rate and hour =====
     let payRate = 0
@@ -140,26 +160,32 @@ export async function generateWorkloadExcel2(
       if (type === 'LAB') payRate = setting.labPayRateNormal
       else payRate = setting.lecturePayRateNormal
     } else {
+      claimInter = true
       if (type === 'LAB') payRate = setting.labPayRateInter
       else payRate = setting.lecturePayRateInter
     }
 
     excel
       .cell(`L${7 + index}`)
-      .value(NOT_CLAIM_SUBJECT.includes(subject.code) ? '-' : payRate)
+      .value(isSubjectClaim ? payRate : '-')
       .border('right')
-      .align('right')
+      .align(isSubjectClaim ? 'right' : 'center')
+      .numberFormat('0.00?')
 
+    const teacherCount = workload.getTeacherList().length
+    const hoursCount =
+      (type === 'LAB' ? subject.labHours : subject.lectureHours) / teacherCount
     excel
       .cell(`M${7 + index}`)
-      .value(type === 'LAB' ? subject.labHours : subject.lectureHours)
+      .value(hoursCount)
       .border('right')
       .align('right')
+      .numberFormat('0.00?')
   })
 
   // ===== Least 11 rows =====
 
-  let row = teacher.workloadList.length + 7
+  let row = teacher.getWorkloadList().length + 7
   if (row < 18) {
     for (row; row < 18; row++) {
       excel.cells(`A${row}:B${row}`).border('right', 'left')
@@ -181,6 +207,7 @@ export async function generateWorkloadExcel2(
   excel
     .cell(`M${row}`)
     .formula(`SUM(M7:M${row - 1})`)
+    .numberFormat('0.00?')
     .border('box')
     .align('right')
 
@@ -230,21 +257,39 @@ export async function generateWorkloadExcel2(
 
   // ===== Sign area sub dean =====
 
-  excel
-    .cells(`H${row + 2}:I${row + 2}`)
-    .value(`3.ตรวจสอบความถูกต้องแล้ว`)
-    .border('left', 'right', 'top')
-    .align('center')
-  excel
-    .cells(`H${row + 6}:I${row + 6}`)
-    .value(`(${setting.viceDeanName})`)
-    .border('left', 'right')
-    .align('center')
-  excel
-    .cells(`H${row + 7}:I${row + 7}`)
-    .value(`รองคณบดี/ผู้ตรวจ`)
-    .border('left', 'right', 'bottom')
-    .align('center')
+  if (claimInter == false) {
+    excel
+      .cells(`H${row + 2}:I${row + 2}`)
+      .value(`3.ตรวจสอบความถูกต้องแล้ว`)
+      .border('left', 'right', 'top')
+      .align('center')
+    excel
+      .cells(`H${row + 6}:I${row + 6}`)
+      .value(`(${setting.viceDeanName})`)
+      .border('left', 'right')
+      .align('center')
+    excel
+      .cells(`H${row + 7}:I${row + 7}`)
+      .value(`รองคณบดี/ผู้ตรวจ`)
+      .border('left', 'right', 'bottom')
+      .align('center')
+  } else {
+    excel
+      .cells(`H${row + 2}:I${row + 2}`)
+      .value(`3.ตรวจสอบความถูกต้องแล้ว`)
+      .border('left', 'right', 'top')
+      .align('center')
+    excel
+      .cells(`H${row + 6}:I${row + 6}`)
+      .value(`(${setting.directorSIIEName})`)
+      .border('left', 'right')
+      .align('center')
+    excel
+      .cells(`H${row + 7}:I${row + 7}`)
+      .value(`ผู้อำนวยการ SIIE`)
+      .border('left', 'right', 'bottom')
+      .align('center')
+  }
 
   // ===== Sign area dean =====
   excel

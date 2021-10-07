@@ -8,8 +8,8 @@ export class ICreateTeacher {
   @IsString()
   title: string
 
-  @IsBoolean()
-  isExecutive: boolean
+  @IsString()
+  executiveRole: string
 
   @IsBoolean()
   isActive: boolean
@@ -24,9 +24,9 @@ export class IEditTeacher {
   @IsOptional()
   title: string
 
-  @IsBoolean()
+  @IsString()
   @IsOptional()
-  isExecutive: boolean
+  executiveRole: string
 
   @IsBoolean()
   @IsOptional()

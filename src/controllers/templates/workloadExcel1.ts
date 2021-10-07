@@ -4,9 +4,8 @@ import { IGetWorkloadExcel1Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
+import { TeacherWorkload } from '@models/teacherWorkload'
 import { NotFoundError } from '@errors/notFoundError'
-
-const NOT_CLAIM_SUBJECT = ['01076311', '01076014']
 
 export async function generateWorkloadExcel1(
   response: Response,
@@ -16,17 +15,47 @@ export async function generateWorkloadExcel1(
 
   const teacher = await Teacher.findOne(teacher_id, {
     relations: [
-      'workloadList',
-      'workloadList.subject',
-      'workloadList.timeList',
+      'teacherWorkloadList',
+      'teacherWorkloadList.workload',
+      'teacherWorkloadList.teacher',
+      'teacherWorkloadList.workload.subject',
+      'teacherWorkloadList.workload.timeList',
     ],
   })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+  if (!teacher)
+    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+      `Teacher ${teacher_id} is not found`,
+    ])
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+  // Start: Prepare workload for rendering
+  teacher.teacherWorkloadList = teacher
+    .filterTeacherWorkloadList({
+      academicYear: academic_year,
+      semester,
+    })
+    .sort(
+      (a, b) =>
+        a.workload.dayOfWeek - b.workload.dayOfWeek ||
+        a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
+    )
+    .reduce((prevList, cur) => {
+      const prev = prevList.pop()
+      if (!prev) return [cur]
+
+      // Current workload OVERLAP with previous workload
+      if (
+        prev.workload.dayOfWeek === cur.workload.dayOfWeek &&
+        prev.workload.getLastTimeSlot() >= cur.workload.getFirstTimeSlot()
+      ) {
+        const tmp = []
+        if (prev.isClaim) tmp.push(prev)
+        if (cur.isClaim) tmp.push(cur)
+        return [...prevList, ...tmp]
+      }
+
+      return [...prevList, prev, cur]
+    }, [] as TeacherWorkload[])
+  // End: Prepare workload for rendering
 
   const setting = await Setting.get()
 
@@ -48,7 +77,6 @@ export async function generateWorkloadExcel1(
         footer: 0,
       },
     },
-    views: [{ style: 'pageLayout' }],
     properties: {
       defaultColWidth: Excel.pxCol(20),
       defaultRowHeight: Excel.pxRow(23),
@@ -187,7 +215,7 @@ export async function generateWorkloadExcel1(
 
   // ===== Workload of teacher =====
   excel.fontSize(13)
-  teacher.workloadList.forEach((workload) => {
+  teacher.getWorkloadList().forEach((workload) => {
     const {
       subject,
       type,
@@ -222,7 +250,7 @@ export async function generateWorkloadExcel1(
           `${subject.code} ${
             subjectType[type]
           } ปี ${classYear} ห้อง ${fieldOfStudy}/${section}${
-            NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
+            teacher.getIsClaim(workload.id) ? '' : ' ไม่เบิก'
           }`
         )
         .align('center')
@@ -237,7 +265,8 @@ export async function generateWorkloadExcel1(
         const breakTime = Excel.toAlphabet(Excel.toNumber(end) + 1)
         excel
           .cells(`${breakTime}${row}:${breakTime}${row + 1}`)
-          .value('พักเบรค')
+          .value(' พั ก เ บ ร ค ')
+          .shrink()
           .align('center')
           .rotate(90)
       }
