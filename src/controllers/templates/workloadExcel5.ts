@@ -1,10 +1,10 @@
 import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
-// import { mapTimeSlotToTime } from '@libs/mapper'
+import { mapTimeSlotToTime } from '@libs/mapper'
 import { IGetWorkloadExcel5Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-// import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
+import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 
 // CEPP, PROJECT1, PROJECT2
@@ -55,7 +55,7 @@ export async function generateWorkloadExcel5(
       verticalCentered: true,
       horizontalCentered: true,
       fitToPage: true,
-      printArea: 'A1:S22',
+      printArea: 'A1:V22',
       margins: {
         top: 0.16,
         bottom: 0.16,
@@ -67,35 +67,59 @@ export async function generateWorkloadExcel5(
     },
     views: [{ style: 'pageLayout' }],
     properties: {
-      defaultColWidth: Excel.pxCol(90),
+      defaultColWidth: Excel.pxCol(63),
       defaultRowHeight: Excel.pxRow(28),
     },
   })
 
-  // ===== Title =====
+  // Variable to check which degree has claimed
+  const isClaimDegree = {
+    [Degree.Bachelor]: false,
+    [Degree.BachelorCon]: false,
+    [Degree.BachelorInter]: false,
+    [Degree.Pundit]: false,
+    [Degree.PunditInter]: false,
+  }
+
+  // ===== Configue font & width some column =====
   excel.font('TH SarabunPSK').fontSize(16)
+  excel.cell('A1').width(Excel.pxCol(46))
+  excel.cell('B1').width(Excel.pxCol(176))
+  excel.cell('C1').width(Excel.pxCol(111))
+  excel.cell('D1').width(Excel.pxCol(46))
+  excel.cell('P1').width(Excel.pxCol(81))
+  excel.cell('Q1').width(Excel.pxCol(46))
+  excel.cell('R1').width(Excel.pxCol(46))
+  excel.cell('S1').width(Excel.pxCol(46))
+  // excel.cell('A3').width(Excel.pxRow(0))
+  // excel.cell('A4').width(Excel.pxRow(119))
+  // excel.cell('A3').width(Excel.pxRow(175))
+  // excel.cell('A17').width(Excel.pxRow(55))
+  // excel.cell('A18').width(Excel.pxRow(55))
+  // excel.cell('A19').width(Excel.pxRow(55))
+
+  // ===== Title =====
   excel
-    .cells('A1:S1')
+    .cells('A1:V1')
     .value(
       `หลักฐานการเบิกจ่ายเงินค่าสอนพิเศษและค่าสอนเกินภาระงานสอนในสถาบันอุดมศึกษา`
     )
     .bold()
     .align('center')
   excel
-    .cells('A2:S2')
+    .cells('A2:V2')
     .value(
       `ส่วนราชการ ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ ภาคการศึกษาที่ ${semester} พ.ศ. ${academic_year}`
     )
     .align('center')
 
-  const row = 13
+  const row = 16
 
   // ===== Sign area =====
   excel
     .cells(`C${row + 1}:G${row + 1}`)
     .value('(15) ผู้อนุมัติ')
     .align('center')
-    .border('top')
   excel
     .cells(`C${row + 3}:G${row + 3}`)
     .value('ลงชื่อ ...........................................')
@@ -117,7 +141,6 @@ export async function generateWorkloadExcel5(
     .cells(`K${row + 1}:O${row + 1}`)
     .value('(16) ผู้จ่ายเงิน')
     .align('center')
-    .border('top')
   excel
     .cells(`K${row + 3}:O${row + 3}`)
     .value('ลงชื่อ ...........................................')
@@ -135,11 +158,11 @@ export async function generateWorkloadExcel5(
     .value('วันที่ ...........................................')
     .align('center')
 
-  for (const col of Excel.range('A:S')) {
+  for (const col of Excel.range('A:V')) {
     excel.cell(`${col}${row + 7}`).border('top')
   }
   for (let i = 1; i < row + 7; i++) {
-    excel.cell(`U${i}`).border('left')
+    excel.cell(`W${i}`).border('left')
   }
 
   return excel.createFile(
