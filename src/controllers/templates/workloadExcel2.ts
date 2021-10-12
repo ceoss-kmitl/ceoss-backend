@@ -1,34 +1,16 @@
-import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
-import { IGetWorkloadExcel2Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
-import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel2(
-  response: Response,
-  query: IGetWorkloadExcel2Query
+  excel: Excel,
+  teacher: Teacher,
+  academicYear: number,
+  semester: number
 ) {
-  const { teacher_id, academic_year, semester } = query
-
-  const teacher = await Teacher.findOne(teacher_id, {
-    relations: [
-      'teacherWorkloadList',
-      'teacherWorkloadList.workload',
-      'teacherWorkloadList.workload.teacherWorkloadList',
-      'teacherWorkloadList.workload.teacherWorkloadList.teacher',
-      'teacherWorkloadList.teacher',
-      'teacherWorkloadList.workload.subject',
-    ],
-  })
-  if (!teacher)
-    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-      `Teacher ${teacher_id} is not found`,
-    ])
-
   teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
-    academicYear: academic_year,
+    academicYear,
     semester,
   })
 
@@ -37,7 +19,7 @@ export async function generateWorkloadExcel2(
   let claimInter = false
 
   // ===== Excel setup =====
-  const excel = new Excel(response, {
+  excel.addSheet('02-บัญชีรายละเอียด', {
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
@@ -65,7 +47,7 @@ export async function generateWorkloadExcel2(
   excel
     .cells('A1:M1')
     .value(
-      `บัญชีรายละเอียดวิชาสอน ประจำภาคเรียนที่ ${semester}/${academic_year}`
+      `บัญชีรายละเอียดวิชาสอน ประจำภาคเรียนที่ ${semester}/${academicYear}`
     )
     .bold()
     .align('center')
@@ -307,11 +289,4 @@ export async function generateWorkloadExcel2(
     .value(`คณบดีคณะวิศวกรรมศาสตร์`)
     .border('left', 'right', 'bottom')
     .align('center')
-
-  return excel.createFile(
-    `02_บัญชีรายละเอียด ${semester}-${String(academic_year).substr(
-      2,
-      2
-    )} คอมพิวเตอร์-${teacher.name}`
-  )
 }

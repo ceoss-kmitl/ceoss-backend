@@ -11,14 +11,9 @@ export class Excel {
   private activeFontSize: number
   private response: Response
 
-  constructor(
-    response: Response,
-    sheetOptions?: Partial<ExcelJS.AddWorksheetOptions>
-  ) {
+  constructor(response: Response) {
     this.response = response
     this.workbook = new ExcelJS.Workbook()
-    this.sheet = this.workbook.addWorksheet('sheet1', sheetOptions)
-    this.activeCell = this.sheet.getCell('A1')
     this.activeFontFamily = 'TH SarabunPSK'
     this.activeFontSize = 16
   }
@@ -79,6 +74,25 @@ export class Excel {
   }
 
   // === Public methods ===
+
+  /**
+   * Add new worksheet
+   */
+  public addSheet(
+    name: string,
+    options?: Partial<ExcelJS.AddWorksheetOptions>
+  ) {
+    this.sheet = this.workbook.addWorksheet(name, options)
+    this.cell('A1')
+  }
+
+  /**
+   * Set active sheet
+   */
+  public setSheet(name: string) {
+    this.sheet = this.workbook.getWorksheet(name)
+    this.cell('A1')
+  }
 
   /**
    * Send `.xlsx` file via `Express.js`

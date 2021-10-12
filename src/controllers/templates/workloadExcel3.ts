@@ -1,11 +1,8 @@
-import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
 import { mapTimeSlotToTime } from '@libs/mapper'
-import { IGetWorkloadExcel3Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
-import { NotFoundError } from '@errors/notFoundError'
 
 // CEPP, PROJECT1, PROJECT2
 const FILTERED_SUBJECT = ['01076014', '01076311', '01076312']
@@ -15,28 +12,14 @@ const REMARK_CLAIM = ['FE', 'SE', 'CIE']
 const INTER_CLAIM_ORDER = ['CIE', 'SE']
 
 export async function generateWorkloadExcel3(
-  response: Response,
-  query: IGetWorkloadExcel3Query
+  excel: Excel,
+  teacher: Teacher,
+  academicYear: number,
+  semester: number
 ) {
-  const { teacher_id, academic_year, semester } = query
-
-  const teacher = await Teacher.findOne(teacher_id, {
-    relations: [
-      'teacherWorkloadList',
-      'teacherWorkloadList.teacher',
-      'teacherWorkloadList.workload',
-      'teacherWorkloadList.workload.timeList',
-      'teacherWorkloadList.workload.subject',
-    ],
-  })
-  if (!teacher)
-    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-      `Teacher ${teacher_id} is not found`,
-    ])
-
   teacher.teacherWorkloadList = teacher
     .filterTeacherWorkloadList({
-      academicYear: academic_year,
+      academicYear,
       semester,
     })
     .filter(
@@ -51,7 +34,7 @@ export async function generateWorkloadExcel3(
   const setting = await Setting.get()
 
   // ===== Excel setup =====
-  const excel = new Excel(response, {
+  excel.addSheet('03-ใบเบิกค่าสอน', {
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
@@ -175,7 +158,7 @@ export async function generateWorkloadExcel3(
   excel.cells('Q2:S2').value('☑ ปริญญาตรี')
   excel.cells('M3:O3').value('☑ พนักงานสถาบันฯ')
   excel.cells('Q3:S3').value('⬜ บัณฑิตศึกษา')
-  excel.cells('U2:X2').value(`ภาคการศึกษาที่ ${semester}/${academic_year}`)
+  excel.cells('U2:X2').value(`ภาคการศึกษาที่ ${semester}/${academicYear}`)
   excel.cells('U3:V3').value('ภาระงานสอน')
   excel.cell('W3').value(WORKLOAD_HOURS).align('center')
   excel.cell('X3').value('ชม.')
@@ -750,10 +733,4 @@ export async function generateWorkloadExcel3(
         .align('center')
     }
   }
-
-  return excel.createFile(
-    `03_ใบเบิกค่าสอน ${semester}-${String(academic_year).substr(2, 2)} คอม-${
-      teacher.name
-    }`
-  )
 }

@@ -1,36 +1,19 @@
-import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
-import { IGetWorkloadExcel1Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { WorkloadType } from '@models/workload'
 import { TeacherWorkload } from '@models/teacherWorkload'
-import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel1(
-  response: Response,
-  query: IGetWorkloadExcel1Query
+  excel: Excel,
+  teacher: Teacher,
+  academicYear: number,
+  semester: number
 ) {
-  const { teacher_id, academic_year, semester } = query
-
-  const teacher = await Teacher.findOne(teacher_id, {
-    relations: [
-      'teacherWorkloadList',
-      'teacherWorkloadList.workload',
-      'teacherWorkloadList.teacher',
-      'teacherWorkloadList.workload.subject',
-      'teacherWorkloadList.workload.timeList',
-    ],
-  })
-  if (!teacher)
-    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-      `Teacher ${teacher_id} is not found`,
-    ])
-
   // Start: Prepare workload for rendering
   teacher.teacherWorkloadList = teacher
     .filterTeacherWorkloadList({
-      academicYear: academic_year,
+      academicYear,
       semester,
     })
     .sort(
@@ -60,7 +43,7 @@ export async function generateWorkloadExcel1(
   const setting = await Setting.get()
 
   // ===== Excel setup =====
-  const excel = new Excel(response, {
+  excel.addSheet('01-ภาระงาน', {
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
@@ -88,7 +71,7 @@ export async function generateWorkloadExcel1(
   excel
     .cells('A1:BB1')
     .value(
-      `ตารางการปฏิบัติงานสอนของอาจารย์คณะวิศวกรรมศาสตร์ สจล.  ประจำภาคเรียนที่ ${semester} ปีการศึกษา ${academic_year}`
+      `ตารางการปฏิบัติงานสอนของอาจารย์คณะวิศวกรรมศาสตร์ สจล.  ประจำภาคเรียนที่ ${semester} ปีการศึกษา ${academicYear}`
     )
     .bold()
     .align('center')
@@ -335,10 +318,4 @@ export async function generateWorkloadExcel1(
     .align('center')
   excel.cells('AN31:AW31').value(`(${setting.deanName})`).align('center')
   excel.cells('AN32:AW32').value('คณบดีคณะวิศวกรรมศาสตร์').align('center')
-
-  return excel.createFile(
-    `01-ภาระงาน ${semester}-${String(academic_year).substr(2, 2)} คอม-${
-      teacher.name
-    }`
-  )
 }
