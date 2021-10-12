@@ -36,13 +36,14 @@ export class TeacherController {
   @Post('/teacher')
   @UseBefore(schema(ICreateTeacher))
   async createTeacher(@Body() body: ICreateTeacher) {
-    const { name, title, executiveRole, isActive } = body
+    const { name, title, executiveRole, isActive, isExternal } = body
 
     const teacher = new Teacher()
     teacher.name = name
     teacher.title = title
     teacher.executiveRole = executiveRole
     teacher.isActive = isActive
+    teacher.isExternal = isExternal
 
     await teacher.save()
     return 'Created'
@@ -51,7 +52,7 @@ export class TeacherController {
   @Put('/teacher/:id')
   @UseBefore(schema(IEditTeacher))
   async edit(@Param('id') id: string, @Body() body: IEditTeacher) {
-    const { name, title, executiveRole, isActive } = body
+    const { name, title, executiveRole, isActive, isExternal } = body
 
     const teacher = await Teacher.findOne(id)
     if (!teacher)
@@ -63,6 +64,7 @@ export class TeacherController {
     teacher.title = title ?? teacher.title
     teacher.executiveRole = executiveRole ?? teacher.executiveRole
     teacher.isActive = isActive ?? teacher.isActive
+    teacher.isExternal = isExternal ?? teacher.isExternal
 
     await teacher.save()
     return 'Edited'
