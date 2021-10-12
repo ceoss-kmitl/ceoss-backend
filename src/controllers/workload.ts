@@ -81,8 +81,9 @@ export class WorkloadController {
       semester
     )
 
-    const yearAndSemester = `${String(academic_year).substr(2, 2)}/${semester}`
-    return excel.createFile(`${yearAndSemester} ${teacher.name}`)
+    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
+    const file = await excel.createFile(`${yearAndSemester} ${teacher.name}`)
+    return file
   }
 
   @Get('/workload/excel-external')
@@ -120,7 +121,8 @@ export class WorkloadController {
     )
 
     const monthAndYear = `${body.month} ${String(academic_year).substr(2, 2)}`
-    return excel.createFile(`${monthAndYear} ${teacher.name}`)
+    const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
+    return file
   }
 
   @Get('/workload')

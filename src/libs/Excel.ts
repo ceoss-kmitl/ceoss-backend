@@ -95,21 +95,16 @@ export class Excel {
   }
 
   /**
-   * Send `.xlsx` file via `Express.js`
-   * @example return excel.createFile('workload-1')
+   * Send `.xlsx` file as buffer
    */
   public async createFile(fileName: string) {
-    this.response.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    this.response.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${encodeURI(fileName)}.xlsx`
-    )
-    await this.workbook.xlsx.write(this.response)
-    this.response.end()
-    return this.response
+    const buffer = await this.workbook.xlsx.writeBuffer()
+    return {
+      fileName: `${fileName}.xlsx`,
+      fileType:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      buffer: JSON.parse(JSON.stringify(buffer)).data,
+    }
   }
 
   /**
