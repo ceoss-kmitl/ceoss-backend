@@ -86,7 +86,8 @@ export class WorkloadController {
     return file
   }
 
-  @Get('/workload/excel-external')
+  // Use POST instead of GET because body part is required
+  @Post('/workload/excel-external')
   @UseBefore(schema(IGetWorkloadExcelQuery, 'query'))
   async getWorkloadExcelExternal(
     @Res() res: Response,
