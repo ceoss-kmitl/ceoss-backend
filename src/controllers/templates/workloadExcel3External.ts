@@ -1,35 +1,20 @@
-import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
 import { mapTimeSlotToTime } from '@libs/mapper'
-import { IGetWorkloadExcel3OutQuery } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
-import { NotFoundError } from '@errors/notFoundError'
+import { IBodyExcelExternal } from '@controllers/types/workload'
 
-export async function generateWorkloadExcel3Out(
-  response: Response,
-  query: IGetWorkloadExcel3OutQuery
+export async function generateWorkloadExcel3External(
+  excel: Excel,
+  teacher: Teacher,
+  academicYear: number,
+  semester: number,
+  body: IBodyExcelExternal
 ) {
-  const { teacher_id, academic_year, semester } = query
-
-  const teacher = await Teacher.findOne(teacher_id, {
-    relations: [
-      'teacherWorkloadList',
-      'teacherWorkloadList.teacher',
-      'teacherWorkloadList.workload',
-      'teacherWorkloadList.workload.timeList',
-      'teacherWorkloadList.workload.subject',
-    ],
-  })
-  if (!teacher)
-    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-      `Teacher ${teacher_id} is not found`,
-    ])
-
   teacher.teacherWorkloadList = teacher
     .filterTeacherWorkloadList({
-      academicYear: academic_year,
+      academicYear,
       semester,
     })
     .sort(
@@ -41,7 +26,7 @@ export async function generateWorkloadExcel3Out(
   const setting = await Setting.get()
 
   // ===== Excel setup =====
-  const excel = new Excel(response, {
+  excel.addSheet(`${body.month}`, {
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
@@ -58,7 +43,6 @@ export async function generateWorkloadExcel3Out(
         footer: 0,
       },
     },
-    views: [{ style: 'pageLayout' }],
     properties: {
       defaultColWidth: Excel.pxCol(60),
       defaultRowHeight: Excel.pxRow(28),
@@ -100,7 +84,7 @@ export async function generateWorkloadExcel3Out(
   excel.cell('E2').value(`ตำแหน่ง อาจารย์พิเศษ/อาจารย์ภายนอก`).align('left')
   excel
     .cell('O2')
-    .value(`ภาคการศึกษาที่ ${semester}/${academic_year}`)
+    .value(`ภาคการศึกษาที่ ${semester}/${academicYear}`)
     .align('left')
   excel.cell('U2').value(`คณะวิศวกรรมศาสตร์`).align('left')
 
@@ -521,6 +505,4 @@ export async function generateWorkloadExcel3Out(
     .cells(`P${row + 15}:V${row + 15}`)
     .value('คณบดีคณะวิศวกรรมศาสตร์')
     .align('center')
-
-  return excel.createFile(`03_ใบเบิกค่าสอน อาจารย์ภายนอก_${teacher.name}`)
 }

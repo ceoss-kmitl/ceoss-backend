@@ -28,6 +28,9 @@ export class Teacher extends BaseEntity {
   @Column({ default: true })
   isActive: boolean
 
+  @Column({ default: false })
+  isExternal: boolean
+
   @OneToMany(
     () => TeacherWorkload,
     (teacherWorkload) => teacherWorkload.teacher
