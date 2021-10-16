@@ -11,6 +11,7 @@ import {
 } from 'routing-controllers'
 
 import {
+  IAssignWorkloadToRoom,
   ICreateRoom,
   IEditRoom,
   IGetRoomWorkloadQuery,
@@ -18,8 +19,9 @@ import {
 import { schema } from '@middlewares/schema'
 import { mapTimeSlotToTime } from '@libs/mapper'
 import { Room } from '@models/room'
-import { DayOfWeek, Degree, WorkloadType } from '@models/workload'
+import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
+import { In } from 'typeorm'
 
 @JsonController()
 export class RoomController {
@@ -47,7 +49,7 @@ export class RoomController {
   async editRoom(@Param('id') id: string, @Body() body: IEditRoom) {
     const { name, capacity } = body
 
-    const room = await Room.findOne(id)
+    const room = await Room.findOne({ where: { id } })
     if (!room)
       throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
 
@@ -154,5 +156,52 @@ export class RoomController {
     }
 
     return result
+  }
+
+  @Post('/room/:id/workload')
+  @UseBefore(schema(IAssignWorkloadToRoom))
+  async assignWorkloadToRoom(
+    @Param('id') id: string,
+    @Body() body: IAssignWorkloadToRoom
+  ) {
+    const { workloadIdList } = body
+
+    const room = await Room.findOne({
+      where: { id },
+      relations: ['workloadList'],
+    })
+    if (!room)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
+
+    const workloadList = await Workload.find({
+      where: { id: In(workloadIdList || []) },
+    })
+    room.workloadList = [...room.workloadList, ...workloadList]
+
+    await room.save()
+    return 'Workload assigned to room'
+  }
+
+  @Delete('/room/:roomId/workload/:workloadId')
+  @UseBefore(schema(IAssignWorkloadToRoom))
+  async unAssignWorkloadFromRoom(
+    @Param('roomId') roomId: string,
+    @Param('workloadId') workloadId: string
+  ) {
+    const room = await Room.findOne({
+      where: { id: roomId },
+      relations: ['workloadList'],
+    })
+    if (!room)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room ${roomId} is not found`,
+      ])
+
+    room.workloadList = room.workloadList.filter(
+      (workload) => workload.id !== workloadId
+    )
+
+    await room.save()
+    return 'Workload un-assigned from room'
   }
 }
