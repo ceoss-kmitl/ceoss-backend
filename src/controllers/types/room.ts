@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer'
 import { IsNumber, IsOptional, IsString } from 'class-validator'
 
 export class ICreateRoom {
@@ -16,4 +17,14 @@ export class IEditRoom {
   @IsNumber()
   @IsOptional()
   capacity: number
+}
+
+export class IGetRoomWorkloadQuery {
+  @IsNumber()
+  @Type(() => Number)
+  academic_year: number
+
+  @IsNumber()
+  @Type(() => Number)
+  semester: number
 }
