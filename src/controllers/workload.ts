@@ -33,6 +33,7 @@ import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
 import { NotFoundError } from '@errors/notFoundError'
+import { IsNull } from 'typeorm'
 
 @JsonController()
 export class WorkloadController {
@@ -94,8 +95,6 @@ export class WorkloadController {
     @QueryParams() query: IGetWorkloadExcelQuery,
     @Body() body: IBodyExcelExternal
   ) {
-    console.log('eiei')
-
     const { teacher_id, academic_year, semester } = query
 
     const teacher = await Teacher.findOne(teacher_id, {
@@ -330,5 +329,35 @@ export class WorkloadController {
 
     await workload.remove()
     return 'Workload discarded'
+  }
+
+  @Get('/workload/no-room')
+  async getWorkloadWithUnAssignedRoom() {
+    const workloadList = await Workload.find({
+      relations: [
+        'room',
+        'subject',
+        'timeList',
+        'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload',
+      ],
+      where: {
+        room: IsNull(),
+      },
+    })
+
+    return workloadList.map((workload) => ({
+      workloadId: workload.id,
+      subjectCode: workload.subject.code,
+      subjectName: workload.subject.name,
+      section: workload.section,
+      dayOfWeek: workload.dayOfWeek,
+      startTime: mapTimeSlotToTime(workload.getFirstTimeSlot()),
+      endTime: mapTimeSlotToTime(workload.getLastTimeSlot() + 1),
+      teacherList: workload
+        .getTeacherList()
+        .map((teacher) => teacher.getFullName()),
+    }))
   }
 }
