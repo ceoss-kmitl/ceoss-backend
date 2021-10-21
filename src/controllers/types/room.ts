@@ -35,3 +35,23 @@ export class IAssignWorkloadToRoom {
   @IsOptional()
   workloadIdList?: string[]
 }
+
+export class IAutoAssignWorkloadToRoomQuery {
+  @IsNumber()
+  @Type(() => Number)
+  academic_year: number
+
+  @IsNumber()
+  @Type(() => Number)
+  semester: number
+}
+
+export class IResetRoomWorkloadQuery {
+  @IsNumber()
+  @Type(() => Number)
+  academic_year: number
+
+  @IsNumber()
+  @Type(() => Number)
+  semester: number
+}
