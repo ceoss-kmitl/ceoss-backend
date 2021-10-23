@@ -316,6 +316,14 @@ export class Excel {
     return this
   }
 
+  public wrapText() {
+    this.activeCell.alignment = {
+      ...this.activeCell.alignment,
+      wrapText: true,
+    }
+    return this
+  }
+
   /**
    * Make this cell content rotate by `degree`
    */

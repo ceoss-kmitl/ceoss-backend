@@ -143,8 +143,10 @@ export class WorkloadController {
         'workload.academicYear = :academic_year AND workload.semester = :semester',
         { academic_year, semester }
       )
+      .innerJoinAndSelect('workload.timeList', 'timeList')
       .where('teacher.isActive = :isActive', { isActive: true })
       .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
+      .andWhere('teacher.isExternal = :isExternal', { isExternal: false })
       .getMany()
 
     const excel = new Excel(res)
