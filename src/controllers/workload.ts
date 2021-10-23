@@ -133,8 +133,19 @@ export class WorkloadController {
     @Res() res: Response,
     @QueryParams() query: IGetWorkloadExcel5Query
   ) {
-    const file = await generateWorkloadExcel5(res, query)
-    return file
+    const { teacher_id, academic_year, semester } = query
+
+    const teacher = await Teacher.findOne(teacher_id, {
+      relations: [
+        'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.timeList',
+        'teacherWorkloadList.workload.subject',
+      ],
+    })
+    // const file = await generateWorkloadExcel5(res, query)
+    // return file
   }
 
   @Get('/workload')
