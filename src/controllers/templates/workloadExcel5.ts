@@ -1,11 +1,8 @@
-import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
 import { mapTimeSlotToTime } from '@libs/mapper'
-import { IGetWorkloadExcel5Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
-import { NotFoundError } from '@errors/notFoundError'
 
 // CEPP, PROJECT1, PROJECT2
 // const FILTERED_SUBJECT = ['01076014', '01076311', '01076312']
@@ -15,47 +12,33 @@ import { NotFoundError } from '@errors/notFoundError'
 // const INTER_CLAIM_ORDER = ['CIE', 'SE']
 
 export async function generateWorkloadExcel5(
-  response: Response,
-  query: IGetWorkloadExcel5Query
+  excel: Excel,
+  teacher: Teacher,
+  academicYear: number,
+  semester: number
 ) {
-  const { teacher_id, academic_year, semester } = query
-
-  const teacher = await Teacher.findOne(teacher_id, {
-    relations: [
-      'teacherWorkloadList',
-      'teacherWorkloadList.teacher',
-      'teacherWorkloadList.workload',
-      'teacherWorkloadList.workload.timeList',
-      'teacherWorkloadList.workload.subject',
-    ],
-  })
-  if (!teacher)
-    throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-      `Teacher ${teacher_id} is not found`,
-    ])
-
   teacher.teacherWorkloadList = teacher
-    .filterTeacherWorkloadList({
-      academicYear: academic_year,
-      semester,
-    })
-    .sort(
-      (a, b) =>
-        a.workload.dayOfWeek - b.workload.dayOfWeek ||
-        a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
-    )
+  .filterTeacherWorkloadList({
+    academicYear,
+    semester,
+  })
+  .sort(
+    (a, b) =>
+      a.workload.dayOfWeek - b.workload.dayOfWeek ||
+      a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
+  )
 
   const setting = await Setting.get()
 
   // ===== Excel setup =====
-  const excel = new Excel(response, {
+  excel.addSheet('05-หลักฐาน', {
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
       verticalCentered: true,
       horizontalCentered: true,
       fitToPage: true,
-      printArea: 'A1:V22',
+      printArea: 'A1:Y32',
       margins: {
         top: 0.16,
         bottom: 0.16,
@@ -65,10 +48,9 @@ export async function generateWorkloadExcel5(
         footer: 0,
       },
     },
-    views: [{ style: 'pageLayout' }],
     properties: {
-      defaultColWidth: Excel.pxCol(63),
-      defaultRowHeight: Excel.pxRow(28),
+      defaultColWidth: Excel.pxCol(38),
+      defaultRowHeight: Excel.pxRow(19),
     },
   })
 
@@ -109,7 +91,7 @@ export async function generateWorkloadExcel5(
   excel
     .cells('A2:V2')
     .value(
-      `ส่วนราชการ ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ ภาคการศึกษาที่ ${semester} พ.ศ. ${academic_year}`
+      `ส่วนราชการ ภาควิชาวิศวกรรมคอมพิวเตอร์ คณะวิศวกรรมศาสตร์ ภาคการศึกษาที่ ${semester} พ.ศ. ${academicYear}`
     )
     .align('center')
 
@@ -164,8 +146,4 @@ export async function generateWorkloadExcel5(
   for (let i = 1; i < row + 7; i++) {
     excel.cell(`W${i}`).border('left')
   }
-
-  return excel.createFile(
-    `05_หลักฐาน ${semester}-${String(academic_year).substr(2, 2)} คอมพิวเตอร์`
-  )
 }

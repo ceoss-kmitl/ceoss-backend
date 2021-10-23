@@ -12,21 +12,21 @@ import {
   UseBefore,
 } from 'routing-controllers'
 import {
+  IBodyExcelExternal,
   ICreateWorkload,
   IEditWorkload,
-  IGetWorkloadExcel1Query,
-  IGetWorkloadExcel2Query,
-  IGetWorkloadExcel3Query,
-  IGetWorkloadExcel3OutQuery,
   IGetWorkloadExcel5Query,
+  IGetWorkloadExcelQuery,
   ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
 import { generateWorkloadExcel2 } from '@controllers/templates/workloadExcel2'
 import { generateWorkloadExcel3 } from '@controllers/templates/workloadExcel3'
-import { generateWorkloadExcel3Out } from '@controllers/templates/workloadExcel3Out'
 import { generateWorkloadExcel5 } from '@controllers/templates/workloadExcel5'
+import { generateWorkloadExcel3External } from '@controllers/templates/workloadExcel3External'
+import { Excel } from '@libs/Excel'
 import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
+import { cloneClass } from '@libs/utils'
 import { schema } from '@middlewares/schema'
 import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
 import { Subject } from '@models/subject'
@@ -35,46 +35,95 @@ import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
 import { NotFoundError } from '@errors/notFoundError'
+import { IsNull } from 'typeorm'
 
 @JsonController()
 export class WorkloadController {
-  @Get('/workload/excel-1')
-  @UseBefore(schema(IGetWorkloadExcel1Query, 'query'))
-  async getWorkloadExcel1(
+  @Get('/workload/excel')
+  @UseBefore(schema(IGetWorkloadExcelQuery, 'query'))
+  async getWorkloadExcel(
     @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcel1Query
+    @QueryParams() query: IGetWorkloadExcelQuery
   ) {
-    const file = await generateWorkloadExcel1(res, query)
+    const { teacher_id, academic_year, semester } = query
+
+    const teacher = await Teacher.findOne({
+      where: { id: teacher_id },
+      relations: [
+        'teacherWorkloadList',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload.subject',
+        'teacherWorkloadList.workload.timeList',
+        'teacherWorkloadList.workload.teacherWorkloadList',
+        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
+      ],
+    })
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher ${teacher_id} is not found`,
+      ])
+
+    const excel = new Excel(res)
+    await generateWorkloadExcel1(
+      excel,
+      cloneClass(teacher),
+      academic_year,
+      semester
+    )
+    await generateWorkloadExcel2(
+      excel,
+      cloneClass(teacher),
+      academic_year,
+      semester
+    )
+    await generateWorkloadExcel3(
+      excel,
+      cloneClass(teacher),
+      academic_year,
+      semester
+    )
+
+    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
+    const file = await excel.createFile(`${yearAndSemester} ${teacher.name}`)
     return file
   }
 
-  @Get('/workload/excel-2')
-  @UseBefore(schema(IGetWorkloadExcel2Query, 'query'))
-  async getWorkloadExcel2(
+  // Use POST instead of GET because body part is required
+  @Post('/workload/excel-external')
+  @UseBefore(schema(IGetWorkloadExcelQuery, 'query'))
+  async getWorkloadExcelExternal(
     @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcel2Query
+    @QueryParams() query: IGetWorkloadExcelQuery,
+    @Body() body: IBodyExcelExternal
   ) {
-    const file = await generateWorkloadExcel2(res, query)
-    return file
-  }
+    const { teacher_id, academic_year, semester } = query
 
-  @Get('/workload/excel-3')
-  @UseBefore(schema(IGetWorkloadExcel3Query, 'query'))
-  async getWorkloadExcel3(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcel3Query
-  ) {
-    const file = await generateWorkloadExcel3(res, query)
-    return file
-  }
+    const teacher = await Teacher.findOne(teacher_id, {
+      relations: [
+        'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.timeList',
+        'teacherWorkloadList.workload.subject',
+      ],
+    })
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher ${teacher_id} is not found`,
+      ])
 
-  @Get('/workload/excel-3-out')
-  @UseBefore(schema(IGetWorkloadExcel3OutQuery, 'query'))
-  async getWorkloadExcel3Out(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcel3OutQuery
-  ) {
-    const file = await generateWorkloadExcel3Out(res, query)
+    const excel = new Excel(res)
+    await generateWorkloadExcel3External(
+      excel,
+      cloneClass(teacher),
+      academic_year,
+      semester,
+      body
+    )
+
+    const monthAndYear = `${body.month} ${String(academic_year).substr(2, 2)}`
+    const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
     return file
   }
 
@@ -292,5 +341,35 @@ export class WorkloadController {
 
     await workload.remove()
     return 'Workload discarded'
+  }
+
+  @Get('/workload/no-room')
+  async getWorkloadWithUnAssignedRoom() {
+    const workloadList = await Workload.find({
+      relations: [
+        'room',
+        'subject',
+        'timeList',
+        'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload',
+      ],
+      where: {
+        room: IsNull(),
+      },
+    })
+
+    return workloadList.map((workload) => ({
+      workloadId: workload.id,
+      subjectCode: workload.subject.code,
+      subjectName: workload.subject.name,
+      section: workload.section,
+      dayOfWeek: workload.dayOfWeek,
+      startTime: mapTimeSlotToTime(workload.getFirstTimeSlot()),
+      endTime: mapTimeSlotToTime(workload.getLastTimeSlot() + 1),
+      teacherList: workload
+        .getTeacherList()
+        .map((teacher) => teacher.getFullName()),
+    }))
   }
 }

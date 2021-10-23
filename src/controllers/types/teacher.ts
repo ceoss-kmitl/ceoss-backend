@@ -13,6 +13,9 @@ export class ICreateTeacher {
 
   @IsBoolean()
   isActive: boolean
+
+  @IsBoolean()
+  isExternal: boolean
 }
 
 export class IEditTeacher {
@@ -31,6 +34,10 @@ export class IEditTeacher {
   @IsBoolean()
   @IsOptional()
   isActive: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isExternal: boolean
 }
 
 export class IGetTeacherQuery {

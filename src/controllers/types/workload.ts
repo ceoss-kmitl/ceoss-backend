@@ -93,7 +93,7 @@ export class IEditWorkload {
   teacherList: IEditWorkloadTeacherList[]
 }
 
-export class IGetWorkloadExcel1Query {
+export class IGetWorkloadExcelQuery {
   @IsString()
   teacher_id: string
 
@@ -106,43 +106,35 @@ export class IGetWorkloadExcel1Query {
   semester: number
 }
 
-export class IGetWorkloadExcel2Query {
+export class IBodyExcelExternal {
   @IsString()
-  teacher_id: string
+  month: string
 
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
+  @ValidateNested({ each: true })
+  @IsArray()
+  @Type(() => ISubjectExcelExternal)
+  subjectList: ISubjectExcelExternal[]
 }
 
-export class IGetWorkloadExcel3Query {
+class ISubjectExcelExternal {
   @IsString()
-  teacher_id: string
+  subjectId: string
 
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
+  @ValidateNested({ each: true })
+  @IsArray()
+  @Type(() => IDayExcelExternal)
+  dayList: IDayExcelExternal[]
 }
 
-export class IGetWorkloadExcel3OutQuery {
+class IDayExcelExternal {
+  @IsNumber()
+  day: number
+
+  @IsBoolean()
+  isCompensated: boolean
+
   @IsString()
-  teacher_id: string
-
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
+  remark: string
 }
 
 export class IGetWorkloadExcel5Query {
