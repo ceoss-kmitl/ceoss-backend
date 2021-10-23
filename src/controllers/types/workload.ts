@@ -138,9 +138,6 @@ class IDayExcelExternal {
 }
 
 export class IGetWorkloadExcel5Query {
-  @IsString()
-  teacher_id: string
-
   @Type(() => Number)
   @IsNumber()
   academic_year: number

@@ -133,19 +133,26 @@ export class WorkloadController {
     @Res() res: Response,
     @QueryParams() query: IGetWorkloadExcel5Query
   ) {
-    const { teacher_id, academic_year, semester } = query
+    const { academic_year, semester } = query
 
-    const teacher = await Teacher.findOne(teacher_id, {
-      relations: [
-        'teacherWorkloadList',
-        'teacherWorkloadList.teacher',
+    const teacherList = await Teacher.createQueryBuilder('teacher')
+      .leftJoinAndSelect('teacher.teacherWorkloadList', 'teacherWorkloadList')
+      .innerJoinAndSelect(
         'teacherWorkloadList.workload',
-        'teacherWorkloadList.workload.timeList',
-        'teacherWorkloadList.workload.subject',
-      ],
-    })
-    // const file = await generateWorkloadExcel5(res, query)
-    // return file
+        'workload',
+        'workload.academicYear = :academic_year AND workload.semester = :semester',
+        { academic_year, semester }
+      )
+      .where('teacher.isActive = :isActive', { isActive: true })
+      .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
+      .getMany()
+
+    const excel = new Excel(res)
+    await generateWorkloadExcel5(excel, teacherList, academic_year, semester)
+
+    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
+    const file = await excel.createFile(`${yearAndSemester}`)
+    return file
   }
 
   @Get('/workload')
