@@ -1,7 +1,14 @@
 import { Excel, PaperSize } from '@libs/Excel'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { Degree } from '@models/workload'
+import { Degree, WorkloadType } from '@models/workload'
+
+type ISummary = {
+  degree: Degree
+  payRate: number
+  totalHours: number
+  claimAmount: number
+}
 
 export async function generateWorkloadExcel5(
   excel: Excel,
@@ -11,14 +18,60 @@ export async function generateWorkloadExcel5(
 ) {
   const setting = await Setting.get()
 
-  // Variable to check which degree has claimed
-  const isClaimDegree = {
-    [Degree.Bachelor]: false,
-    [Degree.BachelorCon]: false,
-    [Degree.BachelorInter]: false,
-    [Degree.Pundit]: false,
-    [Degree.PunditInter]: false,
-  }
+  teacherList = teacherList.filter((teacher) => {
+    const summaryClaim: ISummary[] = [
+      {
+        degree: Degree.Bachelor,
+        payRate: setting.lecturePayRateNormal,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.BachelorCon,
+        payRate: setting.lecturePayRateNormal,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.BachelorInter,
+        payRate: setting.lecturePayRateInter,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.Pundit,
+        payRate: setting.lecturePayRateNormal,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.PunditInter,
+        payRate: setting.lecturePayRateInter,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+    ]
+    for (const workload of teacher.getWorkloadList()) {
+      // eslint-disable-next-line
+      const summary = summaryClaim.find((sc) => sc.degree === workload.degree)!
+      for (const time of workload.timeList) {
+        let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
+        if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+
+        const hr = hoursUnit * teacher.getWeekCount(workload.id)
+
+        summary.totalHours += hr
+        summary.claimAmount += hr * summary.payRate
+      }
+    }
+    const claimBachelorHour = Math.max(
+      0,
+      summaryClaim[0].totalHours + summaryClaim[1].totalHours - 150
+    )
+    const claimInter = summaryClaim[2].claimAmount + summaryClaim[4].claimAmount
+
+    return claimBachelorHour > 0 || claimInter > 0
+  })
 
   const degree = [
     '"ป.ตรี" & CHAR(10) & "ทั่วไป/" & CHAR(10) & "ต่อเนื่อง"',
@@ -37,13 +90,44 @@ export async function generateWorkloadExcel5(
     '': 'อาจารย์',
   }
 
-  for (
-    let teacherIndex = 0;
-    teacherIndex < teacherList.length;
-    teacherIndex++
-  ) {
-    if (teacherIndex % 10 === 0) {
-      excel.addSheet(`${teacherIndex / 10 + 1}`, {
+  let teacherRow = 0
+  for (const teacher of teacherList) {
+    const summaryClaim: ISummary[] = [
+      {
+        degree: Degree.Bachelor,
+        payRate: setting.lecturePayRateNormal,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.BachelorCon,
+        payRate: setting.lecturePayRateNormal,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.BachelorInter,
+        payRate: setting.lecturePayRateInter,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.Pundit,
+        payRate: setting.lecturePayRateNormal,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+      {
+        degree: Degree.PunditInter,
+        payRate: setting.lecturePayRateInter,
+        totalHours: 0,
+        claimAmount: 0,
+      },
+    ]
+
+    // ==== Add new sheet
+    if (teacherRow % 10 === 0) {
+      excel.addSheet(`${teacherRow / 10 + 1}`, {
         pageSetup: {
           paperSize: PaperSize.A4,
           orientation: 'landscape',
@@ -84,6 +168,17 @@ export async function generateWorkloadExcel5(
       excel.cell('A17').height(Excel.pxRow(55))
       excel.cell('A18').height(Excel.pxRow(55))
       excel.cell('A19').height(Excel.pxRow(55))
+
+      //== summary y
+      excel.cell(`K16`).formula(`SUM(K6:K15)`).align('center')
+      excel.cell(`L16`).formula(`SUM(L6:L15)`).align('center')
+      excel.cell(`M16`).formula(`SUM(M6:M15)`).align('center')
+      excel.cell(`N16`).formula(`SUM(N6:N15)`).align('center')
+      excel.cell(`O16`).formula(`SUM(O6:O15)`).align('center')
+      excel.cell(`P16`).formula(`SUM(P6:P15)`).align('center')
+      excel.cell(`Q16`).formula(`SUM(Q6:Q15)`).align('center')
+      excel.cell(`R16`).formula(`SUM(R6:R15)`).align('center')
+      excel.cell(`S16`).formula(`SUM(S6:S15)`).align('center')
 
       // ===== Title =====
       excel
@@ -281,24 +376,22 @@ export async function generateWorkloadExcel5(
     // ===== Order ====
 
     excel
-      .cell(`A${(teacherIndex % 10) + 6}`)
-      .value((teacherIndex % 10) + 1)
+      .cell(`A${(teacherRow % 10) + 6}`)
+      .value((teacherRow % 10) + 1)
       .align('center')
 
     // ===== TeacherList ====
     excel
-      .cell(`B${(teacherIndex % 10) + 6}`)
-      .value(
-        `${teacherList[teacherIndex].title}${teacherList[teacherIndex].name}`
-      )
+      .cell(`B${(teacherRow % 10) + 6}`)
+      .value(`${teacher.title}${teacher.name}`)
       .align('left')
     excel
-      .cell(`C${(teacherIndex % 10) + 6}`)
-      .value(`${(TeacherTitle as any)[teacherList[teacherIndex].title]}`)
+      .cell(`C${(teacherRow % 10) + 6}`)
+      .value(`${(TeacherTitle as any)[teacher.title]}`)
       .align('center')
 
     // ===== Degree ====
-    const teachBachelor = teacherList[teacherIndex]
+    const teachBachelor = teacher
       .getWorkloadList()
       .some((workload) =>
         [Degree.Bachelor, Degree.BachelorInter, Degree.BachelorCon].includes(
@@ -307,14 +400,154 @@ export async function generateWorkloadExcel5(
       )
     if (teachBachelor) {
       excel
-        .cell(`E${(teacherIndex % 10) + 6}`)
+        .cell(`E${(teacherRow % 10) + 6}`)
         .value(`✔`)
         .align('center')
     } else {
       excel
-        .cell(`F${(teacherIndex % 10) + 6}`)
+        .cell(`F${(teacherRow % 10) + 6}`)
         .value(`✔`)
         .align('center')
     }
+
+    // ===== Render Hour ====
+
+    for (const workload of teacher.getWorkloadList()) {
+      // eslint-disable-next-line
+      const summary = summaryClaim.find((sc) => sc.degree === workload.degree)!
+      for (const time of workload.timeList) {
+        let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
+        if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+
+        const hr = hoursUnit * teacher.getWeekCount(workload.id)
+
+        summary.totalHours += hr
+        summary.claimAmount += hr * summary.payRate
+      }
+    }
+
+    // ===== Chanel 8.1 ====
+    if (summaryClaim[0].claimAmount || summaryClaim[1].claimAmount) {
+      excel
+        .cell(`G${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[0].totalHours + summaryClaim[1].totalHours - 150)
+        .align('center')
+    }
+    // ===== Chanel 8.2 ====
+    if (summaryClaim[2].claimAmount) {
+      excel
+        .cell(`H${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[2].totalHours)
+        .align('center')
+    }
+    // ===== Chanel 8.3 ====
+    if (summaryClaim[3].claimAmount) {
+      excel
+        .cell(`I${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[3].totalHours)
+        .align('center')
+    }
+    // ===== Chanel 8.4 ====
+    if (summaryClaim[4].claimAmount) {
+      excel
+        .cell(`J${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[4].totalHours)
+        .align('center')
+    }
+
+    // ===== Chanel 9.1 ====
+    if (summaryClaim[0].claimAmount || summaryClaim[1].claimAmount) {
+      excel
+        .cell(`K${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[0].claimAmount + summaryClaim[1].claimAmount)
+        .align('center')
+    }
+    // ===== Chanel 9.2 ====
+    if (summaryClaim[2].claimAmount) {
+      excel
+        .cell(`L${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[2].claimAmount)
+        .align('center')
+    }
+    // ===== Chanel 9.3 ====
+    if (summaryClaim[3].claimAmount) {
+      excel
+        .cell(`M${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[3].claimAmount)
+        .align('center')
+    }
+    // ===== Chanel 9.4 ====
+    if (summaryClaim[4].claimAmount) {
+      excel
+        .cell(`N${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[4].claimAmount)
+        .align('center')
+    }
+
+    // ===== Chanel 10.1 ====
+    if (summaryClaim[0].claimAmount || summaryClaim[1].claimAmount) {
+      const claimAmount = Math.max(
+        0,
+        Math.min(
+          summaryClaim[0].claimAmount + summaryClaim[1].claimAmount,
+          50000
+        )
+      )
+      excel
+        .cell(`O${(teacherRow % 10) + 6}`)
+        .value(claimAmount)
+        .align('center')
+    }
+    // ===== Chanel 10.2 ====
+    if (summaryClaim[2].claimAmount) {
+      const claimAmount = Math.max(
+        0,
+        Math.min(
+          summaryClaim[0].claimAmount + summaryClaim[1].claimAmount,
+          100000
+        )
+      )
+      excel
+        .cell(`P${(teacherRow % 10) + 6}`)
+        .value(summaryClaim[2].claimAmount)
+        .align('center')
+    }
+    // ===== Chanel 10.3 ====
+    if (summaryClaim[3].claimAmount) {
+      const claimAmount = Math.max(
+        0,
+        Math.min(
+          summaryClaim[0].claimAmount + summaryClaim[1].claimAmount,
+          50000
+        )
+      )
+      excel
+        .cell(`Q${(teacherRow % 10) + 6}`)
+        .value(claimAmount)
+        .align('center')
+    }
+    // ===== Chanel 10.4 ====
+    if (summaryClaim[4].claimAmount) {
+      const claimAmount = Math.max(
+        0,
+        Math.min(
+          summaryClaim[0].claimAmount + summaryClaim[1].claimAmount,
+          100000
+        )
+      )
+      excel
+        .cell(`R${(teacherRow % 10) + 6}`)
+        .value(claimAmount)
+        .align('center')
+    }
+
+    //== summary x
+    {
+      const row = (teacherRow % 10) + 6
+      excel.cell(`S${row}`).formula(`SUM(O${row}:R${row})`).align('center')
+    }
+
+    // === end of current teacher
+    teacherRow++
   }
 }

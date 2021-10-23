@@ -143,6 +143,7 @@ export class WorkloadController {
         'workload.academicYear = :academic_year AND workload.semester = :semester',
         { academic_year, semester }
       )
+      .innerJoinAndSelect('teacherWorkloadList.teacher', 't')
       .innerJoinAndSelect('workload.timeList', 'timeList')
       .where('teacher.isActive = :isActive', { isActive: true })
       .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
