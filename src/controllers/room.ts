@@ -9,7 +9,7 @@ import {
   Delete,
   QueryParams,
 } from 'routing-controllers'
-import { In, IsNull } from 'typeorm'
+import { In, IsNull, Not } from 'typeorm'
 
 import {
   IAssignWorkloadToRoom,
@@ -193,6 +193,7 @@ export class RoomController {
         academicYear: academic_year,
         semester,
         room: IsNull(),
+        subject: Not(IsNull()),
       },
     })
 
