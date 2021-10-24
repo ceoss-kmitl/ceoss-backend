@@ -4,6 +4,7 @@ import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
 import { IBodyExcelExternal } from '@controllers/types/workload'
+import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel3External(
   excel: Excel,
@@ -169,7 +170,7 @@ export async function generateWorkloadExcel3External(
   excel.cell('L5').value('ทั่วไป').border('box').align('center')
   excel.cell('M5').value('นานาชาติ').border('box').align('center')
 
-  excel.cells('N3:T3').value('เดือนกันยายน').border('box').align('center')
+  excel.cells('N3:T3').value(`เดือน${body.month}`).border('box').align('center')
   {
     let week = 0
     for (const col of Excel.range('N:T')) {
@@ -212,6 +213,7 @@ export async function generateWorkloadExcel3External(
   }
 
   // ===== workload =====
+  let remarkRow = Math.max(0, teacher.getWorkloadList().length - 3) + 11
   teacher.getWorkloadList().forEach((workload, index) => {
     const { subject, type, classYear, dayOfWeek } = workload
 
@@ -289,27 +291,36 @@ export async function generateWorkloadExcel3External(
       }
 
       // ==== Render Week date
-      for (const workload of teacher.getWorkloadList()) {
-        // eslint-disable-next-line
-        const summary = summaryClaim.find((sc) => sc.degree === workload.degree)!
-        for (const time of workload.timeList) {
-          let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
-          if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+      const workloadBody = body.workloadList.find(
+        (w) => w.workloadId === workload.subject.id
+      )
+      if (!workloadBody) {
+        throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+          `subject ${workload.subject.id} is not found`,
+        ])
+      }
 
-          const hr = hoursUnit * teacher.getWeekCount(workload.id)
+      let dateCol = 'N'
+      for (const day of workloadBody.dayList) {
+        excel
+          .cell(`${dateCol}${6 + index}`)
+          .value(day.isCompensated ? `*${day.day}` : day.day)
+          .align('center')
+        dateCol = Excel.toAlphabet(Excel.toNumber(dateCol) + 1)
 
-          summary.totalHours += hr
-          summary.claimAmount += hr * summary.payRate
+        if (day.isCompensated) {
+          excel.cells(`J${remarkRow}:W${remarkRow}`).value(`*${day.remark}`)
+          remarkRow++
         }
       }
 
       excel
         .cell(`U${6 + index}`)
-        .value(teacher.getWeekCount(workload.id))
+        .value(workloadBody.dayList.length)
         .border('left', 'right')
         .align('center')
 
-      const hr = subject.lectureHours * teacher.getWeekCount(workload.id)
+      const hr = subject.lectureHours * workloadBody.dayList.length
 
       excel
         .cell(`V${6 + index}`)
@@ -322,6 +333,18 @@ export async function generateWorkloadExcel3External(
         .value(`เบิก ${subject.curriculumCode}`)
         .border('left', 'right')
         .align('center')
+
+      // eslint-disable-next-line
+      const summary = summaryClaim.find((sc) => sc.degree === workload.degree)!
+      for (const time of workload.timeList) {
+        let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
+        if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+
+        const hr = hoursUnit * workloadBody.dayList.length
+
+        summary.totalHours += hr
+        summary.claimAmount += hr * summary.payRate
+      }
     }
   })
 
@@ -394,14 +417,6 @@ export async function generateWorkloadExcel3External(
     excel.cell('L2').value(`☑ บัณฑิตศึกษา`).align('left')
   }
 
-  // ===== Render Outline =====
-  // const degree = [
-  //   '1. ปริญญาตรี ทั่วไป',
-  //   '2. ปริญญาตรี ต่อเนื่อง',
-  //   '3. ปริญญาตรี นานาชาติ SE',
-  //   '4. บัณฑิตทั่วไป',
-  //   '5. บัณฑิต นานาชาติ',
-  // ]
   {
     for (let i = 0; i <= 4; i++) {
       excel
@@ -441,7 +456,7 @@ export async function generateWorkloadExcel3External(
       .value(summaryClaim[0].claimAmount)
       .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.BachelorCon] === true) {
-    excel.cell(`C${row + 5}`).value(summaryClaim[1].claimAmount)
+    excel.cell(`C${row + 5}`).value(summaryClaim[1].totalHours)
     excel
       .cell(`D${row + 5}`)
       .value(summaryClaim[1].payRate)
@@ -455,7 +470,7 @@ export async function generateWorkloadExcel3External(
       .value(summaryClaim[1].claimAmount)
       .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.BachelorInter] === true) {
-    excel.cell(`C${row + 6}`).value(summaryClaim[2].claimAmount)
+    excel.cell(`C${row + 6}`).value(summaryClaim[2].totalHours)
     excel
       .cell(`D${row + 6}`)
       .value(summaryClaim[2].payRate)
@@ -469,7 +484,7 @@ export async function generateWorkloadExcel3External(
       .value(summaryClaim[2].claimAmount)
       .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.Pundit] === true) {
-    excel.cell(`C${row + 7}`).value(summaryClaim[3].claimAmount)
+    excel.cell(`C${row + 7}`).value(summaryClaim[3].totalHours)
     excel
       .cell(`D${row + 7}`)
       .value(summaryClaim[3].payRate)
@@ -483,7 +498,7 @@ export async function generateWorkloadExcel3External(
       .value(summaryClaim[3].claimAmount)
       .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.PunditInter] === true) {
-    excel.cell(`C${row + 8}`).value(summaryClaim[4].claimAmount)
+    excel.cell(`C${row + 8}`).value(summaryClaim[4].totalHours)
     excel
       .cell(`D${row + 8}`)
       .value(summaryClaim[4].payRate)
