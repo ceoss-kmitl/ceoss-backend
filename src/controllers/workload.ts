@@ -15,12 +15,14 @@ import {
   IBodyExcelExternal,
   ICreateWorkload,
   IEditWorkload,
+  IGetWorkloadExcel5Query,
   IGetWorkloadExcelQuery,
   ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
 import { generateWorkloadExcel2 } from '@controllers/templates/workloadExcel2'
 import { generateWorkloadExcel3 } from '@controllers/templates/workloadExcel3'
+import { generateWorkloadExcel5 } from '@controllers/templates/workloadExcel5'
 import { generateWorkloadExcel3External } from '@controllers/templates/workloadExcel3External'
 import { Excel } from '@libs/Excel'
 import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
@@ -122,6 +124,37 @@ export class WorkloadController {
 
     const monthAndYear = `${body.month} ${String(academic_year).substr(2, 2)}`
     const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
+    return file
+  }
+
+  @Get('/workload/excel-5')
+  @UseBefore(schema(IGetWorkloadExcel5Query, 'query'))
+  async getWorkloadExcel5(
+    @Res() res: Response,
+    @QueryParams() query: IGetWorkloadExcel5Query
+  ) {
+    const { academic_year, semester } = query
+
+    const teacherList = await Teacher.createQueryBuilder('teacher')
+      .leftJoinAndSelect('teacher.teacherWorkloadList', 'teacherWorkloadList')
+      .innerJoinAndSelect(
+        'teacherWorkloadList.workload',
+        'workload',
+        'workload.academicYear = :academic_year AND workload.semester = :semester',
+        { academic_year, semester }
+      )
+      .innerJoinAndSelect('teacherWorkloadList.teacher', 't')
+      .innerJoinAndSelect('workload.timeList', 'timeList')
+      .where('teacher.isActive = :isActive', { isActive: true })
+      .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
+      .andWhere('teacher.isExternal = :isExternal', { isExternal: false })
+      .getMany()
+
+    const excel = new Excel(res)
+    await generateWorkloadExcel5(excel, teacherList, academic_year, semester)
+
+    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
+    const file = await excel.createFile(`${yearAndSemester}`)
     return file
   }
 

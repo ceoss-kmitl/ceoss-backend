@@ -136,3 +136,13 @@ class IDayExcelExternal {
   @IsString()
   remark: string
 }
+
+export class IGetWorkloadExcel5Query {
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
+}
