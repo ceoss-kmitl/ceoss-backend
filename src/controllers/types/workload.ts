@@ -112,13 +112,13 @@ export class IBodyExcelExternal {
 
   @ValidateNested({ each: true })
   @IsArray()
-  @Type(() => ISubjectExcelExternal)
-  subjectList: ISubjectExcelExternal[]
+  @Type(() => IWorkloadExcelExternal)
+  workloadList: IWorkloadExcelExternal[]
 }
 
-class ISubjectExcelExternal {
+class IWorkloadExcelExternal {
   @IsString()
-  subjectId: string
+  workloadId: string
 
   @ValidateNested({ each: true })
   @IsArray()
