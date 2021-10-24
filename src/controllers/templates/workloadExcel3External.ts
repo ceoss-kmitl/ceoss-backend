@@ -58,6 +58,58 @@ export async function generateWorkloadExcel3External(
     [Degree.PunditInter]: false,
   }
 
+  // Use for render summary table at the bottom left
+  type ISummary = {
+    degreeThai: string
+    degree: Degree
+    payRate: number
+    totalHours: number
+    claimAmount: number
+    subList: (Omit<ISummary, 'subList'> & { fieldOfStudy: string })[]
+  }
+  const summaryClaim: ISummary[] = [
+    {
+      degreeThai: 'ปริญญาตรี ทั่วไป',
+      degree: Degree.Bachelor,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'ปริญญาตรี ต่อเนื่อง',
+      degree: Degree.BachelorCon,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'ปริญญาตรี นานาชาติ',
+      degree: Degree.BachelorInter,
+      payRate: setting.lecturePayRateInter,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'บัณฑิต ทั่วไป',
+      degree: Degree.Pundit,
+      payRate: setting.lecturePayRateNormal,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+    {
+      degreeThai: 'บัณฑิต นานาชาติ',
+      degree: Degree.PunditInter,
+      payRate: setting.lecturePayRateInter,
+      totalHours: 0,
+      claimAmount: 0,
+      subList: [],
+    },
+  ]
+
   // ===== Configue height & width =====
   excel.font('TH SarabunPSK').fontSize(14)
   excel.cell('A1').width(Excel.pxCol(46))
@@ -236,13 +288,27 @@ export async function generateWorkloadExcel3External(
         excel.cell(`${col}${6 + index}`).border('left', 'right')
       }
 
+      // ==== Render Week date
+      for (const workload of teacher.getWorkloadList()) {
+        // eslint-disable-next-line
+        const summary = summaryClaim.find((sc) => sc.degree === workload.degree)!
+        for (const time of workload.timeList) {
+          let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
+          if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+
+          const hr = hoursUnit * teacher.getWeekCount(workload.id)
+
+          summary.totalHours += hr
+          summary.claimAmount += hr * summary.payRate
+        }
+      }
+
       excel
         .cell(`U${6 + index}`)
         .value(teacher.getWeekCount(workload.id))
         .border('left', 'right')
         .align('center')
 
-      // รอแก้เป็น week count outsider + มีข้อมูลวันที่
       const hr = subject.lectureHours * teacher.getWeekCount(workload.id)
 
       excel
@@ -328,19 +394,19 @@ export async function generateWorkloadExcel3External(
     excel.cell('L2').value(`☑ บัณฑิตศึกษา`).align('left')
   }
 
-  // ===== degree =====
-  const degree = [
-    '1. ปริญญาตรี ทั่วไป',
-    '2. ปริญญาตรี ต่อเนื่อง',
-    '3. ปริญญาตรี นานาชาติ SE',
-    '4. บัณฑิตทั่วไป',
-    '5. บัณฑิต นานาชาติ',
-  ]
+  // ===== Render Outline =====
+  // const degree = [
+  //   '1. ปริญญาตรี ทั่วไป',
+  //   '2. ปริญญาตรี ต่อเนื่อง',
+  //   '3. ปริญญาตรี นานาชาติ SE',
+  //   '4. บัณฑิตทั่วไป',
+  //   '5. บัณฑิต นานาชาติ',
+  // ]
   {
     for (let i = 0; i <= 4; i++) {
       excel
         .cells(`A${row + 4 + i}:B${row + 4 + i}`)
-        .value(`${degree[i]}`)
+        .value(`${summaryClaim[i].degreeThai}`)
         .border('box')
         .align('left')
     }
@@ -359,62 +425,76 @@ export async function generateWorkloadExcel3External(
         .align('center')
     }
   }
-  // แก้ caculate ในกรณีที่ไม่ได้มีวิชาเดียว
+  // ===== Render Claim summary ====
   if (isClaimDegree[Degree.Bachelor] === true) {
-    excel.cell(`C${row + 4}`).formula(`SUM(V${row})`)
+    excel.cell(`C${row + 4}`).value(summaryClaim[0].totalHours)
     excel
       .cell(`D${row + 4}`)
-      .value(setting.lecturePayRateNormal)
+      .value(summaryClaim[0].payRate)
       .numberFormat('#,##0')
     excel
       .cell(`E${row + 4}`)
-      .formula(`C${row + 4} * D${row + 4}`)
+      .value(summaryClaim[0].claimAmount)
       .numberFormat('#,##0')
     excel
       .cell(`G${row + 4}`)
-      .formula(`SUM(E${row + 4})`)
+      .value(summaryClaim[0].claimAmount)
+      .numberFormat('#,##0')
+  } else if (isClaimDegree[Degree.BachelorCon] === true) {
+    excel.cell(`C${row + 5}`).value(summaryClaim[1].claimAmount)
+    excel
+      .cell(`D${row + 5}`)
+      .value(summaryClaim[1].payRate)
+      .numberFormat('#,##0')
+    excel
+      .cell(`E${row + 5}`)
+      .value(summaryClaim[1].claimAmount)
+      .numberFormat('#,##0')
+    excel
+      .cell(`G${row + 5}`)
+      .value(summaryClaim[1].claimAmount)
       .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.BachelorInter] === true) {
-    excel.cell(`C${row + 6}`).formula(`SUM(V${row})`)
+    excel.cell(`C${row + 6}`).value(summaryClaim[2].claimAmount)
     excel
       .cell(`D${row + 6}`)
-      .value(setting.lecturePayRateInter)
+      .value(summaryClaim[2].payRate)
       .numberFormat('#,##0')
     excel
       .cell(`E${row + 6}`)
-      .formula(`C${row + 6} * D${row + 6}`)
+      .value(summaryClaim[2].claimAmount)
       .numberFormat('#,##0')
     excel
       .cell(`G${row + 6}`)
-      .formula(`SUM(E${row + 6})`)
+      .value(summaryClaim[2].claimAmount)
       .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.Pundit] === true) {
-    excel.cell(`C${row + 7}`).formula(`SUM(V${row})`)
+    excel.cell(`C${row + 7}`).value(summaryClaim[3].claimAmount)
     excel
       .cell(`D${row + 7}`)
-      .value(setting.lecturePayRateNormal)
+      .value(summaryClaim[3].payRate)
       .numberFormat('#,##0')
     excel
       .cell(`E${row + 7}`)
-      .formula(`C${row + 7} * D${row + 7}`)
+      .value(summaryClaim[3].claimAmount)
       .numberFormat('#,##0')
     excel
       .cell(`G${row + 7}`)
-      .formula(`SUM(E${row + 7})`)
+      .value(summaryClaim[3].claimAmount)
       .numberFormat('#,##0')
   } else if (isClaimDegree[Degree.PunditInter] === true) {
-    excel.cell(`C${row + 8}`).formula(`SUM(V${row})`)
+    excel.cell(`C${row + 8}`).value(summaryClaim[4].claimAmount)
     excel
       .cell(`D${row + 8}`)
-      .value(setting.lecturePayRateInter)
+      .value(summaryClaim[4].payRate)
       .numberFormat('#,##0')
     excel
       .cell(`E${row + 8}`)
-      .formula(`C${row + 8} * D${row + 8}`)
+      .value(summaryClaim[4].claimAmount)
       .numberFormat('#,##0')
     excel
       .cell(`G${row + 8}`)
-      .formula(`SUM(E${row + 8})`)
+      .value(summaryClaim[4].claimAmount)
       .numberFormat('#,##0')
   }
 
