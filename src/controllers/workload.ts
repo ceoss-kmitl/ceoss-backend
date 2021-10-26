@@ -154,7 +154,7 @@ export class WorkloadController {
     await generateWorkloadExcel5(excel, teacherList, academic_year, semester)
 
     const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
-    const file = await excel.createFile(`${yearAndSemester}`)
+    const file = await excel.createFile(`${yearAndSemester} หลักฐานการเบิกจ่าย`)
     return file
   }
 
