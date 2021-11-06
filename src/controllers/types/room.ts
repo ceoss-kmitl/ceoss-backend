@@ -55,3 +55,13 @@ export class IResetRoomWorkloadQuery {
   @Type(() => Number)
   semester: number
 }
+
+export class IGetRoomExcelQuery {
+  @IsNumber()
+  @Type(() => Number)
+  academic_year: number
+
+  @IsNumber()
+  @Type(() => Number)
+  semester: number
+}
