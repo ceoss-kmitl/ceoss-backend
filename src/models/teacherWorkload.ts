@@ -16,7 +16,7 @@ export class TeacherWorkload extends BaseEntity {
   })
   workload: Workload
 
-  @Column({ default: 15 })
+  @Column({ type: 'float4', default: 15.0 })
   weekCount: number
 
   @Column({ default: true })
