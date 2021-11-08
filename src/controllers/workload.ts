@@ -17,6 +17,7 @@ import {
   IEditWorkload,
   IGetWorkloadExcel5Query,
   IGetWorkloadExcelQuery,
+  IGetWorkloadSubject,
   ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
@@ -35,7 +36,7 @@ import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
 import { NotFoundError } from '@errors/notFoundError'
-import { IsNull } from 'typeorm'
+import { IsNull, Not } from 'typeorm'
 
 @JsonController()
 export class WorkloadController {
@@ -396,5 +397,27 @@ export class WorkloadController {
         .getTeacherList()
         .map((teacher) => teacher.getFullName()),
     }))
+  }
+
+  @Get('/workload/subject')
+  @UseBefore(schema(IGetWorkloadSubject, 'query'))
+  async getAllWorkloadSubject(@QueryParams() query: IGetWorkloadSubject) {
+    const { academic_year, semester } = query
+
+    const workloadList = await Workload.find({
+      where: {
+        academicYear: academic_year,
+        semester,
+        subject: Not(IsNull()),
+      },
+      relations: ['subject'],
+    })
+
+    return workloadList
+      .map((workload) => ({
+        workloadId: workload.id,
+        subject: `${workload.subject.code} - ${workload.subject.name} กลุ่ม ${workload.section}`,
+      }))
+      .sort((a, b) => a.subject.localeCompare(b.subject))
   }
 }
