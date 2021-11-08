@@ -30,3 +30,21 @@ export function mapTimeSlotToTime(timeSlot: number, seperator = ':') {
   const min = `${String(minutes).padStart(2, '0')}`
   return `${hr}${seperator}${min}`
 }
+
+export function mapDateToThaiDate(dateOrDateString: Date | string) {
+  if (typeof dateOrDateString === 'string') {
+    return new Date(dateOrDateString).toLocaleDateString('th-TH', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  } else {
+    return dateOrDateString.toLocaleDateString('th-TH', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+}

@@ -23,6 +23,12 @@ import { BadRequestError } from '@errors/badRequestError'
 import { Workload } from '@models/workload'
 import { Compensated } from '@models/compensated'
 import { Room } from '@models/room'
+import { Time } from '@models/time'
+import {
+  mapDateToThaiDate,
+  mapTimeSlotToTime,
+  mapTimeToTimeSlot,
+} from '@libs/mapper'
 
 @JsonController()
 export class SubjectController {
@@ -43,6 +49,11 @@ export class SubjectController {
       )
       .leftJoinAndSelect('workloadList.compensatedList', 'compensatedList')
       .leftJoinAndSelect('compensatedList.compensatedRoom', 'compensatedRoom')
+      .leftJoinAndSelect('compensatedList.originalTimeList', 'originalTimeList')
+      .leftJoinAndSelect(
+        'compensatedList.compensatedTimeList',
+        'compensatedTimeList'
+      )
       .where('subject.id = :subjectId', { subjectId })
       .orderBy('workloadList.section', 'ASC')
       .getOne()
@@ -51,8 +62,10 @@ export class SubjectController {
         `Subject ${subjectId} is not found`,
       ])
 
-    const workloadGroupBySection: { section: number; compensatedList: any }[] =
-      []
+    const workloadGroupBySection: {
+      section: number
+      compensatedList: Compensated[]
+    }[] = []
     for (const workload of subject.workloadList) {
       const listIndex = workloadGroupBySection.findIndex(
         (w) => w.section === workload.section
@@ -69,7 +82,24 @@ export class SubjectController {
         )
       }
     }
-    return workloadGroupBySection
+
+    return workloadGroupBySection.map((w) => ({
+      section: w.section,
+      compensatedList: w.compensatedList.map((c) => ({
+        compensatedId: c.id,
+        originalDate: mapDateToThaiDate(c.originalDate),
+        originalTimeList: c.originalTimeList.map((t) => ({
+          start: mapTimeSlotToTime(t.startSlot),
+          end: mapTimeSlotToTime(t.endSlot + 1),
+        })),
+        compensatedDate: mapDateToThaiDate(c.compensatedDate),
+        compensatedTimeList: c.compensatedTimeList.map((t) => ({
+          start: mapTimeSlotToTime(t.startSlot),
+          end: mapTimeSlotToTime(t.endSlot + 1),
+        })),
+        room: c.compensatedRoom?.name || 'ไม่มี',
+      })),
+    }))
   }
 
   @Post('/subject/:subjectId/compensated')
@@ -84,7 +114,9 @@ export class SubjectController {
       section,
       roomId,
       originalDate,
+      originalTimeList,
       compensatedDate,
+      compensatedTimeList,
     } = body
 
     const workload = await Workload.createQueryBuilder('workload')
@@ -114,6 +146,20 @@ export class SubjectController {
     compensated.compensatedDate = new Date(compensatedDate)
     compensated.compensatedRoom = room as Room
     compensated.workload = workload
+    compensated.originalTimeList = originalTimeList.map(
+      ([startTime, endTime]) =>
+        Time.create({
+          startSlot: mapTimeToTimeSlot(startTime),
+          endSlot: mapTimeToTimeSlot(endTime) - 1,
+        })
+    )
+    compensated.compensatedTimeList = compensatedTimeList.map(
+      ([startTime, endTime]) =>
+        Time.create({
+          startSlot: mapTimeToTimeSlot(startTime),
+          endSlot: mapTimeToTimeSlot(endTime) - 1,
+        })
+    )
     await compensated.save()
 
     return 'OK'

@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer'
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsNumber,
@@ -101,6 +102,12 @@ export class IPostSubjectCompensatedBody {
   @IsDateString()
   originalDate: string
 
+  @IsArray({ each: true })
+  originalTimeList: string[][]
+
   @IsDateString()
   compensatedDate: string
+
+  @IsArray({ each: true })
+  compensatedTimeList: string[][]
 }
