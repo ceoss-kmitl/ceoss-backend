@@ -1,4 +1,11 @@
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator'
+import { Type } from 'class-transformer'
+import {
+  IsBoolean,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator'
 
 export class ICreateSubject {
   @IsString()
@@ -65,4 +72,35 @@ export class IEditSubject {
   @IsBoolean()
   @IsOptional()
   isInter: boolean
+}
+
+export class IGetSubjectCompensatedQuery {
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
+}
+
+export class IPostSubjectCompensatedBody {
+  @IsNumber()
+  section: number
+
+  @IsNumber()
+  academicYear: number
+
+  @IsNumber()
+  semester: number
+
+  @IsString()
+  @IsOptional()
+  roomId?: string
+
+  @IsDateString()
+  originalDate: string
+
+  @IsDateString()
+  compensatedDate: string
 }

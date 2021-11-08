@@ -8,6 +8,7 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { Workload } from '@models/workload'
+import { Room } from '@models/room'
 
 @Entity()
 export class Compensated extends BaseEntity {
@@ -22,6 +23,9 @@ export class Compensated extends BaseEntity {
 
   @Column('timestamptz')
   compensatedDate: Date
+
+  @ManyToOne(() => Room, (room) => room.compensatedList)
+  compensatedRoom: Room
 
   @BeforeInsert()
   private beforeInsert() {

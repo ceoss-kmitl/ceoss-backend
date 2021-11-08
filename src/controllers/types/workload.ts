@@ -143,13 +143,3 @@ export class IGetWorkloadExcel5Query {
   @IsNumber()
   semester: number
 }
-
-export class IGetWorkloadSubject {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
-}
