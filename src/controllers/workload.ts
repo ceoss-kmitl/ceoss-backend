@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { IsNull, Not } from 'typeorm'
 import {
   Body,
   Delete,
@@ -35,7 +36,6 @@ import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
 import { NotFoundError } from '@errors/notFoundError'
-import { IsNull } from 'typeorm'
 
 @JsonController()
 export class WorkloadController {
@@ -377,6 +377,7 @@ export class WorkloadController {
       ],
       where: {
         room: IsNull(),
+        subject: Not(IsNull()),
       },
     })
 

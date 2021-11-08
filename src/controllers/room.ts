@@ -128,6 +128,7 @@ export class RoomController {
     @Body() body: IAssignWorkloadToRoom
   ) {
     const { workloadIdList } = body
+    const uniqueWorkloadIdList = [...new Set(workloadIdList)]
 
     const room = await Room.findOne({
       where: { id },
@@ -137,8 +138,13 @@ export class RoomController {
       throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
 
     const workloadList = await Workload.find({
-      where: { id: In(workloadIdList || []) },
+      where: { id: In(uniqueWorkloadIdList || []) },
     })
+    if (uniqueWorkloadIdList.length !== workloadList.length) {
+      throw new NotFoundError('ไม่พบภาระงานบางส่วน', [
+        `Some of workload is not found`,
+      ])
+    }
     room.workloadList = [...room.workloadList, ...workloadList]
 
     await room.save()
@@ -158,6 +164,12 @@ export class RoomController {
     if (!room)
       throw new NotFoundError('ไม่พบห้องดังกล่าว', [
         `Room ${roomId} is not found`,
+      ])
+
+    const workload = await Workload.findOne({ where: { id: workloadId } })
+    if (!workload)
+      throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
+        `Workload ${workloadId} is not found`,
       ])
 
     room.workloadList = room.workloadList.filter(
