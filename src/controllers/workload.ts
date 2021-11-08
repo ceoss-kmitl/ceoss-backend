@@ -296,7 +296,7 @@ export class WorkloadController {
     workload.academicYear = academicYear
     workload.semester = semester
     workload.classYear = classYear
-    workload.isCompensated = false
+    workload.compensatedList = []
 
     for (const _teacher of teacherList) {
       const teacher = await Teacher.findOne({
