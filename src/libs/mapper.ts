@@ -1,3 +1,5 @@
+import { DayOfWeek } from '@models/workload'
+
 /**
  * slot1 - slot 52
  * 08:00 - 20:00
@@ -31,20 +33,18 @@ export function mapTimeSlotToTime(timeSlot: number, seperator = ':') {
   return `${hr}${seperator}${min}`
 }
 
-export function mapDateToThaiDate(dateOrDateString: Date | string) {
-  if (typeof dateOrDateString === 'string') {
-    return new Date(dateOrDateString).toLocaleDateString('th-TH', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  } else {
-    return dateOrDateString.toLocaleDateString('th-TH', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+export function mapDateToDayOfWeek(date: Date) {
+  const DayMapper = {
+    'จ.': DayOfWeek.Monday,
+    'อ.': DayOfWeek.Tuesday,
+    'พ.': DayOfWeek.Wednesday,
+    'พฤ.': DayOfWeek.Thursday,
+    'ศ.': DayOfWeek.Friday,
+    'ส.': DayOfWeek.Saturday,
+    'อา.': DayOfWeek.Sunday,
   }
+  const weekday = date.toLocaleDateString('th-TH', {
+    weekday: 'short',
+  }) as keyof typeof DayMapper
+  return DayMapper[weekday]
 }

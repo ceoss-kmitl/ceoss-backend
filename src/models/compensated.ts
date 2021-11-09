@@ -43,4 +43,18 @@ export class Compensated extends BaseEntity {
   private beforeInsert() {
     this.id = nanoid(10)
   }
+
+  public getFirstCompensatedTimeSlot() {
+    const sortedTimeList = [...this.compensatedTimeList].sort(
+      (a, b) => a.startSlot - b.startSlot
+    )
+    return sortedTimeList[0].startSlot
+  }
+
+  public getLastCompensatedTimeSlot() {
+    const sortedTimeList = [...this.compensatedTimeList].sort(
+      (b, a) => a.startSlot - b.startSlot
+    )
+    return sortedTimeList[0].endSlot
+  }
 }

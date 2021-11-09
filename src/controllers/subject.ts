@@ -24,11 +24,7 @@ import { Workload } from '@models/workload'
 import { Compensated } from '@models/compensated'
 import { Room } from '@models/room'
 import { Time } from '@models/time'
-import {
-  mapDateToThaiDate,
-  mapTimeSlotToTime,
-  mapTimeToTimeSlot,
-} from '@libs/mapper'
+import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
 
 @JsonController()
 export class SubjectController {
@@ -87,12 +83,25 @@ export class SubjectController {
       section: w.section,
       compensatedList: w.compensatedList.map((c) => ({
         compensatedId: c.id,
-        originalDate: mapDateToThaiDate(c.originalDate),
+        originalDate: new Date(c.originalDate).toLocaleDateString('th-TH', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }),
         originalTimeList: c.originalTimeList.map((t) => ({
           start: mapTimeSlotToTime(t.startSlot),
           end: mapTimeSlotToTime(t.endSlot + 1),
         })),
-        compensatedDate: mapDateToThaiDate(c.compensatedDate),
+        compensatedDate: new Date(c.compensatedDate).toLocaleDateString(
+          'th-TH',
+          {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }
+        ),
         compensatedTimeList: c.compensatedTimeList.map((t) => ({
           start: mapTimeSlotToTime(t.startSlot),
           end: mapTimeSlotToTime(t.endSlot + 1),
@@ -141,6 +150,8 @@ export class SubjectController {
         `Room ${roomId} is not found`,
       ])
 
+    // FIXME: Now this function is fully trust the payload
+    // and just create compensated no matter what it compatible or not
     const compensated = new Compensated()
     compensated.originalDate = new Date(originalDate)
     compensated.compensatedDate = new Date(compensatedDate)
