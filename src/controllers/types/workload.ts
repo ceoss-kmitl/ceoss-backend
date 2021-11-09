@@ -20,6 +20,16 @@ export class ITeacherWorkloadQuery {
   semester: number
 }
 
+export class IGetWorkloadNoRoomQuery {
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
+
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
+}
+
 class ITeacherList {
   @IsString()
   teacherId: string
