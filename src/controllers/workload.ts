@@ -1,4 +1,4 @@
-import { Response } from 'express'
+import { query, Response } from 'express'
 import { IsNull, Not } from 'typeorm'
 import {
   Body,
@@ -18,6 +18,7 @@ import {
   IEditWorkload,
   IGetWorkloadExcel5Query,
   IGetWorkloadExcelQuery,
+  IGetWorkloadNoRoomQuery,
   ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
@@ -369,7 +370,10 @@ export class WorkloadController {
   }
 
   @Get('/workload/no-room')
-  async getWorkloadWithUnAssignedRoom() {
+  async getWorkloadWithUnAssignedRoom(
+    @QueryParams() query: IGetWorkloadNoRoomQuery
+  ) {
+    const { academic_year, semester } = query
     const workloadList = await Workload.find({
       relations: [
         'room',
@@ -382,6 +386,8 @@ export class WorkloadController {
       where: {
         room: IsNull(),
         subject: Not(IsNull()),
+        academicYear: academic_year,
+        semester: semester,
       },
     })
 

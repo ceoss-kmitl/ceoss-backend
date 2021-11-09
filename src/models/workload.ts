@@ -97,14 +97,14 @@ export class Workload extends BaseEntity {
     const sortedTimeList = [...this.timeList].sort(
       (a, b) => a.startSlot - b.startSlot
     )
-    return sortedTimeList[0].startSlot
+    return sortedTimeList[0]?.startSlot
   }
 
   public getLastTimeSlot() {
     const sortedTimeList = [...this.timeList].sort(
       (b, a) => a.startSlot - b.startSlot
     )
-    return sortedTimeList[0].endSlot
+    return sortedTimeList[0]?.endSlot
   }
 
   public getTeacherList() {
