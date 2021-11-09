@@ -158,10 +158,14 @@ export class WorkloadController {
     return file
   }
 
-  @Get('/workload')
+  @Get('/workload/teacher/:teacherId')
   @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
-  async getTeacherWorkload(@QueryParams() query: ITeacherWorkloadQuery) {
-    const teacher = await Teacher.findOne(query.teacher_id, {
+  async getTeacherWorkload(
+    @Param('teacherId') teacherId: string,
+    @QueryParams() query: ITeacherWorkloadQuery
+  ) {
+    const teacher = await Teacher.findOne({
+      where: { id: teacherId },
       relations: [
         'teacherWorkloadList',
         'teacherWorkloadList.workload',
@@ -175,7 +179,7 @@ export class WorkloadController {
     })
     if (!teacher)
       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${query.teacher_id} is not found`,
+        `Teacher ${teacherId} is not found`,
       ])
 
     teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
@@ -239,7 +243,7 @@ export class WorkloadController {
           weekCount: workload.getWeekCount(teacher.id),
           isClaim: workload.getIsClaim(teacher.id),
         })),
-        isClaim: workload.getIsClaim(query.teacher_id),
+        isClaim: workload.getIsClaim(teacherId),
       })
     }
 
@@ -291,7 +295,7 @@ export class WorkloadController {
     workload.academicYear = academicYear
     workload.semester = semester
     workload.classYear = classYear
-    workload.isCompensated = false
+    workload.compensatedList = []
 
     for (const _teacher of teacherList) {
       const teacher = await Teacher.findOne({

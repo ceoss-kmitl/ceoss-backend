@@ -12,6 +12,7 @@ import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
+import { Compensated } from '@models/compensated'
 
 export enum WorkloadType {
   Lecture = 'LECTURE',
@@ -69,8 +70,8 @@ export class Workload extends BaseEntity {
   @ManyToOne(() => Room, (room) => room.workloadList, { onDelete: 'CASCADE' })
   room: Room
 
-  @Column()
-  isCompensated: boolean
+  @OneToMany(() => Compensated, (compensated) => compensated.workload)
+  compensatedList: Compensated[]
 
   @Column()
   academicYear: number
