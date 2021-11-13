@@ -19,15 +19,21 @@ import {
   ICreateRoom,
   IEditRoom,
   IGetRoomExcelQuery,
+  IGetAvailableRoomCompensated,
   IGetRoomWorkloadQuery,
   IResetRoomWorkloadQuery,
 } from '@controllers/types/room'
 import { schema } from '@middlewares/schema'
-import { mapTimeSlotToTime } from '@libs/mapper'
+import {
+  mapDateToDayOfWeek,
+  mapTimeSlotToTime,
+  mapTimeToTimeSlot,
+} from '@libs/mapper'
 import { Room } from '@models/room'
 import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
 import { Excel } from '@libs/Excel'
+import { isSameDay } from '@libs/utils'
 
 import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from 'constants/room'
 import { generateRoomExcel } from './templates/roomExcel'
@@ -35,7 +41,7 @@ import { generateRoomExcel } from './templates/roomExcel'
 @JsonController()
 export class RoomController {
   @Get('/room/excel')
-  @UseBefore()
+  @UseBefore(schema(IGetRoomExcelQuery, 'query'))
   async getRoomExcel(
     @Res() res: Response,
     @QueryParams() query: IGetRoomExcelQuery
@@ -66,6 +72,79 @@ export class RoomController {
     const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
     const file = await excel.createFile(`${yearAndSemester} ตารางการใช้ห้อง`)
     return file
+  }
+
+  @Get('/room/available/compensated')
+  @UseBefore(schema(IGetAvailableRoomCompensated, 'query'))
+  async getAvailableRoomForCompensated(
+    @QueryParams() query: IGetAvailableRoomCompensated
+  ) {
+    const { academic_year, semester, compensatedDate, startTime, endTime } =
+      query
+
+    const roomList = await Room.createQueryBuilder('room')
+      .leftJoinAndSelect(
+        'room.workloadList',
+        'workloadList',
+        'workloadList.academicYear = :academic_year AND workloadList.semester = :semester',
+        { academic_year, semester }
+      )
+      .leftJoinAndSelect('room.compensatedList', 'compensatedList')
+      .leftJoinAndSelect(
+        'compensatedList.compensatedTimeList',
+        'compensatedTimeList'
+      )
+      .leftJoinAndSelect('workloadList.timeList', 'timeList')
+      .orderBy('room.name', 'ASC')
+      .getMany()
+
+    return roomList
+      .filter((room) => {
+        let isTimeOverlap = false
+        for (const roomWorkload of room.workloadList) {
+          const roomWorkloadDay = roomWorkload.dayOfWeek
+          const roomWorkloadStart = roomWorkload.getFirstTimeSlot()
+          const roomWorkloadEnd = roomWorkload.getLastTimeSlot()
+
+          const workloadDay = mapDateToDayOfWeek(new Date(compensatedDate))
+          const workloadStart = mapTimeToTimeSlot(startTime)
+          const workloadEnd = mapTimeToTimeSlot(endTime) - 1
+
+          if (
+            workloadDay === roomWorkloadDay &&
+            workloadStart <= roomWorkloadEnd &&
+            workloadEnd >= roomWorkloadStart
+          ) {
+            isTimeOverlap = true
+          }
+        }
+        return !isTimeOverlap
+      })
+      .filter((room) => {
+        let isTimeOverlap = false
+        for (const compensated of room.compensatedList) {
+          const compensatedDay = new Date(compensated.compensatedDate)
+          const compensatedStart = compensated.getFirstCompensatedTimeSlot()
+          const compensatedEnd = compensated.getLastCompensatedTimeSlot()
+
+          const workloadDay = new Date(compensatedDate)
+          const workloadStart = mapTimeToTimeSlot(startTime)
+          const workloadEnd = mapTimeToTimeSlot(endTime) - 1
+
+          if (
+            isSameDay(compensatedDay, workloadDay) &&
+            workloadStart <= compensatedEnd &&
+            workloadEnd >= compensatedStart
+          ) {
+            isTimeOverlap = true
+          }
+        }
+        return !isTimeOverlap
+      })
+      .map((room) => ({
+        roomId: room.id,
+        roomName: room.name,
+      }))
   }
 
   @Get('/room/:id/workload')
@@ -167,6 +246,7 @@ export class RoomController {
     @Body() body: IAssignWorkloadToRoom
   ) {
     const { workloadIdList } = body
+    const uniqueWorkloadIdList = [...new Set(workloadIdList)]
 
     const room = await Room.findOne({
       where: { id },
@@ -176,8 +256,13 @@ export class RoomController {
       throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
 
     const workloadList = await Workload.find({
-      where: { id: In(workloadIdList || []) },
+      where: { id: In(uniqueWorkloadIdList || []) },
     })
+    if (uniqueWorkloadIdList.length !== workloadList.length) {
+      throw new NotFoundError('ไม่พบภาระงานบางส่วน', [
+        `Some of workload is not found`,
+      ])
+    }
     room.workloadList = [...room.workloadList, ...workloadList]
 
     await room.save()
@@ -197,6 +282,12 @@ export class RoomController {
     if (!room)
       throw new NotFoundError('ไม่พบห้องดังกล่าว', [
         `Room ${roomId} is not found`,
+      ])
+
+    const workload = await Workload.findOne({ where: { id: workloadId } })
+    if (!workload)
+      throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
+        `Workload ${workloadId} is not found`,
       ])
 
     room.workloadList = room.workloadList.filter(

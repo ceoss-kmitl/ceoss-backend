@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer'
-import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator'
+import {
+  IsArray,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator'
 
 export class ICreateRoom {
   @IsString()
@@ -64,4 +71,25 @@ export class IGetRoomExcelQuery {
   @IsNumber()
   @Type(() => Number)
   semester: number
+}
+
+export class IGetAvailableRoomCompensated {
+  @IsNumber()
+  @Type(() => Number)
+  academic_year: number
+
+  @IsNumber()
+  @Type(() => Number)
+  semester: number
+
+  @IsDateString()
+  compensatedDate: string
+
+  @Matches(/\d\d\:\d\d/)
+  @IsString()
+  startTime: string
+
+  @Matches(/\d\d\:\d\d/)
+  @IsString()
+  endTime: string
 }

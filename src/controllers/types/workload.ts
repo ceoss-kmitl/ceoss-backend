@@ -11,9 +11,16 @@ import {
 } from 'class-validator'
 
 export class ITeacherWorkloadQuery {
-  @IsString()
-  teacher_id: string
+  @Type(() => Number)
+  @IsNumber()
+  academic_year: number
 
+  @Type(() => Number)
+  @IsNumber()
+  semester: number
+}
+
+export class IGetWorkloadNoRoomQuery {
   @Type(() => Number)
   @IsNumber()
   academic_year: number

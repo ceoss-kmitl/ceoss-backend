@@ -1,4 +1,5 @@
-import { Response } from 'express'
+import { query, Response } from 'express'
+import { IsNull, Not } from 'typeorm'
 import {
   Body,
   Delete,
@@ -17,6 +18,7 @@ import {
   IEditWorkload,
   IGetWorkloadExcel5Query,
   IGetWorkloadExcelQuery,
+  IGetWorkloadNoRoomQuery,
   ITeacherWorkloadQuery,
 } from '@controllers/types/workload'
 import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
@@ -35,7 +37,6 @@ import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
 import { NotFoundError } from '@errors/notFoundError'
-import { IsNull } from 'typeorm'
 
 @JsonController()
 export class WorkloadController {
@@ -158,10 +159,14 @@ export class WorkloadController {
     return file
   }
 
-  @Get('/workload')
+  @Get('/workload/teacher/:teacherId')
   @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
-  async getTeacherWorkload(@QueryParams() query: ITeacherWorkloadQuery) {
-    const teacher = await Teacher.findOne(query.teacher_id, {
+  async getTeacherWorkload(
+    @Param('teacherId') teacherId: string,
+    @QueryParams() query: ITeacherWorkloadQuery
+  ) {
+    const teacher = await Teacher.findOne({
+      where: { id: teacherId },
       relations: [
         'teacherWorkloadList',
         'teacherWorkloadList.workload',
@@ -175,7 +180,7 @@ export class WorkloadController {
     })
     if (!teacher)
       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${query.teacher_id} is not found`,
+        `Teacher ${teacherId} is not found`,
       ])
 
     teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
@@ -239,7 +244,7 @@ export class WorkloadController {
           weekCount: workload.getWeekCount(teacher.id),
           isClaim: workload.getIsClaim(teacher.id),
         })),
-        isClaim: workload.getIsClaim(query.teacher_id),
+        isClaim: workload.getIsClaim(teacherId),
       })
     }
 
@@ -291,7 +296,7 @@ export class WorkloadController {
     workload.academicYear = academicYear
     workload.semester = semester
     workload.classYear = classYear
-    workload.isCompensated = false
+    workload.compensatedList = []
 
     for (const _teacher of teacherList) {
       const teacher = await Teacher.findOne({
@@ -365,7 +370,10 @@ export class WorkloadController {
   }
 
   @Get('/workload/no-room')
-  async getWorkloadWithUnAssignedRoom() {
+  async getWorkloadWithUnAssignedRoom(
+    @QueryParams() query: IGetWorkloadNoRoomQuery
+  ) {
+    const { academic_year, semester } = query
     const workloadList = await Workload.find({
       relations: [
         'room',
@@ -377,6 +385,9 @@ export class WorkloadController {
       ],
       where: {
         room: IsNull(),
+        subject: Not(IsNull()),
+        academicYear: academic_year,
+        semester: semester,
       },
     })
 
