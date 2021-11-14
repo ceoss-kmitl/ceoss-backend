@@ -8,7 +8,9 @@ import {
   Param,
   Delete,
   QueryParams,
+  Res,
 } from 'routing-controllers'
+import { Response } from 'express'
 import { In, IsNull, Not } from 'typeorm'
 
 import {
@@ -16,6 +18,7 @@ import {
   IAutoAssignWorkloadToRoomQuery,
   ICreateRoom,
   IEditRoom,
+  IGetRoomExcelQuery,
   IGetAvailableRoomCompensated,
   IGetRoomWorkloadQuery,
   IResetRoomWorkloadQuery,
@@ -29,12 +32,48 @@ import {
 import { Room } from '@models/room'
 import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
 import { NotFoundError } from '@errors/notFoundError'
+import { Excel } from '@libs/Excel'
 import { isSameDay } from '@libs/utils'
 
 import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from 'constants/room'
+import { generateRoomExcel } from './templates/roomExcel'
 
 @JsonController()
 export class RoomController {
+  @Get('/room/excel')
+  @UseBefore(schema(IGetRoomExcelQuery, 'query'))
+  async getRoomExcel(
+    @Res() res: Response,
+    @QueryParams() query: IGetRoomExcelQuery
+  ) {
+    const { academic_year, semester } = query
+
+    const roomList = await Room.createQueryBuilder('room')
+      .leftJoinAndSelect(
+        'room.workloadList',
+        'workloadList',
+        'workloadList.academicYear = :academic_year AND workloadList.semester = :semester',
+        { academic_year, semester }
+      )
+      .leftJoinAndSelect('workloadList.subject', 'subject')
+      .leftJoinAndSelect('workloadList.timeList', 'timeList')
+      .leftJoinAndSelect(
+        'workloadList.teacherWorkloadList',
+        'teacherWorkloadList'
+      )
+      .leftJoinAndSelect('teacherWorkloadList.teacher', 'teacher')
+      .leftJoinAndSelect('teacherWorkloadList.workload', 'workload')
+      .orderBy('room.name', 'ASC')
+      .getMany()
+
+    const excel = new Excel(res)
+    await generateRoomExcel(excel, roomList, academic_year, semester)
+
+    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
+    const file = await excel.createFile(`${yearAndSemester} ตารางการใช้ห้อง`)
+    return file
+  }
+
   @Get('/room/available/compensated')
   @UseBefore(schema(IGetAvailableRoomCompensated, 'query'))
   async getAvailableRoomForCompensated(
