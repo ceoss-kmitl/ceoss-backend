@@ -111,6 +111,22 @@ export class SubjectController {
     }))
   }
 
+  @Delete('/subject/compensated/:compensatedId')
+  async deleteSubjectCompensated(
+    @Param('compensatedId') compensatedId: string
+  ) {
+    const compensated = await Compensated.findOne({
+      where: { id: compensatedId },
+    })
+    if (!compensated)
+      throw new NotFoundError('ไม่พบการชดเชยดังกล่าว', [
+        `Compensated ${compensatedId} is not found`,
+      ])
+
+    await compensated.remove()
+    return 'Removed'
+  }
+
   @Post('/subject/:subjectId/compensated')
   @UseBefore(schema(IPostSubjectCompensatedBody))
   async createSubjectCompensated(
