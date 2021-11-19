@@ -2,18 +2,16 @@
   "name": "ceoss-kmitl-backend",
   "version": "1.0.0",
   "description": "Backend of CEOSS project",
-  "main": "src/main.ts",
+  "main": "build/main.js",
   "scripts": {
-    "start": "yarn model:up:prod && node build/main.js",
-    "build": "rm -rf build && tsc --project tsconfig.json && tscpaths -p tsconfig.json -s src -o build",
+    "start": "NODE_ENV=production node build/main.js",
+    "build": "rm -rf build && tsc --project ./tsconfig.json && tscpaths -p ./tsconfig.json -s ./src -o ./build",
     "dev": "nodemon",
-    "test": "echo 'Error: no test specified' && exit 1",
     "lint": "eslint src/**/*.ts --fix",
     "typeorm": "ts-node -r tsconfig-paths/register node_modules/typeorm/cli -f src/configs/ormconfig-migration.ts",
     "model:gen": "npm run typeorm -- migration:generate -n",
     "model:up": "npm run typeorm -- migration:run",
-    "model:revert": "npm run typeorm -- migration:revert",
-    "model:up:prod": "typeorm --config build/configs/ormconfig-migration.js migration:run"
+    "model:revert": "npm run typeorm -- migration:revert"
   },
   "repository": {
     "type": "git",
