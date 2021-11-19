@@ -1,15 +1,17 @@
 import { ConnectionOptions } from 'typeorm'
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 
-const isDevelopment = process.env.NODE_ENV === 'development'
-
-const rootDir = isDevelopment ? 'src' : 'build'
-
-const productionConfigs = {
-  url: process.env.DATABASE_URL,
-}
-
-const localConfigs = {
+const options: ConnectionOptions = {
+  type: 'postgres',
+  logging: false,
+  synchronize: false,
+  entities: ['src/models/*{.ts,.js}'],
+  migrations: ['src/models/migrations/*{.ts,.js}'],
+  cli: {
+    entitiesDir: 'src/models',
+    migrationsDir: 'src/models/migrations',
+  },
+  namingStrategy: new SnakeNamingStrategy(),
   database: process.env.POSTGRES_DB_NAME,
   host: process.env.POSTGRES_HOST,
   username: process.env.POSTGRES_USER,
@@ -17,25 +19,4 @@ const localConfigs = {
   port: Number(process.env.POSTGRES_PORT || '5432'),
 }
 
-const defaultConfigs: ConnectionOptions = {
-  type: 'postgres',
-  logging: false,
-  synchronize: false,
-  entities: [rootDir + '/models/*{.ts,.js}'],
-  migrations: [rootDir + '/models/migrations/*{.ts,.js}'],
-  cli: {
-    entitiesDir: rootDir + '/models',
-    migrationsDir: rootDir + '/models/migrations',
-  },
-  namingStrategy: new SnakeNamingStrategy(),
-}
-
-export const connectionConfigs: ConnectionOptions = isDevelopment
-  ? {
-      ...defaultConfigs,
-      ...localConfigs,
-    }
-  : {
-      ...defaultConfigs,
-      ...productionConfigs,
-    }
+export const connectionConfigs: ConnectionOptions = options
