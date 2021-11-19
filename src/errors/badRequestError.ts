@@ -1,4 +1,4 @@
-import { BaseError } from 'errors/baseError'
+import { BaseError } from '@errors/baseError'
 
 export class BadRequestError extends BaseError {
   constructor(message: string, errorList: string[]) {

@@ -1,4 +1,4 @@
-import { DayOfWeek } from 'models/workload'
+import { DayOfWeek } from '@models/workload'
 
 /**
  * slot1 - slot 52

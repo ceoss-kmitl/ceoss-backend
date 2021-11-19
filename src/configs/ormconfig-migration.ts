@@ -1,3 +1,3 @@
-import { connectionConfigs } from 'configs/ormconfig'
+import { connectionConfigs } from '@configs/ormconfig'
 
 export = connectionConfigs

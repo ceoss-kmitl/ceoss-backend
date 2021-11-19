@@ -1,7 +1,6 @@
 import { ErrorRequestHandler } from 'express'
-
-import { BaseError } from 'errors/baseError'
-import { InternalServerError } from 'errors/internalServerError'
+import { BaseError } from '@errors/baseError'
+import { InternalServerError } from '@errors/internalServerError'
 
 export const ErrorHandler =
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

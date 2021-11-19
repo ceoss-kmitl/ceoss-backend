@@ -8,12 +8,11 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-
-import { Subject } from 'models/subject'
-import { Room } from 'models/room'
-import { Time } from 'models/time'
-import { TeacherWorkload } from 'models/teacherWorkload'
-import { Compensated } from 'models/compensated'
+import { Subject } from '@models/subject'
+import { Room } from '@models/room'
+import { Time } from '@models/time'
+import { TeacherWorkload } from '@models/teacherWorkload'
+import { Compensated } from '@models/compensated'
 
 export enum WorkloadType {
   Lecture = 'LECTURE',

@@ -1,10 +1,9 @@
 import Path from 'path'
 import Express from 'express'
 import { useExpressServer } from 'routing-controllers'
-
-import { Database } from 'configs/database'
-import { ServerLogger, Logger } from 'middlewares/logger'
-import { ErrorHandler } from 'middlewares/errorHandler'
+import { Database } from '@configs/database'
+import { ServerLogger, Logger } from '@middlewares/logger'
+import { ErrorHandler } from '@middlewares/errorHandler'
 
 export class Server {
   private app: Express.Application

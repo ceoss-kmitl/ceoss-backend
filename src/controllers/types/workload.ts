@@ -1,3 +1,4 @@
+import { DayOfWeek, Degree, WorkloadType } from '@models/workload'
 import { Type } from 'class-transformer'
 import {
   IsArray,
@@ -8,8 +9,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator'
-
-import { DayOfWeek, Degree, WorkloadType } from 'models/workload'
 
 export class ITeacherWorkloadQuery {
   @Type(() => Number)

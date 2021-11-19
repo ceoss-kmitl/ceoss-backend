@@ -22,8 +22,8 @@ import {
   IGetAvailableRoomCompensated,
   IGetRoomWorkloadQuery,
   IResetRoomWorkloadQuery,
-} from 'controllers/types/room'
-import { schema } from 'middlewares/schema'
+} from '@controllers/types/room'
+import { schema } from '@middlewares/schema'
 import {
   mapDateToDayOfWeek,
   mapTimeSlotToTime,

@@ -1,8 +1,7 @@
 import { Handler } from 'express'
 import { validateSync, ValidationError as Error } from 'class-validator'
 import { plainToClass, classToPlain } from 'class-transformer'
-
-import { SchemaError } from 'errors/schemaError'
+import { SchemaError } from '@errors/schemaError'
 
 export const schema =
   (schema: any, type: 'body' | 'query' = 'body'): Handler =>

@@ -1,8 +1,7 @@
 import { JsonController, Get, UseBefore, Body, Put } from 'routing-controllers'
-
-import { IEditSetting } from 'controllers/types/setting'
-import { schema } from 'middlewares/schema'
-import { Setting } from 'models/setting'
+import { IEditSetting } from '@controllers/types/setting'
+import { schema } from '@middlewares/schema'
+import { Setting } from '@models/setting'
 
 @JsonController()
 export class SettingController {

@@ -1,7 +1,7 @@
-import { Excel, PaperSize } from 'libs/Excel'
-import { Teacher } from 'models/teacher'
-import { Setting } from 'models/setting'
-import { Degree, WorkloadType } from 'models/workload'
+import { Excel, PaperSize } from '@libs/Excel'
+import { Teacher } from '@models/teacher'
+import { Setting } from '@models/setting'
+import { Degree, WorkloadType } from '@models/workload'
 
 type ISummary = {
   degree: Degree

@@ -13,11 +13,11 @@ import {
   ICreateTeacher,
   IEditTeacher,
   IGetTeacherQuery,
-} from 'controllers/types/teacher'
+} from '@controllers/types/teacher'
 
-import { Teacher } from 'models/teacher'
-import { schema } from 'middlewares/schema'
-import { NotFoundError } from 'errors/notFoundError'
+import { Teacher } from '@models/teacher'
+import { schema } from '@middlewares/schema'
+import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
 export class TeacherController {

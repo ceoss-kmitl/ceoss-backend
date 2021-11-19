@@ -8,12 +8,11 @@ import {
   Put,
   UseBefore,
 } from 'routing-controllers'
-
-import { ICreateAccount, IEditAccount } from 'controllers/types/account'
-import { schema } from 'middlewares/schema'
-import { Account } from 'models/account'
-import { NotFoundError } from 'errors/notFoundError'
-import { BadRequestError } from 'errors/badRequestError'
+import { ICreateAccount, IEditAccount } from '@controllers/types/account'
+import { schema } from '@middlewares/schema'
+import { Account } from '@models/account'
+import { NotFoundError } from '@errors/notFoundError'
+import { BadRequestError } from '@errors/badRequestError'
 
 @JsonController()
 export class AccountController {

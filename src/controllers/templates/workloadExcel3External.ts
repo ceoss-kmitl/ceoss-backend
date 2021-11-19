@@ -1,10 +1,10 @@
-import { Excel, PaperSize } from 'libs/Excel'
-import { mapTimeSlotToTime } from 'libs/mapper'
-import { Teacher } from 'models/teacher'
-import { Setting } from 'models/setting'
-import { DayOfWeek, WorkloadType, Degree } from 'models/workload'
-import { IBodyExcelExternal } from 'controllers/types/workload'
-import { NotFoundError } from 'errors/notFoundError'
+import { Excel, PaperSize } from '@libs/Excel'
+import { mapTimeSlotToTime } from '@libs/mapper'
+import { Teacher } from '@models/teacher'
+import { Setting } from '@models/setting'
+import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
+import { IBodyExcelExternal } from '@controllers/types/workload'
+import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel3External(
   excel: Excel,

@@ -1,8 +1,7 @@
 import Fetch from 'node-fetch'
 import Iconv from 'iconv-lite'
 import Cheerio, { CheerioAPI } from 'cheerio'
-
-import { DayOfWeek, WorkloadType } from 'models/workload'
+import { DayOfWeek, WorkloadType } from '@models/workload'
 
 export class WebScrap {
   private url: string

@@ -7,9 +7,8 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm'
-
-import { Workload } from 'models/workload'
-import { Compensated } from 'models/compensated'
+import { Workload } from '@models/workload'
+import { Compensated } from '@models/compensated'
 
 @Entity()
 export class Room extends BaseEntity {

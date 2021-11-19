@@ -1,9 +1,9 @@
 import { ConnectionOptions } from 'typeorm'
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 
-const isProduction = process.env.NODE_ENV === 'production'
+const isDevelopment = process.env.NODE_ENV === 'development'
 
-const rootDir = isProduction ? 'build' : 'src'
+const rootDir = isDevelopment ? 'src' : 'build'
 
 const configs: ConnectionOptions = {
   type: 'postgres',

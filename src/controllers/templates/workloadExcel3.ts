@@ -1,8 +1,8 @@
-import { Excel, PaperSize } from 'libs/Excel'
-import { mapTimeSlotToTime } from 'libs/mapper'
-import { Teacher } from 'models/teacher'
-import { Setting } from 'models/setting'
-import { DayOfWeek, WorkloadType, Degree } from 'models/workload'
+import { Excel, PaperSize } from '@libs/Excel'
+import { mapTimeSlotToTime } from '@libs/mapper'
+import { Teacher } from '@models/teacher'
+import { Setting } from '@models/setting'
+import { DayOfWeek, WorkloadType, Degree } from '@models/workload'
 
 // CEPP, PROJECT1, PROJECT2
 const FILTERED_SUBJECT = ['01076014', '01076311', '01076312']

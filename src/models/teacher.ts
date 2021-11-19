@@ -8,9 +8,8 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-
-import { TeacherWorkload } from 'models/teacherWorkload'
-import { Workload } from 'models/workload'
+import { TeacherWorkload } from '@models/teacherWorkload'
+import { Workload } from '@models/workload'
 
 @Entity()
 export class Teacher extends BaseEntity {
