@@ -28,14 +28,13 @@ import {
   mapDateToDayOfWeek,
   mapTimeSlotToTime,
   mapTimeToTimeSlot,
-} from 'libs/mapper'
-import { Room } from 'models/room'
-import { DayOfWeek, Degree, Workload, WorkloadType } from 'models/workload'
-import { NotFoundError } from 'errors/notFoundError'
-import { Excel } from 'libs/Excel'
-import { isSameDay } from 'libs/utils'
-
-import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from 'constants/room'
+} from '@libs/mapper'
+import { Room } from '@models/room'
+import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
+import { NotFoundError } from '@errors/notFoundError'
+import { Excel } from '@libs/Excel'
+import { isSameDay } from '@libs/utils'
+import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from '@constants/room'
 import { generateRoomExcel } from './templates/roomExcel'
 
 @JsonController()

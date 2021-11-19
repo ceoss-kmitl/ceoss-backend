@@ -1,15 +1,19 @@
 import { ConnectionOptions } from 'typeorm'
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 
-const options: ConnectionOptions = {
+const isProduction = process.env.NODE_ENV === 'production'
+
+const rootDir = isProduction ? 'build' : 'src'
+
+const configs: ConnectionOptions = {
   type: 'postgres',
   logging: false,
   synchronize: false,
-  entities: ['src/models/*{.ts,.js}'],
-  migrations: ['src/models/migrations/*{.ts,.js}'],
+  entities: [rootDir + '/models/*{.ts,.js}'],
+  migrations: [rootDir + '/models/migrations/*{.ts,.js}'],
   cli: {
-    entitiesDir: 'src/models',
-    migrationsDir: 'src/models/migrations',
+    entitiesDir: rootDir + '/models',
+    migrationsDir: rootDir + '/models/migrations',
   },
   namingStrategy: new SnakeNamingStrategy(),
   database: process.env.POSTGRES_DB_NAME,
@@ -19,4 +23,4 @@ const options: ConnectionOptions = {
   port: Number(process.env.POSTGRES_PORT || '5432'),
 }
 
-export const connectionConfigs: ConnectionOptions = options
+export const connectionConfigs: ConnectionOptions = configs
