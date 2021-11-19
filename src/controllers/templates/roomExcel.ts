@@ -1,7 +1,7 @@
-import { Excel, PaperSize } from '@libs/Excel'
-import { Room } from '@models/Room'
-import { Time } from '@models/time'
-import { WorkloadType } from '@models/workload'
+import { Excel, PaperSize } from 'libs/Excel'
+import { Room } from 'models/Room'
+import { Time } from 'models/time'
+import { WorkloadType } from 'models/workload'
 
 export async function generateRoomExcel(
   excel: Excel,

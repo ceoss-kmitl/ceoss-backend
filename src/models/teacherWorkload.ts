@@ -1,6 +1,7 @@
 import { BaseEntity, Column, Entity, ManyToOne } from 'typeorm'
-import { Teacher } from '@models/teacher'
-import { Workload } from '@models/workload'
+
+import { Teacher } from 'models/teacher'
+import { Workload } from 'models/workload'
 
 @Entity()
 export class TeacherWorkload extends BaseEntity {

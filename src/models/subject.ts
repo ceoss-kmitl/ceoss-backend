@@ -7,7 +7,8 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-import { Workload } from '@models/workload'
+
+import { Workload } from 'models/workload'
 
 @Entity()
 export class Subject extends BaseEntity {

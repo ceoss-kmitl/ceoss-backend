@@ -7,8 +7,9 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-import { Workload } from '@models/workload'
-import { Compensated } from '@models/compensated'
+
+import { Workload } from 'models/workload'
+import { Compensated } from 'models/compensated'
 
 /**
  * slot1 - slot 52

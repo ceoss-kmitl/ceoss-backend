@@ -1,6 +1,7 @@
 import { createConnection } from 'typeorm'
-import { connectionConfigs } from '@configs/ormconfig'
-import { Logger } from '@middlewares/logger'
+
+import { connectionConfigs } from 'configs/ormconfig'
+import { Logger } from 'middlewares/logger'
 
 async function connect() {
   try {

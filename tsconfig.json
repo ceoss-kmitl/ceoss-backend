@@ -15,26 +15,6 @@
         "resolveJsonModule": true,
         "outDir": "build",
         "baseUrl": "src",
-        "paths": {
-            "@configs/*": [
-                "configs/*"
-            ],
-            "@models/*": [
-                "models/*"
-            ],
-            "@controllers/*": [
-                "controllers/*"
-            ],
-            "@middlewares/*": [
-                "middlewares/*"
-            ],
-            "@errors/*": [
-                "errors/*"
-            ],
-            "@libs/*": [
-                "libs/*"
-            ]
-        }
     },
     "include": [
         "src/**/*"

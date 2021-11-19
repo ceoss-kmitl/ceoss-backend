@@ -1,7 +1,7 @@
-import { Excel, PaperSize } from '@libs/Excel'
-import { Teacher } from '@models/teacher'
-import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
+import { Excel, PaperSize } from 'libs/Excel'
+import { Teacher } from 'models/teacher'
+import { Setting } from 'models/setting'
+import { WorkloadType } from 'models/workload'
 
 export async function generateWorkloadExcel2(
   excel: Excel,

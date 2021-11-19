@@ -4,16 +4,16 @@ import {
   QueryParams,
   UseBefore,
 } from 'routing-controllers'
-import { IWebScrapQuery } from '@controllers/types/webScrap'
-import { schema } from '@middlewares/schema'
-import { WebScrap } from '@libs/WebScrap'
-import { Degree, Workload } from '@models/workload'
-import { Subject } from '@models/subject'
-import { Teacher } from '@models/teacher'
-import { Setting } from '@models/setting'
-import { Time } from '@models/time'
-import { NotFoundError } from '@errors/notFoundError'
-import { TeacherWorkload } from '@models/teacherWorkload'
+import { IWebScrapQuery } from 'controllers/types/webScrap'
+import { schema } from 'middlewares/schema'
+import { WebScrap } from 'libs/WebScrap'
+import { Degree, Workload } from 'models/workload'
+import { Subject } from 'models/subject'
+import { Teacher } from 'models/teacher'
+import { Setting } from 'models/setting'
+import { Time } from 'models/time'
+import { NotFoundError } from 'errors/notFoundError'
+import { TeacherWorkload } from 'models/teacherWorkload'
 
 // REG example url
 // http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=2563&semester=1

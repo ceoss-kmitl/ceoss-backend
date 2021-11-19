@@ -10,21 +10,21 @@ import {
   UseBefore,
 } from 'routing-controllers'
 
-import { schema } from '@middlewares/schema'
-import { Subject } from '@models/subject'
+import { schema } from 'middlewares/schema'
+import { Subject } from 'models/subject'
 import {
   ICreateSubject,
   IEditSubject,
   IGetSubjectCompensatedQuery,
   IPostSubjectCompensatedBody,
-} from '@controllers/types/subject'
-import { NotFoundError } from '@errors/notFoundError'
-import { BadRequestError } from '@errors/badRequestError'
-import { Workload } from '@models/workload'
-import { Compensated } from '@models/compensated'
-import { Room } from '@models/room'
-import { Time } from '@models/time'
-import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
+} from 'controllers/types/subject'
+import { NotFoundError } from 'errors/notFoundError'
+import { BadRequestError } from 'errors/badRequestError'
+import { Workload } from 'models/workload'
+import { Compensated } from 'models/compensated'
+import { Room } from 'models/room'
+import { Time } from 'models/time'
+import { mapTimeSlotToTime, mapTimeToTimeSlot } from 'libs/mapper'
 
 @JsonController()
 export class SubjectController {

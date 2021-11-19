@@ -4,7 +4,7 @@
   "description": "Backend of CEOSS project",
   "main": "src/main.ts",
   "scripts": {
-    "start": "yarn model:up:prod && node build/main.js",
+    "start": "node build/main.js",
     "build": "rm -rf build && tsc --project tsconfig.json && tscpaths -p tsconfig.json -s src -o build",
     "dev": "nodemon",
     "test": "echo 'Error: no test specified' && exit 1",
@@ -12,8 +12,7 @@
     "typeorm": "ts-node -r tsconfig-paths/register node_modules/typeorm/cli -f src/configs/ormconfig-migration.ts",
     "model:gen": "npm run typeorm -- migration:generate -n",
     "model:up": "npm run typeorm -- migration:run",
-    "model:revert": "npm run typeorm -- migration:revert",
-    "model:up:prod": "typeorm --config build/configs/ormconfig-migration.js migration:run"
+    "model:revert": "npm run typeorm -- migration:revert"
   },
   "repository": {
     "type": "git",
