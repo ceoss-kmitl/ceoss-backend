@@ -21,28 +21,28 @@ export class ICreateTeacher {
 export class IEditTeacher {
   @IsString()
   @IsOptional()
-  name: string
+  name?: string
 
   @IsString()
   @IsOptional()
-  title: string
+  title?: string
 
   @IsString()
   @IsOptional()
-  executiveRole: string
+  executiveRole?: string
 
   @IsBoolean()
   @IsOptional()
-  isActive: boolean
+  isActive?: boolean
 
   @IsBoolean()
   @IsOptional()
-  isExternal: boolean
+  isExternal?: boolean
 }
 
 export class IGetTeacherQuery {
   @Type(() => Boolean)
   @IsBoolean()
   @IsOptional()
-  is_active: boolean
+  is_active?: boolean
 }

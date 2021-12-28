@@ -7,22 +7,21 @@ import {
   Post,
   Put,
   QueryParams,
-  UseBefore,
 } from 'routing-controllers'
+
 import {
   ICreateTeacher,
   IEditTeacher,
   IGetTeacherQuery,
 } from '@controllers/types/teacher'
-
 import { Teacher } from '@models/teacher'
-import { schema } from '@middlewares/schema'
+import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
 export class TeacherController {
   @Get('/teacher')
-  @UseBefore(schema(IGetTeacherQuery, 'query'))
+  @ValidateQuery(IGetTeacherQuery)
   async getTeacher(@QueryParams() query: IGetTeacherQuery) {
     const filterOption =
       query.is_active === undefined ? {} : { isActive: query.is_active }
@@ -34,14 +33,14 @@ export class TeacherController {
   }
 
   @Post('/teacher')
-  @UseBefore(schema(ICreateTeacher))
+  @ValidateBody(ICreateTeacher)
   async createTeacher(@Body() body: ICreateTeacher) {
     const { name, title, executiveRole, isActive, isExternal } = body
 
     const teacher = new Teacher()
-    teacher.name = name
+    teacher.name = name.trim()
     teacher.title = title
-    teacher.executiveRole = executiveRole
+    teacher.executiveRole = executiveRole.trim()
     teacher.isActive = isActive
     teacher.isExternal = isExternal
 
@@ -50,19 +49,19 @@ export class TeacherController {
   }
 
   @Put('/teacher/:id')
-  @UseBefore(schema(IEditTeacher))
+  @ValidateBody(IEditTeacher)
   async edit(@Param('id') id: string, @Body() body: IEditTeacher) {
     const { name, title, executiveRole, isActive, isExternal } = body
 
-    const teacher = await Teacher.findOne(id)
+    const teacher = await Teacher.findOne({ where: { id } })
     if (!teacher)
       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
         `Teacher ${id} is not found`,
       ])
 
-    teacher.name = name ?? teacher.name
+    teacher.name = name?.trim() ?? teacher.name
     teacher.title = title ?? teacher.title
-    teacher.executiveRole = executiveRole ?? teacher.executiveRole
+    teacher.executiveRole = executiveRole?.trim() ?? teacher.executiveRole
     teacher.isActive = isActive ?? teacher.isActive
     teacher.isExternal = isExternal ?? teacher.isExternal
 
@@ -72,7 +71,7 @@ export class TeacherController {
 
   @Delete('/teacher/:id')
   async delete(@Param('id') id: string) {
-    const teacher = await Teacher.findOne(id)
+    const teacher = await Teacher.findOne({ where: { id } })
     if (!teacher)
       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
         `Teacher ${id} is not found`,
