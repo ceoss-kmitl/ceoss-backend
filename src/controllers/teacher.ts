@@ -8,6 +8,8 @@ import {
   Put,
   QueryParams,
 } from 'routing-controllers'
+import { Not } from 'typeorm'
+import { isNil, merge, omitBy } from 'lodash'
 
 import {
   ICreateTeacher,
@@ -17,17 +19,20 @@ import {
 import { Teacher } from '@models/teacher'
 import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
+import { BadRequestError } from '@errors/badRequestError'
 
 @JsonController()
 export class TeacherController {
+  // =============
+  // CRUD Endpoint
+  // =============
+
   @Get('/teacher')
   @ValidateQuery(IGetTeacherQuery)
   async getTeacher(@QueryParams() query: IGetTeacherQuery) {
-    const filterOption =
-      query.is_active === undefined ? {} : { isActive: query.is_active }
     const teacherList = await Teacher.find({
+      where: { ...query },
       order: { name: 'ASC' },
-      where: { ...filterOption },
     })
     return teacherList
   }
@@ -35,14 +40,17 @@ export class TeacherController {
   @Post('/teacher')
   @ValidateBody(ICreateTeacher)
   async createTeacher(@Body() body: ICreateTeacher) {
-    const { name, title, executiveRole, isActive, isExternal } = body
+    const isExist = await Teacher.findOne({
+      where: { name: body },
+    })
+    if (isExist)
+      throw new BadRequestError('มีอาจารย์ชื่อนี้ในระบบอยู่แล้ว', [
+        `Teacher name(${body.name}) already exists`,
+      ])
 
+    const payload = omitBy(body, isNil)
     const teacher = new Teacher()
-    teacher.name = name.trim()
-    teacher.title = title
-    teacher.executiveRole = executiveRole.trim()
-    teacher.isActive = isActive
-    teacher.isExternal = isExternal
+    merge(teacher, payload)
 
     await teacher.save()
     return 'Created'
@@ -51,19 +59,27 @@ export class TeacherController {
   @Put('/teacher/:id')
   @ValidateBody(IEditTeacher)
   async edit(@Param('id') id: string, @Body() body: IEditTeacher) {
-    const { name, title, executiveRole, isActive, isExternal } = body
-
-    const teacher = await Teacher.findOne({ where: { id } })
+    const teacher = await Teacher.findOne({
+      where: { id },
+    })
     if (!teacher)
       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${id} is not found`,
+        `Teacher id(${id}) is not found`,
       ])
 
-    teacher.name = name?.trim() ?? teacher.name
-    teacher.title = title ?? teacher.title
-    teacher.executiveRole = executiveRole?.trim() ?? teacher.executiveRole
-    teacher.isActive = isActive ?? teacher.isActive
-    teacher.isExternal = isExternal ?? teacher.isExternal
+    const isExist = await Teacher.findOne({
+      where: {
+        id: Not(id),
+        name: body.name,
+      },
+    })
+    if (isExist)
+      throw new BadRequestError('มีอาจารย์ชื่อนี้ในระบบอยู่แล้ว', [
+        `Teacher name(${body.name}) already exists`,
+      ])
+
+    const payload = omitBy(body, isNil)
+    merge(teacher, payload)
 
     await teacher.save()
     return 'Edited'
@@ -71,10 +87,12 @@ export class TeacherController {
 
   @Delete('/teacher/:id')
   async delete(@Param('id') id: string) {
-    const teacher = await Teacher.findOne({ where: { id } })
+    const teacher = await Teacher.findOne({
+      where: { id },
+    })
     if (!teacher)
       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${id} is not found`,
+        `Teacher id(${id}) is not found`,
       ])
 
     await teacher.remove()

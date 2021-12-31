@@ -40,7 +40,8 @@ export class WebScrapController {
         for (const _section of _subject.sectionList) {
           for (const _teacher of _section.teacherList) {
             // Step 1: Find teacher in DB. If not found then skip to next teacher
-            const teacher = await Teacher.findByName(_teacher.name, {
+            const teacher = await Teacher.findOne({
+              where: { name: _teacher.name },
               relations: ['teacherWorkloadList'],
             })
             if (!teacher) {
@@ -48,7 +49,9 @@ export class WebScrapController {
             }
 
             // Step 2: Find subject in DB. If not found then add to error list and skip
-            const subject = await Subject.findOneByCode(_subject.subjectCode)
+            const subject = await Subject.findOne({
+              where: { code: _subject.subjectCode },
+            })
             if (!subject) {
               subjectErrorList.push(
                 `(${_subject.subjectCode})${_subject.subjectName}`
@@ -143,7 +146,9 @@ export class WebScrapController {
         for (const _section of _subject.sectionList) {
           for (const _teacher of _section.teacherList) {
             // Step 1: Find teacher in DB. If not found then create
-            let teacher = await Teacher.findByName(_teacher.name)
+            let teacher = await Teacher.findOne({
+              where: { name: _teacher.name },
+            })
             if (!teacher) {
               teacher = new Teacher()
               teacher.title = _teacher.title
@@ -152,7 +157,9 @@ export class WebScrapController {
             }
 
             // Step 2: Find subject in DB. If not found then create
-            let subject = await Subject.findOneByCode(_subject.subjectCode)
+            let subject = await Subject.findOne({
+              where: { code: _subject.subjectCode },
+            })
             if (!subject) {
               subject = new Subject()
               subject.code = _subject.subjectCode
@@ -226,7 +233,9 @@ export class WebScrapController {
       for (const _subject of _classYear.subjectList) {
         for (const _section of _subject.sectionList) {
           for (const _teacher of _section.teacherList) {
-            let teacher = await Teacher.findByName(_teacher.name)
+            let teacher = await Teacher.findOne({
+              where: { name: _teacher.name },
+            })
             if (!teacher) {
               teacher = new Teacher()
               teacher.title = _teacher.title
@@ -259,7 +268,9 @@ export class WebScrapController {
 
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
-        let subject = await Subject.findOneByCode(_subject.subjectCode)
+        let subject = await Subject.findOne({
+          where: { code: _subject.subjectCode },
+        })
         if (!subject) {
           subject = new Subject()
           subject.code = _subject.subjectCode

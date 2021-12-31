@@ -27,6 +27,10 @@ export class Room extends BaseEntity {
   @OneToMany(() => Compensated, (compensated) => compensated.compensatedRoom)
   compensatedList: Compensated[]
 
+  // ==============
+  // Hooks function
+  // ==============
+
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)

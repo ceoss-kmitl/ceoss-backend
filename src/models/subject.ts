@@ -35,25 +35,31 @@ export class Subject extends BaseEntity {
   @Column()
   independentHours: number
 
-  @Column({ default: 'CE' })
+  @Column()
   curriculumCode: string
 
-  @Column({ default: false })
+  @Column()
   isInter: boolean
 
   @OneToMany(() => Workload, (workload) => workload.subject)
   workloadList: Workload[]
+
+  // ==============
+  // Hooks function
+  // ==============
 
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
   }
 
-  static findOneByCode(code: string) {
-    return this.findOne({ where: { code } })
-  }
+  // ===============
+  // Public function
+  // ===============
 
-  /** Example: 3(3-3-0) */
+  /**
+   * Example result: `3(1-2-1)`
+   */
   public getFullCredit() {
     return `${this.credit}(${this.lectureHours}-${this.labHours}-${this.independentHours})`
   }

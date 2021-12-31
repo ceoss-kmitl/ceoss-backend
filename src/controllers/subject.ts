@@ -7,29 +7,30 @@ import {
   Post,
   Put,
   QueryParams,
-  UseBefore,
 } from 'routing-controllers'
+import { isNil, merge, omitBy } from 'lodash'
+import { Not } from 'typeorm'
 
-import { schema } from '@middlewares/schema'
-import { Subject } from '@models/subject'
 import {
   ICreateSubject,
   IEditSubject,
   IGetSubjectCompensatedQuery,
   IPostSubjectCompensatedBody,
 } from '@controllers/types/subject'
-import { NotFoundError } from '@errors/notFoundError'
-import { BadRequestError } from '@errors/badRequestError'
+import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
+import { Subject } from '@models/subject'
 import { Workload } from '@models/workload'
 import { Compensated } from '@models/compensated'
 import { Room } from '@models/room'
 import { Time } from '@models/time'
-import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
+import { ValidateBody, ValidateQuery } from '@middlewares/validator'
+import { BadRequestError } from '@errors/badRequestError'
+import { NotFoundError } from '@errors/notFoundError'
 
 @JsonController()
 export class SubjectController {
   @Get('/subject/:subjectId/compensated')
-  @UseBefore(schema(IGetSubjectCompensatedQuery, 'query'))
+  @ValidateQuery(IGetSubjectCompensatedQuery)
   async getSubjectCompensatedHistory(
     @Param('subjectId') subjectId: string,
     @QueryParams() query: IGetSubjectCompensatedQuery
@@ -128,7 +129,7 @@ export class SubjectController {
   }
 
   @Post('/subject/:subjectId/compensated')
-  @UseBefore(schema(IPostSubjectCompensatedBody))
+  @ValidateQuery(IPostSubjectCompensatedBody)
   async createSubjectCompensated(
     @Param('subjectId') subjectId: string,
     @Body() body: IPostSubjectCompensatedBody
@@ -192,84 +193,61 @@ export class SubjectController {
     return 'OK'
   }
 
+  // =============
+  // CRUD Endpoint
+  // =============
+
   @Get('/subject')
   async getSubject() {
-    const subjectList = await Subject.find({ order: { name: 'ASC' } })
+    const subjectList = await Subject.find({
+      order: { name: 'ASC' },
+    })
     return subjectList
   }
 
   @Post('/subject')
-  @UseBefore(schema(ICreateSubject))
+  @ValidateBody(ICreateSubject)
   async create(@Body() body: ICreateSubject) {
-    const {
-      code,
-      name,
-      isRequired,
-      credit,
-      lectureHours,
-      labHours,
-      independentHours,
-      curriculumCode,
-      isInter,
-    } = body
-
-    const isExist = await Subject.findOneByCode(code)
+    const isExist = await Subject.findOne({
+      where: { code: body.code },
+    })
     if (isExist)
-      throw new BadRequestError('มีวิชานี้อยู่แล้วในระบบ', [
-        `Subject ${code} already exist`,
+      throw new BadRequestError('มีรหัสวิชานี้อยู่แล้วในระบบ', [
+        `Subject code (${body.code}) already exists`,
       ])
 
+    const payload = omitBy(body, isNil)
     const subject = new Subject()
-    subject.code = code
-    subject.name = name
-    subject.isRequired = isRequired
-    subject.credit = credit
-    subject.lectureHours = lectureHours
-    subject.labHours = labHours
-    subject.independentHours = independentHours
-    subject.curriculumCode = curriculumCode
-    subject.isInter = isInter
+    merge(subject, payload)
 
     await subject.save()
     return 'Created'
   }
 
   @Put('/subject/:id')
-  @UseBefore(schema(IEditSubject))
+  @ValidateBody(IEditSubject)
   async edit(@Param('id') id: string, @Body() body: IEditSubject) {
-    const {
-      code,
-      name,
-      isRequired,
-      credit,
-      lectureHours,
-      labHours,
-      independentHours,
-      curriculumCode,
-      isInter,
-    } = body
-    const isExist = await Subject.findOneByCode(code)
-    const isNotSelf = isExist?.id !== id
-    if (isExist && isNotSelf)
-      throw new BadRequestError('มีวิชานี้อยู่แล้วในระบบ', [
-        `Subject ${id} already exist`,
-      ])
-
-    const subject = await Subject.findOne(id)
+    const subject = await Subject.findOne({
+      where: { id },
+    })
     if (!subject)
       throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
-        `Subject ${id} is not found`,
+        `Subject id(${id}) is not found`,
       ])
 
-    subject.code = code ?? subject.code
-    subject.name = name ?? subject.name
-    subject.isRequired = isRequired ?? subject.isRequired
-    subject.credit = credit ?? subject.credit
-    subject.lectureHours = lectureHours ?? subject.lectureHours
-    subject.labHours = labHours ?? subject.labHours
-    subject.independentHours = independentHours ?? subject.independentHours
-    subject.curriculumCode = curriculumCode ?? subject.curriculumCode
-    subject.isInter = isInter ?? subject.isInter
+    const isExist = await Subject.findOne({
+      where: {
+        id: Not(id),
+        code: body.code,
+      },
+    })
+    if (isExist)
+      throw new BadRequestError('มีรหัสวิชานี้อยู่แล้วในระบบ', [
+        `Subject code(${body.code}) already exists`,
+      ])
+
+    const payload = omitBy(body, isNil)
+    merge(subject, payload)
 
     await subject.save()
     return 'Edited'
@@ -277,10 +255,12 @@ export class SubjectController {
 
   @Delete('/subject/:id')
   async delete(@Param('id') id: string) {
-    const subject = await Subject.findOne(id)
+    const subject = await Subject.findOne({
+      where: { id },
+    })
     if (!subject)
       throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
-        `Subject ${id} is not found`,
+        `Subject id(${id}) is not found`,
       ])
 
     await subject.remove()

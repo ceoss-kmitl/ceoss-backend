@@ -1,32 +1,41 @@
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import { IsBoolean, IsOptional, IsString } from 'class-validator'
 
 export class ICreateTeacher {
+  @Transform(({ value }) => value?.trim())
   @IsString()
   name: string
 
+  @Transform(({ value }) => value?.trim())
   @IsString()
   title: string
 
+  @Transform(({ value }) => value?.trim())
   @IsString()
-  executiveRole: string
+  @IsOptional()
+  executiveRole = ''
 
   @IsBoolean()
-  isActive: boolean
+  @IsOptional()
+  isActive = true
 
   @IsBoolean()
-  isExternal: boolean
+  @IsOptional()
+  isExternal = false
 }
 
 export class IEditTeacher {
+  @Transform(({ value }) => value?.trim())
   @IsString()
   @IsOptional()
   name?: string
 
+  @Transform(({ value }) => value?.trim())
   @IsString()
   @IsOptional()
   title?: string
 
+  @Transform(({ value }) => value?.trim())
   @IsString()
   @IsOptional()
   executiveRole?: string
@@ -44,5 +53,5 @@ export class IGetTeacherQuery {
   @Type(() => Boolean)
   @IsBoolean()
   @IsOptional()
-  is_active?: boolean
+  isActive?: boolean
 }

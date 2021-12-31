@@ -1,22 +1,28 @@
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
   IsDateString,
   IsNumber,
+  IsNumberString,
   IsOptional,
   IsString,
+  Length,
 } from 'class-validator'
 
 export class ICreateSubject {
-  @IsString()
+  @Transform(({ value }) => value?.trim())
+  @IsNumberString()
+  @Length(8, 8)
   code: string
 
+  @Transform(({ value }) => value?.trim()?.toUpperCase())
   @IsString()
   name: string
 
   @IsBoolean()
-  isRequired: boolean
+  @IsOptional()
+  isRequired = true
 
   @IsNumber()
   credit: number
@@ -30,49 +36,56 @@ export class ICreateSubject {
   @IsNumber()
   independentHours: number
 
+  @Transform(({ value }) => value?.trim()?.toUpperCase())
   @IsString()
-  curriculumCode: string
+  @IsOptional()
+  curriculumCode = 'CE'
 
   @IsBoolean()
-  isInter: boolean
+  @IsOptional()
+  isInter = false
 }
 
 export class IEditSubject {
-  @IsString()
+  @Transform(({ value }) => value?.trim())
+  @IsNumberString()
+  @Length(8, 8)
   @IsOptional()
-  code: string
+  code?: string
 
+  @Transform(({ value }) => value?.trim()?.toUpperCase())
   @IsString()
   @IsOptional()
-  name: string
+  name?: string
 
   @IsBoolean()
   @IsOptional()
-  isRequired: boolean
+  isRequired?: boolean
 
   @IsNumber()
   @IsOptional()
-  credit: number
+  credit?: number
 
   @IsNumber()
   @IsOptional()
-  lectureHours: number
+  lectureHours?: number
 
   @IsNumber()
   @IsOptional()
-  labHours: number
+  labHours?: number
 
   @IsNumber()
   @IsOptional()
-  independentHours: number
+  independentHours?: number
 
+  @Transform(({ value }) => value?.trim()?.toUpperCase())
   @IsString()
   @IsOptional()
-  curriculumCode: string
+  curriculumCode?: string
 
   @IsBoolean()
   @IsOptional()
-  isInter: boolean
+  isInter?: boolean
 }
 
 export class IGetSubjectCompensatedQuery {

@@ -2,7 +2,6 @@ import {
   JsonController,
   Get,
   Post,
-  UseBefore,
   Body,
   Put,
   Param,
@@ -12,6 +11,7 @@ import {
 } from 'routing-controllers'
 import { Response } from 'express'
 import { In, IsNull, Not } from 'typeorm'
+import { isNil, merge, omitBy } from 'lodash'
 
 import {
   IAssignWorkloadToRoom,
@@ -23,7 +23,6 @@ import {
   IGetRoomWorkloadQuery,
   IResetRoomWorkloadQuery,
 } from '@controllers/types/room'
-import { schema } from '@middlewares/schema'
 import {
   mapDateToDayOfWeek,
   mapTimeSlotToTime,
@@ -31,16 +30,19 @@ import {
 } from '@libs/mapper'
 import { Room } from '@models/room'
 import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
-import { NotFoundError } from '@errors/notFoundError'
 import { Excel } from '@libs/Excel'
 import { isSameDay } from '@libs/utils'
 import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from '@constants/room'
+import { ValidateBody, ValidateQuery } from '@middlewares/validator'
+import { NotFoundError } from '@errors/notFoundError'
+import { BadRequestError } from '@errors/badRequestError'
+
 import { generateRoomExcel } from './templates/roomExcel'
 
 @JsonController()
 export class RoomController {
   @Get('/room/excel')
-  @UseBefore(schema(IGetRoomExcelQuery, 'query'))
+  @ValidateQuery(IGetRoomExcelQuery)
   async getRoomExcel(
     @Res() res: Response,
     @QueryParams() query: IGetRoomExcelQuery
@@ -74,7 +76,7 @@ export class RoomController {
   }
 
   @Get('/room/available/compensated')
-  @UseBefore(schema(IGetAvailableRoomCompensated, 'query'))
+  @ValidateQuery(IGetAvailableRoomCompensated)
   async getAvailableRoomForCompensated(
     @QueryParams() query: IGetAvailableRoomCompensated
   ) {
@@ -147,7 +149,7 @@ export class RoomController {
   }
 
   @Get('/room/:id/workload')
-  @UseBefore(schema(IGetRoomWorkloadQuery, 'query'))
+  @ValidateQuery(IGetRoomWorkloadQuery)
   async getRoomWorkload(
     @Param('id') id: string,
     @QueryParams() query: IGetRoomWorkloadQuery
@@ -239,7 +241,7 @@ export class RoomController {
   }
 
   @Post('/room/:id/workload')
-  @UseBefore(schema(IAssignWorkloadToRoom))
+  @ValidateBody(IAssignWorkloadToRoom)
   async assignWorkloadToRoom(
     @Param('id') id: string,
     @Body() body: IAssignWorkloadToRoom
@@ -269,7 +271,7 @@ export class RoomController {
   }
 
   @Delete('/room/:roomId/workload/:workloadId')
-  @UseBefore(schema(IAssignWorkloadToRoom))
+  @ValidateBody(IAssignWorkloadToRoom)
   async unAssignWorkloadFromRoom(
     @Param('roomId') roomId: string,
     @Param('workloadId') workloadId: string
@@ -457,36 +459,61 @@ export class RoomController {
     return 'Reset room workload'
   }
 
+  // =============
+  // CRUD Endpoint
+  // =============
+
   @Get('/room')
   async getRoom() {
-    const roomList = await Room.find({ order: { name: 'ASC' } })
+    const roomList = await Room.find({
+      order: { name: 'ASC' },
+    })
     return roomList
   }
 
   @Post('/room')
-  @UseBefore(schema(ICreateRoom))
+  @ValidateBody(ICreateRoom)
   async createRoom(@Body() body: ICreateRoom) {
-    const { name, capacity } = body
+    const isExist = await Room.findOne({
+      where: { name: body.name },
+    })
+    if (isExist)
+      throw new BadRequestError('มีห้องเรียนชื่อนี้อยู่แล้วในระบบ', [
+        `Room name(${body.name}) already exists`,
+      ])
 
+    const payload = omitBy(body, isNil)
     const room = new Room()
-    room.name = name
-    room.capacity = capacity
+    merge(room, payload)
 
     await room.save()
     return 'Room created'
   }
 
   @Put('/room/:id')
-  @UseBefore(schema(IEditRoom))
+  @ValidateBody(IEditRoom)
   async editRoom(@Param('id') id: string, @Body() body: IEditRoom) {
-    const { name, capacity } = body
-
-    const room = await Room.findOne({ where: { id } })
+    const room = await Room.findOne({
+      where: { id },
+    })
     if (!room)
-      throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${id}) is not found`,
+      ])
 
-    room.name = name ?? room.name
-    room.capacity = capacity ?? room.capacity
+    const isExist = await Room.findOne({
+      where: {
+        id: Not(id),
+        name: body.name,
+      },
+    })
+    if (isExist)
+      throw new BadRequestError('มีห้องเรียนชื่อนี้อยู่แล้วในระบบ', [
+        `Room name(${body.name}) already exists`,
+      ])
+
+    const payload = omitBy(body, isNil)
+    merge(room, payload)
 
     await room.save()
     return 'Room edited'
@@ -494,9 +521,13 @@ export class RoomController {
 
   @Delete('/room/:id')
   async deleteRoom(@Param('id') id: string) {
-    const room = await Room.findOne(id)
+    const room = await Room.findOne({
+      where: { id },
+    })
     if (!room)
-      throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${id}) is not found`,
+      ])
 
     await room.remove()
     return 'Room deleted'

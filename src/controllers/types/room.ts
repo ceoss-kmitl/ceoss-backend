@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
   IsDateString,
@@ -9,6 +9,7 @@ import {
 } from 'class-validator'
 
 export class ICreateRoom {
+  @Transform(({ value }) => value?.trim())
   @IsString()
   name: string
 
@@ -17,6 +18,7 @@ export class ICreateRoom {
 }
 
 export class IEditRoom {
+  @Transform(({ value }) => value?.trim())
   @IsString()
   @IsOptional()
   name?: string

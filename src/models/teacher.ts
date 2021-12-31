@@ -3,7 +3,6 @@ import {
   BeforeInsert,
   Column,
   Entity,
-  FindOneOptions,
   OneToMany,
   PrimaryColumn,
 } from 'typeorm'
@@ -22,13 +21,13 @@ export class Teacher extends BaseEntity {
   @Column()
   title: string
 
-  @Column({ default: '' })
+  @Column()
   executiveRole: string
 
-  @Column({ default: true })
+  @Column()
   isActive: boolean
 
-  @Column({ default: false })
+  @Column()
   isExternal: boolean
 
   @OneToMany(
@@ -37,14 +36,18 @@ export class Teacher extends BaseEntity {
   )
   teacherWorkloadList: TeacherWorkload[]
 
+  // ==============
+  // Hooks function
+  // ==============
+
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
   }
 
-  static findByName(name: string, options: FindOneOptions<Teacher> = {}) {
-    return this.findOne({ where: { name }, ...options })
-  }
+  // ===============
+  // Public function
+  // ===============
 
   public getFullName() {
     return `${this.title}${this.name}`
