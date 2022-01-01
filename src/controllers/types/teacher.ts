@@ -70,6 +70,7 @@ export interface IGetTeacherWorkloadResponse {
   workloadList: {
     id: string
     subjectId: string
+    roomId?: string
     code: string
     name: string
     section: number

@@ -8,7 +8,6 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { Workload } from '@models/workload'
-import { Compensated } from '@models/compensated'
 
 @Entity()
 export class Room extends BaseEntity {
@@ -23,9 +22,6 @@ export class Room extends BaseEntity {
 
   @OneToMany(() => Workload, (workload) => workload.room)
   workloadList: Workload[]
-
-  @OneToMany(() => Compensated, (compensated) => compensated.compensatedRoom)
-  compensatedList: Compensated[]
 
   // ==============
   // Hooks function

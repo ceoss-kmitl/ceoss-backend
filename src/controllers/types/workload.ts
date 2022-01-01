@@ -1,5 +1,5 @@
 import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
@@ -12,16 +12,16 @@ import {
 
 import { IAcademicTime } from './common'
 
+// ============
+// Request type
+// ============
+
 export class IGetTeacherWorkloadQuery extends IAcademicTime {}
 
-export class IGetWorkloadNoRoomQuery {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
+export class IGetWorkloadQuery extends IAcademicTime {
+  @IsString()
+  @IsOptional()
+  room?: string
 }
 
 class ITeacherList {
@@ -69,6 +69,7 @@ export class ICreateWorkload {
   @IsEnum(Degree)
   degree: Degree
 
+  @Transform(({ value }) => value?.trim()?.toUpperCase())
   @IsString()
   fieldOfStudy: string
 

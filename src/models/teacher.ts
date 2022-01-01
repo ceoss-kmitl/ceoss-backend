@@ -6,11 +6,9 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm'
-import { isNil } from 'lodash'
 import { nanoid } from 'nanoid'
 
 import { IAcademicTime } from '@controllers/types/common'
-import { RelationError } from '@errors/relationError'
 
 import { TeacherWorkload } from './teacherWorkload'
 import { Workload } from './workload'
@@ -37,7 +35,8 @@ export class Teacher extends BaseEntity {
 
   @OneToMany(
     () => TeacherWorkload,
-    (teacherWorkload) => teacherWorkload.teacher
+    (teacherWorkload) => teacherWorkload.teacher,
+    { cascade: true }
   )
   teacherWorkloadList: TeacherWorkload[]
 
@@ -62,6 +61,7 @@ export class Teacher extends BaseEntity {
       relations: [
         'teacherWorkloadList',
         'teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.room',
         'teacherWorkloadList.workload.subject',
         'teacherWorkloadList.workload.timeList',
         'teacherWorkloadList.workload.teacherWorkloadList',
@@ -90,9 +90,6 @@ export class Teacher extends BaseEntity {
 
   /** Required relation with `TeacherWorkload` */
   public getWorkloadList() {
-    if (isNil(this.teacherWorkloadList))
-      throw new RelationError('TeacherWorkload')
-
     return this.teacherWorkloadList.map((tw) => tw.workload)
   }
 

@@ -57,7 +57,7 @@ export class TeacherController {
 
     for (const workload of teacher.getWorkloadList()) {
       const thisDay = result[workload.dayOfWeek - 1]
-      const { subject } = workload
+      const { subject, room } = workload
       const teacherListOfThisWorkload = workload.teacherWorkloadList.map(
         (tw) => ({
           teacherId: tw.teacher.id,
@@ -66,11 +66,12 @@ export class TeacherController {
         })
       )
       const isThisTeacherClaimThisWorkload = workload.teacherWorkloadList.some(
-        (tw) => tw.teacher.id === id
+        (tw) => tw.teacher.id === id && tw.isClaim
       )
 
       thisDay.workloadList.push({
         id: workload.id,
+        roomId: room?.id,
         subjectId: subject.id,
         code: subject.code,
         name: subject.name,
@@ -116,9 +117,8 @@ export class TeacherController {
         `Teacher name(${body.name}) already exists`,
       ])
 
-    const payload = omitBy(body, isNil)
     const teacher = new Teacher()
-    merge(teacher, payload)
+    merge(teacher, body)
 
     await teacher.save()
     return 'Created'

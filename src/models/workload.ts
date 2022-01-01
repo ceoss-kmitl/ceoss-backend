@@ -7,36 +7,19 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm'
-import { isNil } from 'lodash'
 import { nanoid } from 'nanoid'
 
 import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
-import { RelationError } from '@errors/relationError'
 
 import { Subject } from './subject'
 import { Room } from './room'
 import { Time } from './time'
 import { TeacherWorkload } from './teacherWorkload'
-import { Compensated } from './compensated'
 
 @Entity()
 export class Workload extends BaseEntity {
   @PrimaryColumn()
   id: string
-
-  @ManyToOne(() => Subject, (subject) => subject.workloadList, {
-    onDelete: 'CASCADE',
-  })
-  subject: Subject
-
-  @OneToMany(
-    () => TeacherWorkload,
-    (teacherWorkload) => teacherWorkload.workload
-  )
-  teacherWorkloadList: TeacherWorkload[]
-
-  @Column()
-  section: number
 
   @Column({ type: 'enum', enum: WorkloadType })
   type: WorkloadType
@@ -44,16 +27,14 @@ export class Workload extends BaseEntity {
   @Column({ type: 'enum', enum: DayOfWeek })
   dayOfWeek: DayOfWeek
 
-  @OneToMany(() => Time, (time) => time.workload, {
-    cascade: true,
-  })
-  timeList: Time[]
+  @Column({ type: 'enum', enum: Degree })
+  degree: Degree
 
-  @ManyToOne(() => Room, (room) => room.workloadList, { onDelete: 'CASCADE' })
-  room: Room
+  @Column({ type: 'timestamptz', nullable: true })
+  compensationFromDate: Date
 
-  @OneToMany(() => Compensated, (compensated) => compensated.workload)
-  compensatedList: Compensated[]
+  @Column({ type: 'timestamptz', nullable: true })
+  compensationDate: Date
 
   @Column()
   academicYear: number
@@ -61,14 +42,40 @@ export class Workload extends BaseEntity {
   @Column()
   semester: number
 
-  @Column({ type: 'enum', enum: Degree })
-  degree: Degree
+  @Column()
+  section: number
 
   @Column()
   fieldOfStudy: string
 
   @Column()
   classYear: number
+
+  @OneToMany(() => Time, (time) => time.workload, {
+    cascade: true,
+  })
+  timeList: Time[]
+
+  @ManyToOne(() => Room, (room) => room.workloadList, {
+    onDelete: 'CASCADE',
+  })
+  room?: Room
+
+  @ManyToOne(() => Subject, (subject) => subject.workloadList, {
+    onDelete: 'CASCADE',
+  })
+  subject: Subject
+
+  @OneToMany(() => TeacherWorkload, (tw) => tw.workload, {
+    onDelete: 'CASCADE',
+  })
+  teacherWorkloadList: TeacherWorkload[]
+
+  @ManyToOne(() => Workload, (workload) => workload.compensationList)
+  compensationFrom: Workload
+
+  @OneToMany(() => Workload, (workload) => workload.compensationFrom)
+  compensationList: Workload[]
 
   // ==============
   // Hooks function
@@ -85,8 +92,6 @@ export class Workload extends BaseEntity {
 
   /** Required relation with `Time` */
   public getFirstTimeSlot() {
-    if (isNil(this.timeList)) throw new RelationError('Time')
-
     const sortedTimeList = [...this.timeList].sort(
       (a, b) => a.startSlot - b.startSlot
     )
@@ -95,8 +100,6 @@ export class Workload extends BaseEntity {
 
   /** Required relation with `Time` */
   public getLastTimeSlot() {
-    if (isNil(this.timeList)) throw new RelationError('Time')
-
     const sortedTimeList = [...this.timeList].sort(
       (b, a) => a.startSlot - b.startSlot
     )
@@ -105,8 +108,6 @@ export class Workload extends BaseEntity {
 
   /** Required relation with `Time` */
   public getTimeStringList() {
-    if (isNil(this.timeList)) throw new RelationError('Time')
-
     return this.timeList.map((time) => ({
       start: Time.toTimeString(time.startSlot),
       end: Time.toTimeString(time.endSlot + 1),
@@ -115,14 +116,12 @@ export class Workload extends BaseEntity {
 
   /** Required relation with `TeacherWorkload` */
   public getTeacherList() {
-    if (isNil(this.teacherWorkloadList))
-      throw new RelationError('TeacherWorkload')
-
     return this.teacherWorkloadList.map(
       (teacherWorkload) => teacherWorkload.teacher
     )
   }
 
+  /** Required relation with `TeacherWorkload` */
   public getTeacherWorkload(teacherId: string) {
     return this.teacherWorkloadList.find(
       (teacherWorkload) =>

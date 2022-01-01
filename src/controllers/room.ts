@@ -76,78 +76,78 @@ export class RoomController {
     return file
   }
 
-  @Get('/room/available/compensated')
-  @ValidateQuery(IGetAvailableRoomCompensated)
-  async getAvailableRoomForCompensated(
-    @QueryParams() query: IGetAvailableRoomCompensated
-  ) {
-    const { academic_year, semester, compensatedDate, startTime, endTime } =
-      query
+  //   @Get('/room/available/compensated')
+  //   @ValidateQuery(IGetAvailableRoomCompensated)
+  //   async getAvailableRoomForCompensated(
+  //     @QueryParams() query: IGetAvailableRoomCompensated
+  //   ) {
+  //     const { academic_year, semester, compensatedDate, startTime, endTime } =
+  //       query
 
-    const roomList = await Room.createQueryBuilder('room')
-      .leftJoinAndSelect(
-        'room.workloadList',
-        'workloadList',
-        'workloadList.academicYear = :academic_year AND workloadList.semester = :semester',
-        { academic_year, semester }
-      )
-      .leftJoinAndSelect('room.compensatedList', 'compensatedList')
-      .leftJoinAndSelect(
-        'compensatedList.compensatedTimeList',
-        'compensatedTimeList'
-      )
-      .leftJoinAndSelect('workloadList.timeList', 'timeList')
-      .orderBy('room.name', 'ASC')
-      .getMany()
+  //     const roomList = await Room.createQueryBuilder('room')
+  //       .leftJoinAndSelect(
+  //         'room.workloadList',
+  //         'workloadList',
+  //         'workloadList.academicYear = :academic_year AND workloadList.semester = :semester',
+  //         { academic_year, semester }
+  //       )
+  //       .leftJoinAndSelect('room.compensatedList', 'compensatedList')
+  //       .leftJoinAndSelect(
+  //         'compensatedList.compensatedTimeList',
+  //         'compensatedTimeList'
+  //       )
+  //       .leftJoinAndSelect('workloadList.timeList', 'timeList')
+  //       .orderBy('room.name', 'ASC')
+  //       .getMany()
 
-    return roomList
-      .filter((room) => {
-        let isTimeOverlap = false
-        for (const roomWorkload of room.workloadList) {
-          const roomWorkloadDay = roomWorkload.dayOfWeek
-          const roomWorkloadStart = roomWorkload.getFirstTimeSlot()
-          const roomWorkloadEnd = roomWorkload.getLastTimeSlot()
+  //     return roomList
+  //       .filter((room) => {
+  //         let isTimeOverlap = false
+  //         for (const roomWorkload of room.workloadList) {
+  //           const roomWorkloadDay = roomWorkload.dayOfWeek
+  //           const roomWorkloadStart = roomWorkload.getFirstTimeSlot()
+  //           const roomWorkloadEnd = roomWorkload.getLastTimeSlot()
 
-          const workloadDay = mapDateToDayOfWeek(new Date(compensatedDate))
-          const workloadStart = mapTimeToTimeSlot(startTime)
-          const workloadEnd = mapTimeToTimeSlot(endTime) - 1
+  //           const workloadDay = mapDateToDayOfWeek(new Date(compensatedDate))
+  //           const workloadStart = mapTimeToTimeSlot(startTime)
+  //           const workloadEnd = mapTimeToTimeSlot(endTime) - 1
 
-          if (
-            workloadDay === roomWorkloadDay &&
-            workloadStart <= roomWorkloadEnd &&
-            workloadEnd >= roomWorkloadStart
-          ) {
-            isTimeOverlap = true
-          }
-        }
-        return !isTimeOverlap
-      })
-      .filter((room) => {
-        let isTimeOverlap = false
-        for (const compensated of room.compensatedList) {
-          const compensatedDay = new Date(compensated.compensatedDate)
-          const compensatedStart = compensated.getFirstCompensatedTimeSlot()
-          const compensatedEnd = compensated.getLastCompensatedTimeSlot()
+  //           if (
+  //             workloadDay === roomWorkloadDay &&
+  //             workloadStart <= roomWorkloadEnd &&
+  //             workloadEnd >= roomWorkloadStart
+  //           ) {
+  //             isTimeOverlap = true
+  //           }
+  //         }
+  //         return !isTimeOverlap
+  //       })
+  //       .filter((room) => {
+  //         let isTimeOverlap = false
+  //         for (const compensated of room.compensatedList) {
+  //           const compensatedDay = new Date(compensated.compensatedDate)
+  //           const compensatedStart = compensated.getFirstCompensatedTimeSlot()
+  //           const compensatedEnd = compensated.getLastCompensatedTimeSlot()
 
-          const workloadDay = new Date(compensatedDate)
-          const workloadStart = mapTimeToTimeSlot(startTime)
-          const workloadEnd = mapTimeToTimeSlot(endTime) - 1
+  //           const workloadDay = new Date(compensatedDate)
+  //           const workloadStart = mapTimeToTimeSlot(startTime)
+  //           const workloadEnd = mapTimeToTimeSlot(endTime) - 1
 
-          if (
-            isSameDay(compensatedDay, workloadDay) &&
-            workloadStart <= compensatedEnd &&
-            workloadEnd >= compensatedStart
-          ) {
-            isTimeOverlap = true
-          }
-        }
-        return !isTimeOverlap
-      })
-      .map((room) => ({
-        roomId: room.id,
-        roomName: room.name,
-      }))
-  }
+  //           if (
+  //             isSameDay(compensatedDay, workloadDay) &&
+  //             workloadStart <= compensatedEnd &&
+  //             workloadEnd >= compensatedStart
+  //           ) {
+  //             isTimeOverlap = true
+  //           }
+  //         }
+  //         return !isTimeOverlap
+  //       })
+  //       .map((room) => ({
+  //         roomId: room.id,
+  //         roomName: room.name,
+  //       }))
+  //   }
 
   @Get('/room/:id/workload')
   @ValidateQuery(IGetRoomWorkloadQuery)

@@ -7,8 +7,8 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-import { Workload } from '@models/workload'
-import { Compensated } from '@models/compensated'
+
+import { Workload } from './workload'
 
 /**
  * slot1 - slot 52
@@ -20,30 +20,16 @@ export class Time extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @ManyToOne(() => Workload, (workload) => workload.timeList, {
-    onDelete: 'CASCADE',
-  })
-  workload: Workload
-
-  @ManyToOne(() => Compensated, (compensated) => compensated.originalTimeList, {
-    onDelete: 'CASCADE',
-  })
-  compensatedOriginal: Compensated
-
-  @ManyToOne(
-    () => Compensated,
-    (compensated) => compensated.compensatedTimeList,
-    {
-      onDelete: 'CASCADE',
-    }
-  )
-  compensated: Compensated
-
   @Column()
   startSlot: number
 
   @Column()
   endSlot: number
+
+  @ManyToOne(() => Workload, (workload) => workload.timeList, {
+    onDelete: 'CASCADE',
+  })
+  workload: Workload
 
   // ==============
   // Hooks function

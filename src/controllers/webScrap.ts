@@ -77,7 +77,7 @@ export class WebScrapController {
               workload.section = _section.section
               workload.type = _section.subjectType
               workload.dayOfWeek = _section.dayOfWeek
-              workload.compensatedList = []
+              //   workload.compensatedList = []
               workload.academicYear = academic_year
               workload.semester = semester
               workload.degree = Degree.BACHELOR
@@ -190,7 +190,7 @@ export class WebScrapController {
               workload.section = _section.section
               workload.type = _section.subjectType
               workload.dayOfWeek = _section.dayOfWeek
-              workload.compensatedList = []
+              //   workload.compensatedList = []
               workload.academicYear = academic_year
               workload.semester = semester
               workload.degree = Degree.BACHELOR
