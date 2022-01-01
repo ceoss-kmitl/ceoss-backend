@@ -1,7 +1,7 @@
 import { Excel, PaperSize } from '@libs/Excel'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
+import { WorkloadType } from '@constants/common'
 
 export async function generateWorkloadExcel2(
   excel: Excel,
@@ -104,8 +104,8 @@ export async function generateWorkloadExcel2(
     const { subject, type, section, classYear, fieldOfStudy } = workload
 
     const subjectType = {
-      [WorkloadType.Lecture]: '(ท)',
-      [WorkloadType.Lab]: '(ป)',
+      [WorkloadType.LECTURE]: '(ท)',
+      [WorkloadType.LAB]: '(ป)',
     }
 
     // ===== Subject column =====

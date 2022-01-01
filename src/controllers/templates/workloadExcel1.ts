@@ -1,7 +1,7 @@
 import { Excel, PaperSize } from '@libs/Excel'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
+import { WorkloadType } from '@constants/common'
 import { TeacherWorkload } from '@models/teacherWorkload'
 
 export async function generateWorkloadExcel1(
@@ -210,8 +210,8 @@ export async function generateWorkloadExcel1(
     } = workload
 
     const subjectType = {
-      [WorkloadType.Lecture]: '(ท)',
-      [WorkloadType.Lab]: '(ป)',
+      [WorkloadType.LECTURE]: '(ท)',
+      [WorkloadType.LAB]: '(ป)',
     }
 
     const row = 7 + (dayOfWeek - 1) * 2

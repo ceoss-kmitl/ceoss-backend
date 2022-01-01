@@ -1,7 +1,7 @@
 import { Excel, PaperSize } from '@libs/Excel'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { Degree, WorkloadType } from '@models/workload'
+import { Degree, WorkloadType } from '@constants/common'
 
 type ISummary = {
   degree: Degree
@@ -21,31 +21,31 @@ export async function generateWorkloadExcel5(
   teacherList = teacherList.filter((teacher) => {
     const summaryClaim: ISummary[] = [
       {
-        degree: Degree.Bachelor,
+        degree: Degree.BACHELOR,
         payRate: setting.lecturePayRateNormal,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.BachelorCon,
+        degree: Degree.BACHELOR_CONTINUE,
         payRate: setting.lecturePayRateNormal,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.BachelorInter,
+        degree: Degree.BACHELOR_INTER,
         payRate: setting.lecturePayRateInter,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.Pundit,
+        degree: Degree.PUNDIT,
         payRate: setting.lecturePayRateNormal,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.PunditInter,
+        degree: Degree.PUNDIT_INTER,
         payRate: setting.lecturePayRateInter,
         totalHours: 0,
         claimAmount: 0,
@@ -56,7 +56,7 @@ export async function generateWorkloadExcel5(
       const summary = summaryClaim.find((sc) => sc.degree === workload.degree)!
       for (const time of workload.timeList) {
         let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
-        if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+        if (workload.type === WorkloadType.LAB) hoursUnit /= 2
 
         const hr = hoursUnit * teacher.getWeekCount(workload.id)
 
@@ -94,31 +94,31 @@ export async function generateWorkloadExcel5(
   for (const teacher of teacherList) {
     const summaryClaim: ISummary[] = [
       {
-        degree: Degree.Bachelor,
+        degree: Degree.BACHELOR,
         payRate: setting.lecturePayRateNormal,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.BachelorCon,
+        degree: Degree.BACHELOR_CONTINUE,
         payRate: setting.lecturePayRateNormal,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.BachelorInter,
+        degree: Degree.BACHELOR_INTER,
         payRate: setting.lecturePayRateInter,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.Pundit,
+        degree: Degree.PUNDIT,
         payRate: setting.lecturePayRateNormal,
         totalHours: 0,
         claimAmount: 0,
       },
       {
-        degree: Degree.PunditInter,
+        degree: Degree.PUNDIT_INTER,
         payRate: setting.lecturePayRateInter,
         totalHours: 0,
         claimAmount: 0,
@@ -432,9 +432,11 @@ export async function generateWorkloadExcel5(
     const teachBachelor = teacher
       .getWorkloadList()
       .some((workload) =>
-        [Degree.Bachelor, Degree.BachelorInter, Degree.BachelorCon].includes(
-          workload.degree
-        )
+        [
+          Degree.BACHELOR,
+          Degree.BACHELOR_INTER,
+          Degree.BACHELOR_CONTINUE,
+        ].includes(workload.degree)
       )
     if (teachBachelor) {
       excel
@@ -455,7 +457,7 @@ export async function generateWorkloadExcel5(
       const summary = summaryClaim.find((sc) => sc.degree === workload.degree)!
       for (const time of workload.timeList) {
         let hoursUnit = (time.endSlot + 1 - time.startSlot) / 4
-        if (workload.type === WorkloadType.Lab) hoursUnit /= 2
+        if (workload.type === WorkloadType.LAB) hoursUnit /= 2
 
         const hr = hoursUnit * teacher.getWeekCount(workload.id)
 

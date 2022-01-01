@@ -1,6 +1,12 @@
 import { Transform, Type } from 'class-transformer'
 import { IsBoolean, IsOptional, IsString } from 'class-validator'
 
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
+
+// ============
+// Request type
+// ============
+
 export class ICreateTeacher {
   @Transform(({ value }) => value?.trim())
   @IsString()
@@ -54,4 +60,32 @@ export class IGetTeacherQuery {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean
+}
+
+// =============
+// Response type
+// =============
+
+export interface IGetTeacherWorkloadResponse {
+  workloadList: {
+    id: string
+    subjectId: string
+    code: string
+    name: string
+    section: number
+    type: WorkloadType
+    fieldOfStudy: string
+    degree: Degree
+    classYear: number
+    dayOfWeek: DayOfWeek
+    startSlot: number
+    endSlot: number
+    timeList: { start: string; end: string }[]
+    teacherList: {
+      teacherId: string
+      weekCount: number
+      isClaim: boolean
+    }[]
+    isClaim: boolean
+  }[]
 }

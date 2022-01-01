@@ -1,7 +1,7 @@
 import { Excel, PaperSize } from '@libs/Excel'
 import { Room } from '@models/Room'
 import { Time } from '@models/time'
-import { WorkloadType } from '@models/workload'
+import { WorkloadType } from '@constants/common'
 
 export async function generateRoomExcel(
   excel: Excel,
@@ -150,8 +150,8 @@ export async function generateRoomExcel(
       } = workload
 
       const subjectType = {
-        [WorkloadType.Lecture]: '(ท)',
-        [WorkloadType.Lab]: '(ป)',
+        [WorkloadType.LECTURE]: '(ท)',
+        [WorkloadType.LAB]: '(ป)',
       }
 
       const row = 4 + (dayOfWeek - 1) * 2

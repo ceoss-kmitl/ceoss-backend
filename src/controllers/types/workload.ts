@@ -1,4 +1,4 @@
-import { DayOfWeek, Degree, WorkloadType } from '@models/workload'
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 import { Type } from 'class-transformer'
 import {
   IsArray,
@@ -10,15 +10,9 @@ import {
   ValidateNested,
 } from 'class-validator'
 
-export class ITeacherWorkloadQuery {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
+import { IAcademicTime } from './common'
 
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
-}
+export class IGetTeacherWorkloadQuery extends IAcademicTime {}
 
 export class IGetWorkloadNoRoomQuery {
   @Type(() => Number)

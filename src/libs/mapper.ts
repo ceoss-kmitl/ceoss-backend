@@ -1,4 +1,4 @@
-import { DayOfWeek } from '@models/workload'
+import { DayOfWeek } from '@constants/common'
 
 /**
  * slot1 - slot 52
@@ -35,13 +35,13 @@ export function mapTimeSlotToTime(timeSlot: number, seperator = ':') {
 
 export function mapDateToDayOfWeek(date: Date) {
   const DayMapper = {
-    'จ.': DayOfWeek.Monday,
-    'อ.': DayOfWeek.Tuesday,
-    'พ.': DayOfWeek.Wednesday,
-    'พฤ.': DayOfWeek.Thursday,
-    'ศ.': DayOfWeek.Friday,
-    'ส.': DayOfWeek.Saturday,
-    'อา.': DayOfWeek.Sunday,
+    'จ.': DayOfWeek.MONDAY,
+    'อ.': DayOfWeek.TUESDAY,
+    'พ.': DayOfWeek.WEDNESDAY,
+    'พฤ.': DayOfWeek.THURSDAY,
+    'ศ.': DayOfWeek.FRIDAY,
+    'ส.': DayOfWeek.SATURDAY,
+    'อา.': DayOfWeek.SUNDAY,
   }
   const weekday = date.toLocaleDateString('th-TH', {
     weekday: 'short',

@@ -7,35 +7,17 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm'
+import { isNil } from 'lodash'
 import { nanoid } from 'nanoid'
-import { Subject } from '@models/subject'
-import { Room } from '@models/room'
-import { Time } from '@models/time'
-import { TeacherWorkload } from '@models/teacherWorkload'
-import { Compensated } from '@models/compensated'
 
-export enum WorkloadType {
-  Lecture = 'LECTURE',
-  Lab = 'LAB',
-}
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
+import { RelationError } from '@errors/relationError'
 
-export enum DayOfWeek {
-  Monday = 1,
-  Tuesday,
-  Wednesday,
-  Thursday,
-  Friday,
-  Saturday,
-  Sunday,
-}
-
-export enum Degree {
-  Bachelor = 'BACHELOR',
-  BachelorCon = 'BACHELOR_CONTINUE',
-  BachelorInter = 'BACHELOR_INTER',
-  Pundit = 'PUNDIT',
-  PunditInter = 'PUNDIT_INTER',
-}
+import { Subject } from './subject'
+import { Room } from './room'
+import { Time } from './time'
+import { TeacherWorkload } from './teacherWorkload'
+import { Compensated } from './compensated'
 
 @Entity()
 export class Workload extends BaseEntity {
@@ -88,26 +70,54 @@ export class Workload extends BaseEntity {
   @Column()
   classYear: number
 
+  // ==============
+  // Hooks function
+  // ==============
+
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
   }
 
+  // ===============
+  // Public function
+  // ===============
+
+  /** Required relation with `Time` */
   public getFirstTimeSlot() {
+    if (isNil(this.timeList)) throw new RelationError('Time')
+
     const sortedTimeList = [...this.timeList].sort(
       (a, b) => a.startSlot - b.startSlot
     )
-    return sortedTimeList[0]?.startSlot
+    return sortedTimeList[0].startSlot
   }
 
+  /** Required relation with `Time` */
   public getLastTimeSlot() {
+    if (isNil(this.timeList)) throw new RelationError('Time')
+
     const sortedTimeList = [...this.timeList].sort(
       (b, a) => a.startSlot - b.startSlot
     )
-    return sortedTimeList[0]?.endSlot
+    return sortedTimeList[0].endSlot
   }
 
+  /** Required relation with `Time` */
+  public getTimeStringList() {
+    if (isNil(this.timeList)) throw new RelationError('Time')
+
+    return this.timeList.map((time) => ({
+      start: Time.toTimeString(time.startSlot),
+      end: Time.toTimeString(time.endSlot + 1),
+    }))
+  }
+
+  /** Required relation with `TeacherWorkload` */
   public getTeacherList() {
+    if (isNil(this.teacherWorkloadList))
+      throw new RelationError('TeacherWorkload')
+
     return this.teacherWorkloadList.map(
       (teacherWorkload) => teacherWorkload.teacher
     )

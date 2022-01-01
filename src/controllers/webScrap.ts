@@ -7,7 +7,8 @@ import {
 import { IWebScrapQuery } from '@controllers/types/webScrap'
 import { schema } from '@middlewares/schema'
 import { WebScrap } from '@libs/WebScrap'
-import { Degree, Workload } from '@models/workload'
+import { Workload } from '@models/workload'
+import { Degree } from '@constants/common'
 import { Subject } from '@models/subject'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
@@ -79,7 +80,7 @@ export class WebScrapController {
               workload.compensatedList = []
               workload.academicYear = academic_year
               workload.semester = semester
-              workload.degree = Degree.Bachelor
+              workload.degree = Degree.BACHELOR
               workload.fieldOfStudy = 'D'
               workload.classYear = _classYear.classYear
               workload.timeList = _section.timeSlotList.map(
@@ -192,7 +193,7 @@ export class WebScrapController {
               workload.compensatedList = []
               workload.academicYear = academic_year
               workload.semester = semester
-              workload.degree = Degree.Bachelor
+              workload.degree = Degree.BACHELOR
               workload.fieldOfStudy = 'D'
               workload.classYear = _classYear.classYear
               workload.timeList = _section.timeSlotList.map(

@@ -29,7 +29,8 @@ import {
   mapTimeToTimeSlot,
 } from '@libs/mapper'
 import { Room } from '@models/room'
-import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
+import { Workload } from '@models/workload'
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 import { Excel } from '@libs/Excel'
 import { isSameDay } from '@libs/utils'
 import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from '@constants/room'
@@ -201,7 +202,7 @@ export class RoomController {
       }[]
     }[]
 
-    for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
+    for (let day = DayOfWeek.MONDAY; day <= DayOfWeek.SUNDAY; day++) {
       result.push({
         workloadList: [],
       })

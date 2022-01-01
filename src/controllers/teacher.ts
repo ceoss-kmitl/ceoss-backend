@@ -11,18 +11,86 @@ import {
 import { Not } from 'typeorm'
 import { isNil, merge, omitBy } from 'lodash'
 
+import { DayOfWeek } from '@constants/common'
+import { ValidateBody, ValidateQuery } from '@middlewares/validator'
+import { NotFoundError } from '@errors/notFoundError'
+import { BadRequestError } from '@errors/badRequestError'
+import { Teacher } from '@models/teacher'
+
 import {
   ICreateTeacher,
   IEditTeacher,
   IGetTeacherQuery,
-} from '@controllers/types/teacher'
-import { Teacher } from '@models/teacher'
-import { ValidateBody, ValidateQuery } from '@middlewares/validator'
-import { NotFoundError } from '@errors/notFoundError'
-import { BadRequestError } from '@errors/badRequestError'
+  IGetTeacherWorkloadResponse,
+} from './types/teacher'
+import { IGetTeacherWorkloadQuery } from './types/workload'
 
 @JsonController()
 export class TeacherController {
+  // ==================
+  // Relations Endpoint
+  // ==================
+
+  @Get('/teacher/:id/workload')
+  @ValidateQuery(IGetTeacherWorkloadQuery)
+  async getTeacherWorkload(
+    @Param('id') id: string,
+    @QueryParams() query: IGetTeacherWorkloadQuery
+  ) {
+    const { academicYear, semester } = query
+
+    const teacher = await Teacher.findOneByIdAndJoinWorkload(id, {
+      academicYear,
+      semester,
+    })
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher id(${id}) is not found`,
+      ])
+
+    const result: IGetTeacherWorkloadResponse[] = []
+    for (let day = DayOfWeek.MONDAY; day <= DayOfWeek.SUNDAY; day++) {
+      result.push({
+        workloadList: [],
+      })
+    }
+
+    for (const workload of teacher.getWorkloadList()) {
+      const thisDay = result[workload.dayOfWeek - 1]
+      const { subject } = workload
+      const teacherListOfThisWorkload = workload.teacherWorkloadList.map(
+        (tw) => ({
+          teacherId: tw.teacher.id,
+          weekCount: tw.weekCount,
+          isClaim: tw.isClaim,
+        })
+      )
+      const isThisTeacherClaimThisWorkload = workload.teacherWorkloadList.some(
+        (tw) => tw.teacher.id === id
+      )
+
+      thisDay.workloadList.push({
+        id: workload.id,
+        subjectId: subject.id,
+        code: subject.code,
+        name: subject.name,
+        section: workload.section,
+        type: workload.type,
+        fieldOfStudy: workload.fieldOfStudy,
+        degree: workload.degree,
+        classYear: workload.classYear,
+        dayOfWeek: workload.dayOfWeek,
+        startSlot: workload.getFirstTimeSlot(),
+        endSlot: workload.getLastTimeSlot(),
+        timeList: workload.getTimeStringList(),
+        teacherList: teacherListOfThisWorkload,
+        isClaim: isThisTeacherClaimThisWorkload,
+      })
+    }
+
+    return result
+  }
+
   // =============
   // CRUD Endpoint
   // =============

@@ -6,9 +6,14 @@ import {
   OneToMany,
   PrimaryColumn,
 } from 'typeorm'
+import { isNil } from 'lodash'
 import { nanoid } from 'nanoid'
-import { TeacherWorkload } from '@models/teacherWorkload'
-import { Workload } from '@models/workload'
+
+import { IAcademicTime } from '@controllers/types/common'
+import { RelationError } from '@errors/relationError'
+
+import { TeacherWorkload } from './teacherWorkload'
+import { Workload } from './workload'
 
 @Entity()
 export class Teacher extends BaseEntity {
@@ -46,6 +51,36 @@ export class Teacher extends BaseEntity {
   }
 
   // ===============
+  // Static function
+  // ===============
+
+  static async findOneByIdAndJoinWorkload(
+    id: string,
+    { academicYear, semester }: IAcademicTime
+  ) {
+    const teacher = await this.findOne({
+      relations: [
+        'teacherWorkloadList',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.subject',
+        'teacherWorkloadList.workload.timeList',
+        'teacherWorkloadList.workload.teacherWorkloadList',
+        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
+      ],
+      where: { id },
+    })
+
+    if (teacher) {
+      teacher.teacherWorkloadList = teacher.teacherWorkloadList.filter(
+        (tw) =>
+          tw.workload?.academicYear === academicYear &&
+          tw.workload?.semester === semester
+      )
+    }
+    return teacher
+  }
+
+  // ===============
   // Public function
   // ===============
 
@@ -53,10 +88,12 @@ export class Teacher extends BaseEntity {
     return `${this.title}${this.name}`
   }
 
+  /** Required relation with `TeacherWorkload` */
   public getWorkloadList() {
-    return this.teacherWorkloadList.map(
-      (teacherWorkload) => teacherWorkload.workload
-    )
+    if (isNil(this.teacherWorkloadList))
+      throw new RelationError('TeacherWorkload')
+
+    return this.teacherWorkloadList.map((tw) => tw.workload)
   }
 
   public filterTeacherWorkloadList(
