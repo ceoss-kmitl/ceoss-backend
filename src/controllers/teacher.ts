@@ -28,7 +28,7 @@ import { IGetTeacherWorkloadQuery } from './types/workload'
 @JsonController()
 export class TeacherController {
   // ==================
-  // Relations Endpoint
+  // Teacher x Workload
   // ==================
 
   @Get('/teacher/:id/workload')
@@ -55,35 +55,35 @@ export class TeacherController {
       })
     }
 
-    for (const workload of teacher.getWorkloadList()) {
-      const thisDay = result[workload.dayOfWeek - 1]
-      const { subject, room } = workload
-      const teacherListOfThisWorkload = workload.teacherWorkloadList.map(
+    for (const _workload of teacher.getWorkloadList()) {
+      const thisDay = result[_workload.dayOfWeek - 1]
+      const { subject, room } = _workload
+      const teacherListOfThisWorkload = _workload.teacherWorkloadList.map(
         (tw) => ({
           teacherId: tw.teacher.id,
           weekCount: tw.weekCount,
           isClaim: tw.isClaim,
         })
       )
-      const isThisTeacherClaimThisWorkload = workload.teacherWorkloadList.some(
+      const isThisTeacherClaimThisWorkload = _workload.teacherWorkloadList.some(
         (tw) => tw.teacher.id === id && tw.isClaim
       )
 
       thisDay.workloadList.push({
-        id: workload.id,
+        id: _workload.id,
         roomId: room?.id,
         subjectId: subject.id,
         code: subject.code,
         name: subject.name,
-        section: workload.section,
-        type: workload.type,
-        fieldOfStudy: workload.fieldOfStudy,
-        degree: workload.degree,
-        classYear: workload.classYear,
-        dayOfWeek: workload.dayOfWeek,
-        startSlot: workload.getFirstTimeSlot(),
-        endSlot: workload.getLastTimeSlot(),
-        timeList: workload.getTimeStringList(),
+        section: _workload.section,
+        type: _workload.type,
+        fieldOfStudy: _workload.fieldOfStudy,
+        degree: _workload.degree,
+        classYear: _workload.classYear,
+        dayOfWeek: _workload.dayOfWeek,
+        startSlot: _workload.getFirstTimeSlot(),
+        endSlot: _workload.getLastTimeSlot(),
+        timeList: _workload.getTimeStringList(),
         teacherList: teacherListOfThisWorkload,
         isClaim: isThisTeacherClaimThisWorkload,
       })

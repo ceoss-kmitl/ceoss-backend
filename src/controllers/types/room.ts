@@ -8,6 +8,12 @@ import {
   Matches,
 } from 'class-validator'
 
+import { IAcademicTime } from './common'
+
+// ============
+// Request type
+// ============
+
 export class ICreateRoom {
   @Transform(({ value }) => value?.trim())
   @IsString()
@@ -28,15 +34,7 @@ export class IEditRoom {
   capacity?: number
 }
 
-export class IGetRoomWorkloadQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
+export class IGetRoomWorkloadQuery extends IAcademicTime {}
 
 export class IAssignWorkloadToRoom {
   @IsArray()
@@ -95,3 +93,7 @@ export class IGetAvailableRoomCompensated {
   @IsString()
   endTime: string
 }
+
+// =============
+// Response type
+// =============

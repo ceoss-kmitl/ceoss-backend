@@ -11,7 +11,7 @@ import {
 } from 'routing-controllers'
 import { Response } from 'express'
 import { In, IsNull, Not } from 'typeorm'
-import { isNil, merge, omitBy } from 'lodash'
+import { isNil, merge, omitBy, uniq } from 'lodash'
 
 import {
   IAssignWorkloadToRoom,
@@ -39,6 +39,7 @@ import { NotFoundError } from '@errors/notFoundError'
 import { BadRequestError } from '@errors/badRequestError'
 
 import { generateRoomExcel } from './templates/roomExcel'
+import { IGetTeacherWorkloadResponse } from './types/teacher'
 
 @JsonController()
 export class RoomController {
@@ -148,157 +149,6 @@ export class RoomController {
   //         roomName: room.name,
   //       }))
   //   }
-
-  @Get('/room/:id/workload')
-  @ValidateQuery(IGetRoomWorkloadQuery)
-  async getRoomWorkload(
-    @Param('id') id: string,
-    @QueryParams() query: IGetRoomWorkloadQuery
-  ) {
-    const { academic_year, semester } = query
-
-    const room = await Room.createQueryBuilder('room')
-      .leftJoinAndSelect(
-        'room.workloadList',
-        'workloadList',
-        'workloadList.academicYear = :academic_year AND workloadList.semester = :semester',
-        { academic_year, semester }
-      )
-      .leftJoinAndSelect('workloadList.subject', 'subject')
-      .leftJoinAndSelect('workloadList.timeList', 'timeList')
-      .leftJoinAndSelect(
-        'workloadList.teacherWorkloadList',
-        'teacherWorkloadList'
-      )
-      .leftJoinAndSelect('teacherWorkloadList.teacher', 'teacher')
-      .leftJoinAndSelect('teacherWorkloadList.workload', 'workload')
-      .where('room.id = :id', { id })
-      .getOne()
-
-    if (!room)
-      throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
-
-    const result = [] as {
-      workloadList: {
-        id: string
-        subjectId: string
-        code: string
-        name: string
-        section: number
-        type: WorkloadType
-        fieldOfStudy: string
-        degree: Degree
-        classYear: number
-        dayOfWeek: DayOfWeek
-        startSlot: number
-        endSlot: number
-        timeList: { start: string; end: string }[]
-        teacherList: {
-          teacherId: string
-          weekCount: number
-          isClaim: boolean
-        }[]
-        isClaim: boolean
-      }[]
-    }[]
-
-    for (let day = DayOfWeek.MONDAY; day <= DayOfWeek.SUNDAY; day++) {
-      result.push({
-        workloadList: [],
-      })
-    }
-
-    for (const workload of room.workloadList) {
-      const thatDay = result[workload.dayOfWeek - 1]
-      const { subject } = workload
-
-      thatDay.workloadList.push({
-        id: workload.id,
-        subjectId: subject.id,
-        code: subject.code,
-        name: subject.name,
-        section: workload.section,
-        type: workload.type,
-        fieldOfStudy: workload.fieldOfStudy,
-        degree: workload.degree,
-        classYear: workload.classYear,
-        dayOfWeek: workload.dayOfWeek,
-        startSlot: workload.getFirstTimeSlot(),
-        endSlot: workload.getLastTimeSlot(),
-        timeList: workload.timeList.map((time) => ({
-          start: mapTimeSlotToTime(time.startSlot),
-          end: mapTimeSlotToTime(time.endSlot + 1),
-        })),
-        teacherList: workload.getTeacherList().map((teacher) => ({
-          teacherId: teacher.id,
-          weekCount: workload.getWeekCount(teacher.id),
-          isClaim: workload.getIsClaim(teacher.id),
-        })),
-        isClaim: true,
-      })
-    }
-
-    return result
-  }
-
-  @Post('/room/:id/workload')
-  @ValidateBody(IAssignWorkloadToRoom)
-  async assignWorkloadToRoom(
-    @Param('id') id: string,
-    @Body() body: IAssignWorkloadToRoom
-  ) {
-    const { workloadIdList } = body
-    const uniqueWorkloadIdList = [...new Set(workloadIdList)]
-
-    const room = await Room.findOne({
-      where: { id },
-      relations: ['workloadList'],
-    })
-    if (!room)
-      throw new NotFoundError('ไม่พบห้องดังกล่าว', [`Room ${id} is not found`])
-
-    const workloadList = await Workload.find({
-      where: { id: In(uniqueWorkloadIdList || []) },
-    })
-    if (uniqueWorkloadIdList.length !== workloadList.length) {
-      throw new NotFoundError('ไม่พบภาระงานบางส่วน', [
-        `Some of workload is not found`,
-      ])
-    }
-    room.workloadList = [...room.workloadList, ...workloadList]
-
-    await room.save()
-    return 'Workload assigned to room'
-  }
-
-  @Delete('/room/:roomId/workload/:workloadId')
-  @ValidateBody(IAssignWorkloadToRoom)
-  async unAssignWorkloadFromRoom(
-    @Param('roomId') roomId: string,
-    @Param('workloadId') workloadId: string
-  ) {
-    const room = await Room.findOne({
-      where: { id: roomId },
-      relations: ['workloadList'],
-    })
-    if (!room)
-      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
-        `Room ${roomId} is not found`,
-      ])
-
-    const workload = await Workload.findOne({ where: { id: workloadId } })
-    if (!workload)
-      throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
-        `Workload ${workloadId} is not found`,
-      ])
-
-    room.workloadList = room.workloadList.filter(
-      (workload) => workload.id !== workloadId
-    )
-
-    await room.save()
-    return 'Workload un-assigned from room'
-  }
 
   @Get('/room/auto-assign')
   async autoAssignWorkloadToRoom(
@@ -460,6 +310,128 @@ export class RoomController {
     return 'Reset room workload'
   }
 
+  // ===============
+  // Room x Workload
+  // ===============
+
+  @Get('/room/:id/workload')
+  @ValidateQuery(IGetRoomWorkloadQuery)
+  async getRoomWorkload(
+    @Param('id') id: string,
+    @QueryParams() query: IGetRoomWorkloadQuery
+  ) {
+    const { academicYear, semester } = query
+
+    const room = await Room.findOneByIdAndJoinWorkload(id, {
+      academicYear,
+      semester,
+    })
+    if (!room)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${id}) is not found`,
+      ])
+
+    const result: IGetTeacherWorkloadResponse[] = []
+    for (let day = DayOfWeek.MONDAY; day <= DayOfWeek.SUNDAY; day++) {
+      result.push({
+        workloadList: [],
+      })
+    }
+
+    for (const _workload of room.workloadList) {
+      const thisDay = result[_workload.dayOfWeek - 1]
+      const { subject, room } = _workload
+      const teacherListOfThisWorkload = _workload.teacherWorkloadList.map(
+        (tw) => ({
+          teacherId: tw.teacher.id,
+          weekCount: tw.weekCount,
+          isClaim: tw.isClaim,
+        })
+      )
+
+      thisDay.workloadList.push({
+        id: _workload.id,
+        roomId: room?.id,
+        subjectId: subject.id,
+        code: subject.code,
+        name: subject.name,
+        section: _workload.section,
+        type: _workload.type,
+        fieldOfStudy: _workload.fieldOfStudy,
+        degree: _workload.degree,
+        classYear: _workload.classYear,
+        dayOfWeek: _workload.dayOfWeek,
+        startSlot: _workload.getFirstTimeSlot(),
+        endSlot: _workload.getLastTimeSlot(),
+        timeList: _workload.getTimeStringList(),
+        teacherList: teacherListOfThisWorkload,
+        isClaim: true,
+      })
+    }
+
+    return result
+  }
+
+  @Post('/room/:id/workload')
+  @ValidateBody(IAssignWorkloadToRoom)
+  async assignWorkloadToRoom(
+    @Param('id') id: string,
+    @Body() body: IAssignWorkloadToRoom
+  ) {
+    const room = await Room.findOne({
+      where: { id },
+      relations: ['workloadList'],
+    })
+    if (!room)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${id}) is not found`,
+      ])
+
+    const uniqueWorkloadIdList = uniq(body.workloadIdList)
+    const workloadList = await Workload.find({
+      where: { id: In(uniqueWorkloadIdList) },
+    })
+    if (uniqueWorkloadIdList.length !== workloadList.length)
+      throw new NotFoundError('ไม่พบภาระงานบางส่วน', [
+        `Some Workload id(${uniqueWorkloadIdList.join(', ')}) is not found`,
+      ])
+
+    room.workloadList.push(...workloadList)
+
+    await room.save()
+    return 'Workload assigned to room'
+  }
+
+  @Delete('/room/:roomId/workload/:workloadId')
+  async unAssignWorkloadFromRoom(
+    @Param('roomId') roomId: string,
+    @Param('workloadId') workloadId: string
+  ) {
+    const room = await Room.findOne({
+      where: { id: roomId },
+      relations: ['workloadList'],
+    })
+    if (!room)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${roomId}) is not found`,
+      ])
+
+    const workload = await Workload.findOne({
+      where: { id: workloadId },
+    })
+    if (!workload)
+      throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
+        `Workload id(${workloadId}) is not found`,
+      ])
+
+    room.workloadList = room.workloadList.filter(
+      (workload) => workload.id !== workloadId
+    )
+
+    await room.save()
+    return 'Workload un-assigned from room'
+  }
+
   // =============
   // CRUD Endpoint
   // =============
@@ -483,9 +455,8 @@ export class RoomController {
         `Room name(${body.name}) already exists`,
       ])
 
-    const payload = omitBy(body, isNil)
     const room = new Room()
-    merge(room, payload)
+    merge(room, body)
 
     await room.save()
     return 'Room created'
