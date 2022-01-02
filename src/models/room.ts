@@ -40,11 +40,17 @@ export class Room extends BaseEntity {
 
   static async findOneByIdAndJoinWorkload(
     id: string,
-    { academicYear, semester }: IAcademicTime
+    {
+      academicYear,
+      semester,
+      compensation,
+    }: IAcademicTime & { compensation?: boolean }
   ) {
     const room = await this.findOne({
       relations: [
         'workloadList',
+        'workloadList.compensationFrom',
+        'workloadList.room',
         'workloadList.subject',
         'workloadList.timeList',
         'workloadList.teacherWorkloadList',
@@ -60,7 +66,37 @@ export class Room extends BaseEntity {
           workload.academicYear === academicYear &&
           workload.semester === semester
       )
+      if (compensation !== undefined) {
+        room.workloadList = compensation
+          ? room.workloadList.filter((workload) => workload.compensationFrom)
+          : room.workloadList.filter((workload) => !workload.compensationFrom)
+      }
     }
     return room
+  }
+
+  static async findManyAndJoinWorkload({
+    academicYear,
+    semester,
+  }: IAcademicTime) {
+    const roomList = await this.find({
+      relations: [
+        'workloadList',
+        'workloadList.subject',
+        'workloadList.timeList',
+        'workloadList.teacherWorkloadList',
+        'workloadList.teacherWorkloadList.workload',
+        'workloadList.teacherWorkloadList.teacher',
+      ],
+    })
+
+    roomList.forEach((room) => {
+      room.workloadList = room.workloadList.filter(
+        (workload) =>
+          workload.academicYear === academicYear &&
+          workload.semester === semester
+      )
+    })
+    return roomList
   }
 }

@@ -31,10 +31,10 @@ export class Workload extends BaseEntity {
   degree: Degree
 
   @Column({ type: 'timestamptz', nullable: true })
-  compensationFromDate: Date
+  compensationFromDate?: Date
 
   @Column({ type: 'timestamptz', nullable: true })
-  compensationDate: Date
+  compensationDate?: Date
 
   @Column()
   academicYear: number
@@ -71,7 +71,9 @@ export class Workload extends BaseEntity {
   })
   teacherWorkloadList: TeacherWorkload[]
 
-  @ManyToOne(() => Workload, (workload) => workload.compensationList)
+  @ManyToOne(() => Workload, (workload) => workload.compensationList, {
+    onDelete: 'CASCADE',
+  })
   compensationFrom: Workload
 
   @OneToMany(() => Workload, (workload) => workload.compensationFrom)
@@ -85,6 +87,10 @@ export class Workload extends BaseEntity {
   private beforeInsert() {
     this.id = nanoid(10)
   }
+
+  // ===============
+  // Static function
+  // ===============
 
   // ===============
   // Public function

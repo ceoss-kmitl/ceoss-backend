@@ -1,7 +1,8 @@
 import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
-  IsDateString,
+  IsBoolean,
+  IsDate,
   IsNumber,
   IsOptional,
   IsString,
@@ -10,9 +11,9 @@ import {
 
 import { IAcademicTime } from './common'
 
-// ============
-// Request type
-// ============
+// =========
+// CRUD type
+// =========
 
 export class ICreateRoom {
   @Transform(({ value }) => value?.trim())
@@ -34,7 +35,12 @@ export class IEditRoom {
   capacity?: number
 }
 
-export class IGetRoomWorkloadQuery extends IAcademicTime {}
+export class IGetRoomWorkloadQuery extends IAcademicTime {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  compensation?: boolean
+}
 
 export class IAssignWorkloadToRoom {
   @IsArray()
@@ -73,17 +79,14 @@ export class IGetRoomExcelQuery {
   semester: number
 }
 
-export class IGetAvailableRoomCompensated {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
+// ===============
+// Room x Workload
+// ===============
 
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-
-  @IsDateString()
-  compensatedDate: string
+export class IGetAvailableRoom extends IAcademicTime {
+  @Type(() => Date)
+  @IsDate()
+  compensatedDate: Date
 
   @Matches(/\d\d\:\d\d/)
   @IsString()
@@ -93,7 +96,3 @@ export class IGetAvailableRoomCompensated {
   @IsString()
   endTime: string
 }
-
-// =============
-// Response type
-// =============

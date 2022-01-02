@@ -3,6 +3,8 @@ import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
+  IsDate,
+  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -12,16 +14,47 @@ import {
 
 import { IAcademicTime } from './common'
 
+export class ICreateCompensationWorkloadBody {
+  @IsString()
+  @IsOptional()
+  roomId?: string
+
+  @Type(() => Date)
+  @IsDate()
+  originalDate: Date
+
+  @Type(() => Date)
+  @IsDate()
+  compensatedDate: Date
+
+  @IsArray({ each: true })
+  compensatedTimeList: string[][]
+}
+
 // ============
 // Request type
 // ============
 
-export class IGetTeacherWorkloadQuery extends IAcademicTime {}
+export class IGetTeacherWorkloadQuery extends IAcademicTime {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  compensation?: boolean
+}
 
 export class IGetWorkloadQuery extends IAcademicTime {
   @IsString()
   @IsOptional()
   room?: string
+
+  @IsString()
+  @IsOptional()
+  subject?: string
+
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  compensation?: boolean
 }
 
 class ITeacherList {

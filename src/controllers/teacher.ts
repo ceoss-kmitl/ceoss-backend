@@ -37,11 +37,12 @@ export class TeacherController {
     @Param('id') id: string,
     @QueryParams() query: IGetTeacherWorkloadQuery
   ) {
-    const { academicYear, semester } = query
+    const { academicYear, semester, compensation } = query
 
     const teacher = await Teacher.findOneByIdAndJoinWorkload(id, {
       academicYear,
       semester,
+      compensation,
     })
     if (!teacher)
       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
@@ -56,7 +57,7 @@ export class TeacherController {
     }
 
     for (const _workload of teacher.getWorkloadList()) {
-      const thisDay = result[_workload.dayOfWeek - 1]
+      const thisDay = result[_workload.dayOfWeek]
       const { subject, room } = _workload
       const teacherListOfThisWorkload = _workload.teacherWorkloadList.map(
         (tw) => ({

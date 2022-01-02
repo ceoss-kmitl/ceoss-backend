@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
+  IsDate,
   IsDateString,
   IsNumber,
   IsNumberString,
@@ -9,6 +10,37 @@ import {
   IsString,
   Length,
 } from 'class-validator'
+
+import { IAcademicTime } from './common'
+
+// ==================
+// Subject x Workload
+// ==================
+
+export class IGetSubjectCompensationWorkloadQuery extends IAcademicTime {}
+
+export class ICreateSubjectCompensationWorkloadBody {
+  @IsString()
+  @IsOptional()
+  roomId?: string
+
+  @IsString()
+  originalWorkloadId: string
+
+  @IsDateString()
+  originalDate: string
+
+  @Type(() => Date)
+  @IsDate()
+  compensatedDate: Date
+
+  @IsArray({ each: true })
+  compensatedTimeList: string[][]
+}
+
+// =========
+// CRUD type
+// =========
 
 export class ICreateSubject {
   @Transform(({ value }) => value?.trim())
@@ -86,41 +118,4 @@ export class IEditSubject {
   @IsBoolean()
   @IsOptional()
   isInter?: boolean
-}
-
-export class IGetSubjectCompensatedQuery {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
-}
-
-export class IPostSubjectCompensatedBody {
-  @IsNumber()
-  section: number
-
-  @IsNumber()
-  academicYear: number
-
-  @IsNumber()
-  semester: number
-
-  @IsString()
-  @IsOptional()
-  roomId?: string
-
-  @IsDateString()
-  originalDate: string
-
-  @IsArray({ each: true })
-  originalTimeList: string[][]
-
-  @IsDateString()
-  compensatedDate: string
-
-  @IsArray({ each: true })
-  compensatedTimeList: string[][]
 }

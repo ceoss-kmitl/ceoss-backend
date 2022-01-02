@@ -74,4 +74,11 @@ export class Time extends BaseEntity {
     const slot = Math.floor(totalMinute / 15) + 1
     return slot
   }
+
+  static createFromTimeString(startTime: string, endTime: string) {
+    return Time.create({
+      startSlot: Time.fromTimeString(startTime),
+      endSlot: Time.fromTimeString(endTime) - 1,
+    })
+  }
 }

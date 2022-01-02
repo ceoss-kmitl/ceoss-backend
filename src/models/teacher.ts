@@ -55,12 +55,17 @@ export class Teacher extends BaseEntity {
 
   static async findOneByIdAndJoinWorkload(
     id: string,
-    { academicYear, semester }: IAcademicTime
+    {
+      academicYear,
+      semester,
+      compensation,
+    }: IAcademicTime & { compensation?: boolean }
   ) {
     const teacher = await this.findOne({
       relations: [
         'teacherWorkloadList',
         'teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.compensationFrom',
         'teacherWorkloadList.workload.room',
         'teacherWorkloadList.workload.subject',
         'teacherWorkloadList.workload.timeList',
@@ -76,6 +81,15 @@ export class Teacher extends BaseEntity {
           tw.workload?.academicYear === academicYear &&
           tw.workload?.semester === semester
       )
+      if (compensation !== undefined) {
+        teacher.teacherWorkloadList = compensation
+          ? teacher.teacherWorkloadList.filter(
+              (tw) => tw.workload.compensationFrom
+            )
+          : teacher.teacherWorkloadList.filter(
+              (tw) => !tw.workload.compensationFrom
+            )
+      }
     }
     return teacher
   }

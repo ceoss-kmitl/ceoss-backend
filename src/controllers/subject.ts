@@ -8,108 +8,71 @@ import {
   Put,
   QueryParams,
 } from 'routing-controllers'
-import { isNil, merge, omitBy } from 'lodash'
+import { chain, isNil, merge, omitBy } from 'lodash'
 import { Not } from 'typeorm'
 
-import {
-  ICreateSubject,
-  IEditSubject,
-  IGetSubjectCompensatedQuery,
-  IPostSubjectCompensatedBody,
-} from '@controllers/types/subject'
 import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
+import { ValidateBody, ValidateQuery } from '@middlewares/validator'
+import { BadRequestError } from '@errors/badRequestError'
+import { NotFoundError } from '@errors/notFoundError'
 import { Subject } from '@models/subject'
 import { Workload } from '@models/workload'
 import { Room } from '@models/room'
 import { Time } from '@models/time'
-import { ValidateBody, ValidateQuery } from '@middlewares/validator'
-import { BadRequestError } from '@errors/badRequestError'
-import { NotFoundError } from '@errors/notFoundError'
+
+import {
+  ICreateSubject,
+  ICreateSubjectCompensationWorkloadBody,
+  IEditSubject,
+  IGetSubjectCompensationWorkloadQuery,
+} from './types/subject'
 
 @JsonController()
 export class SubjectController {
-  //   @Get('/subject/:subjectId/compensated')
-  //   @ValidateQuery(IGetSubjectCompensatedQuery)
-  //   async getSubjectCompensatedHistory(
-  //     @Param('subjectId') subjectId: string,
-  //     @QueryParams() query: IGetSubjectCompensatedQuery
-  //   ) {
-  //     const { academic_year, semester } = query
+  // ==================
+  // Subject x Workload
+  // ==================
 
-  //     const subject = await Subject.createQueryBuilder('subject')
-  //       .leftJoinAndSelect(
-  //         'subject.workloadList',
-  //         'workloadList',
-  //         'workloadList.academicYear = :academic_year AND workloadList.semester = :semester',
-  //         { academic_year, semester }
-  //       )
-  //       .leftJoinAndSelect('workloadList.compensatedList', 'compensatedList')
-  //       .leftJoinAndSelect('compensatedList.compensatedRoom', 'compensatedRoom')
-  //       .leftJoinAndSelect('compensatedList.originalTimeList', 'originalTimeList')
-  //       .leftJoinAndSelect(
-  //         'compensatedList.compensatedTimeList',
-  //         'compensatedTimeList'
-  //       )
-  //       .where('subject.id = :subjectId', { subjectId })
-  //       .orderBy('workloadList.section', 'ASC')
-  //       .getOne()
-  //     if (!subject)
-  //       throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
-  //         `Subject ${subjectId} is not found`,
-  //       ])
+  @Get('/subject/:id/compensation-workload')
+  @ValidateQuery(IGetSubjectCompensationWorkloadQuery)
+  async getSubjectCompensatedHistory(
+    @Param('id') id: string,
+    @QueryParams() query: IGetSubjectCompensationWorkloadQuery
+  ) {
+    const { academicYear, semester } = query
 
-  //     const workloadGroupBySection: {
-  //       section: number
-  //       compensatedList: Compensated[]
-  //     }[] = []
-  //     for (const workload of subject.workloadList) {
-  //       const listIndex = workloadGroupBySection.findIndex(
-  //         (w) => w.section === workload.section
-  //       )
-  //       // New section
-  //       if (listIndex === -1) {
-  //         workloadGroupBySection.push({
-  //           section: workload.section,
-  //           compensatedList: [...workload.compensatedList],
-  //         })
-  //       } else {
-  //         workloadGroupBySection[listIndex].compensatedList.push(
-  //           ...workload.compensatedList
-  //         )
-  //       }
-  //     }
+    const subject = await Subject.findOneByIdAndJoinWorkload(id, {
+      academicYear,
+      semester,
+    })
+    if (!subject)
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject id(${id}) is not found`,
+      ])
 
-  //     return workloadGroupBySection.map((w) => ({
-  //       section: w.section,
-  //       compensatedList: w.compensatedList.map((c) => ({
-  //         compensatedId: c.id,
-  //         originalDate: new Date(c.originalDate).toLocaleDateString('th-TH', {
-  //           weekday: 'long',
-  //           day: 'numeric',
-  //           month: 'long',
-  //           year: 'numeric',
-  //         }),
-  //         originalTimeList: c.originalTimeList.map((t) => ({
-  //           start: mapTimeSlotToTime(t.startSlot),
-  //           end: mapTimeSlotToTime(t.endSlot + 1),
-  //         })),
-  //         compensatedDate: new Date(c.compensatedDate).toLocaleDateString(
-  //           'th-TH',
-  //           {
-  //             weekday: 'long',
-  //             day: 'numeric',
-  //             month: 'long',
-  //             year: 'numeric',
-  //           }
-  //         ),
-  //         compensatedTimeList: c.compensatedTimeList.map((t) => ({
-  //           start: mapTimeSlotToTime(t.startSlot),
-  //           end: mapTimeSlotToTime(t.endSlot + 1),
-  //         })),
-  //         room: c.compensatedRoom?.name || 'ไม่มี',
-  //       })),
-  //     }))
-  //   }
+    const compensationWorkloadGroupBySection = chain(subject.workloadList)
+      .groupBy((workload) => workload.section)
+      .mapValues((workloadList) =>
+        workloadList.filter((w) => w.compensationDate)
+      )
+      .value()
+    const result = Object.entries(compensationWorkloadGroupBySection).map(
+      ([section, workloadList]) => ({
+        section: Number(section),
+        compensatedList: workloadList.map((w) => ({
+          compensatedId: w.id,
+          originalDate: w.compensationFromDate,
+          originalTimeList: w.compensationFrom.getTimeStringList(),
+          compensatedDate: w.compensationDate,
+          compensatedTimeList: w.getTimeStringList(),
+          originalRoom: w.compensationFrom.room?.name,
+          compensatedRoom: w.room?.name,
+        })),
+      })
+    )
+
+    return result
+  }
 
   //   @Delete('/subject/compensated/:compensatedId')
   //   async deleteSubjectCompensated(

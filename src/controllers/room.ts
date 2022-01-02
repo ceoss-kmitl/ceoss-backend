@@ -12,6 +12,22 @@ import {
 import { Response } from 'express'
 import { In, IsNull, Not } from 'typeorm'
 import { isNil, merge, omitBy, uniq } from 'lodash'
+import dayjs from 'dayjs'
+
+import {
+  mapDateToDayOfWeek,
+  mapTimeSlotToTime,
+  mapTimeToTimeSlot,
+} from '@libs/mapper'
+import { Excel } from '@libs/Excel'
+import { isSameDay } from '@libs/utils'
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
+import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from '@constants/room'
+import { ValidateBody, ValidateQuery } from '@middlewares/validator'
+import { NotFoundError } from '@errors/notFoundError'
+import { BadRequestError } from '@errors/badRequestError'
+import { Room } from '@models/room'
+import { Workload } from '@models/workload'
 
 import {
   IAssignWorkloadToRoom,
@@ -19,27 +35,13 @@ import {
   ICreateRoom,
   IEditRoom,
   IGetRoomExcelQuery,
-  IGetAvailableRoomCompensated,
+  IGetAvailableRoom,
   IGetRoomWorkloadQuery,
   IResetRoomWorkloadQuery,
-} from '@controllers/types/room'
-import {
-  mapDateToDayOfWeek,
-  mapTimeSlotToTime,
-  mapTimeToTimeSlot,
-} from '@libs/mapper'
-import { Room } from '@models/room'
-import { Workload } from '@models/workload'
-import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
-import { Excel } from '@libs/Excel'
-import { isSameDay } from '@libs/utils'
-import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from '@constants/room'
-import { ValidateBody, ValidateQuery } from '@middlewares/validator'
-import { NotFoundError } from '@errors/notFoundError'
-import { BadRequestError } from '@errors/badRequestError'
-
+} from './types/room'
 import { generateRoomExcel } from './templates/roomExcel'
 import { IGetTeacherWorkloadResponse } from './types/teacher'
+import { Time } from '@models/time'
 
 @JsonController()
 export class RoomController {
@@ -77,41 +79,117 @@ export class RoomController {
     return file
   }
 
-  //   @Get('/room/available/compensated')
-  //   @ValidateQuery(IGetAvailableRoomCompensated)
-  //   async getAvailableRoomForCompensated(
-  //     @QueryParams() query: IGetAvailableRoomCompensated
+  // ===============
+  // Room x Workload
+  // ===============
+
+  @Get('/room/available-workload')
+  @ValidateQuery(IGetAvailableRoom)
+  async getAvailableRoomForThisWorkload(
+    @QueryParams() query: IGetAvailableRoom
+  ) {
+    const { academicYear, semester, compensatedDate, startTime, endTime } =
+      query
+
+    const roomList = await Room.findManyAndJoinWorkload({
+      academicYear,
+      semester,
+    })
+
+    return roomList
+      .filter((room) => {
+        const date = dayjs(compensatedDate)
+        const start = Time.fromTimeString(startTime)
+        const end = Time.fromTimeString(endTime) - 1
+
+        const hasTimeOverlap = room.workloadList.some((_workload) => {
+          const _start = _workload.getFirstTimeSlot()
+          const _end = _workload.getLastTimeSlot()
+          const isSameDay = _workload.compensationDate
+            ? dayjs(_workload.compensationDate).isSame(date, 'day')
+            : date.weekday() === _workload.dayOfWeek
+          return isSameDay && start <= _end && end >= _start
+        })
+
+        return !hasTimeOverlap
+      })
+      .map((room) => ({
+        roomId: room.id,
+        roomName: room.name,
+      }))
+      .sort((a, b) => a.roomName.localeCompare(b.roomName))
+  }
+
+  //   @Get('/room/auto-assign')
+  //   async autoAssignWorkloadToRoom(
+  //     @QueryParams() query: IAutoAssignWorkloadToRoomQuery
   //   ) {
-  //     const { academic_year, semester, compensatedDate, startTime, endTime } =
-  //       query
+  //     const { academic_year, semester } = query
 
-  //     const roomList = await Room.createQueryBuilder('room')
-  //       .leftJoinAndSelect(
-  //         'room.workloadList',
-  //         'workloadList',
-  //         'workloadList.academicYear = :academic_year AND workloadList.semester = :semester',
-  //         { academic_year, semester }
-  //       )
-  //       .leftJoinAndSelect('room.compensatedList', 'compensatedList')
-  //       .leftJoinAndSelect(
-  //         'compensatedList.compensatedTimeList',
-  //         'compensatedTimeList'
-  //       )
-  //       .leftJoinAndSelect('workloadList.timeList', 'timeList')
-  //       .orderBy('room.name', 'ASC')
-  //       .getMany()
+  //     /**
+  //      * === Auto assign logic ===
+  //      * 1. Filter out subject that doesn't need room
+  //      * 2. Assign workload to room first priority by `constant`
+  //      * 3. Assign remaining workload to any room that fit
+  //      */
+  //     let workloadList = await Workload.find({
+  //       relations: [
+  //         'room',
+  //         'subject',
+  //         'timeList',
+  //         'teacherWorkloadList',
+  //         'teacherWorkloadList.teacher',
+  //         'teacherWorkloadList.workload',
+  //       ],
+  //       where: {
+  //         academicYear: academic_year,
+  //         semester,
+  //         room: IsNull(),
+  //         subject: Not(IsNull()),
+  //       },
+  //     })
 
-  //     return roomList
-  //       .filter((room) => {
+  //     // Step 1: Filter out subject that doesn't need room
+  //     workloadList = workloadList.filter(
+  //       (workload) => !SUBJECT_NO_ROOM.includes(workload.subject.code)
+  //     )
+
+  //     // Step 2: Assign workload to room first priority by `constant`
+  //     for (const { roomName, teacherNameList } of ROOM_TEACHER_PAIR) {
+  //       const room = await Room.findOne({
+  //         relations: [
+  //           'workloadList',
+  //           'workloadList.timeList',
+  //           'workloadList.teacherWorkloadList',
+  //           'workloadList.teacherWorkloadList.teacher',
+  //           'workloadList.teacherWorkloadList.workload',
+  //         ],
+  //         where: { name: roomName },
+  //       })
+  //       if (!room) continue
+  //       room.workloadList = room.workloadList.filter(
+  //         (workload) =>
+  //           workload.academicYear === academic_year &&
+  //           workload.semester === semester
+  //       )
+
+  //       for (const workload of workloadList) {
+  //         const foundAllTeacher = workload
+  //           .getTeacherList()
+  //           .every((teacher) => teacherNameList.includes(teacher.name))
+  //         if (!foundAllTeacher) continue
+
+  //         // Room found & Teacher list found!
+  //         // Check if can assign workload to that room
   //         let isTimeOverlap = false
   //         for (const roomWorkload of room.workloadList) {
   //           const roomWorkloadDay = roomWorkload.dayOfWeek
   //           const roomWorkloadStart = roomWorkload.getFirstTimeSlot()
   //           const roomWorkloadEnd = roomWorkload.getLastTimeSlot()
 
-  //           const workloadDay = mapDateToDayOfWeek(new Date(compensatedDate))
-  //           const workloadStart = mapTimeToTimeSlot(startTime)
-  //           const workloadEnd = mapTimeToTimeSlot(endTime) - 1
+  //           const workloadDay = workload.dayOfWeek
+  //           const workloadStart = workload.getFirstTimeSlot()
+  //           const workloadEnd = workload.getLastTimeSlot()
 
   //           if (
   //             workloadDay === roomWorkloadDay &&
@@ -121,194 +199,86 @@ export class RoomController {
   //             isTimeOverlap = true
   //           }
   //         }
-  //         return !isTimeOverlap
-  //       })
-  //       .filter((room) => {
-  //         let isTimeOverlap = false
-  //         for (const compensated of room.compensatedList) {
-  //           const compensatedDay = new Date(compensated.compensatedDate)
-  //           const compensatedStart = compensated.getFirstCompensatedTimeSlot()
-  //           const compensatedEnd = compensated.getLastCompensatedTimeSlot()
+  //         // If can't assign skip then to next workload
+  //         if (isTimeOverlap) continue
 
-  //           const workloadDay = new Date(compensatedDate)
-  //           const workloadStart = mapTimeToTimeSlot(startTime)
-  //           const workloadEnd = mapTimeToTimeSlot(endTime) - 1
+  //         // Assign workload to that room
+  //         workload.room = room
+  //         await workload.save()
+  //       }
+  //     }
+
+  //     // Step 3: Assign remaining workload to any room that fit
+  //     workloadList = workloadList.filter((workload) => !workload.room)
+  //     for (const workload of workloadList) {
+  //       const roomList = await Room.find({
+  //         relations: [
+  //           'workloadList',
+  //           'workloadList.timeList',
+  //           'workloadList.teacherWorkloadList',
+  //           'workloadList.teacherWorkloadList.teacher',
+  //           'workloadList.teacherWorkloadList.workload',
+  //         ],
+  //         order: {
+  //           name: 'ASC',
+  //         },
+  //       })
+
+  //       // Search for room that fit with this workload
+  //       for (const room of roomList) {
+  //         room.workloadList = room.workloadList.filter(
+  //           (workload) =>
+  //             workload.academicYear === academic_year &&
+  //             workload.semester === semester
+  //         )
+
+  //         // Check if can assign workload to this room
+  //         let isTimeOverlap = false
+  //         for (const roomWorkload of room.workloadList) {
+  //           const roomWorkloadDay = roomWorkload.dayOfWeek
+  //           const roomWorkloadStart = roomWorkload.getFirstTimeSlot()
+  //           const roomWorkloadEnd = roomWorkload.getLastTimeSlot()
+
+  //           const workloadDay = workload.dayOfWeek
+  //           const workloadStart = workload.getFirstTimeSlot()
+  //           const workloadEnd = workload.getLastTimeSlot()
 
   //           if (
-  //             isSameDay(compensatedDay, workloadDay) &&
-  //             workloadStart <= compensatedEnd &&
-  //             workloadEnd >= compensatedStart
+  //             workloadDay === roomWorkloadDay &&
+  //             workloadStart <= roomWorkloadEnd &&
+  //             workloadEnd >= roomWorkloadStart
   //           ) {
   //             isTimeOverlap = true
   //           }
   //         }
-  //         return !isTimeOverlap
-  //       })
-  //       .map((room) => ({
-  //         roomId: room.id,
-  //         roomName: room.name,
-  //       }))
+  //         // If can't assign then skip to next room
+  //         if (isTimeOverlap) continue
+
+  //         // Assign workload to that room
+  //         workload.room = room
+  //         await workload.save()
+  //       }
+  //     }
+
+  //     return 'OK'
   //   }
 
-  @Get('/room/auto-assign')
-  async autoAssignWorkloadToRoom(
-    @QueryParams() query: IAutoAssignWorkloadToRoomQuery
-  ) {
-    const { academic_year, semester } = query
+  //   @Delete('/room/reset-assign')
+  //   async resetAllRoomWorkload(@QueryParams() query: IResetRoomWorkloadQuery) {
+  //     const { academic_year, semester } = query
 
-    /**
-     * === Auto assign logic ===
-     * 1. Filter out subject that doesn't need room
-     * 2. Assign workload to room first priority by `constant`
-     * 3. Assign remaining workload to any room that fit
-     */
-    let workloadList = await Workload.find({
-      relations: [
-        'room',
-        'subject',
-        'timeList',
-        'teacherWorkloadList',
-        'teacherWorkloadList.teacher',
-        'teacherWorkloadList.workload',
-      ],
-      where: {
-        academicYear: academic_year,
-        semester,
-        room: IsNull(),
-        subject: Not(IsNull()),
-      },
-    })
+  //     const roomList = await Room.find({ relations: ['workloadList'] })
+  //     for (const room of roomList) {
+  //       room.workloadList = room.workloadList.filter(
+  //         (workload) =>
+  //           workload.academicYear !== academic_year &&
+  //           workload.semester !== semester
+  //       )
+  //       await room.save()
+  //     }
 
-    // Step 1: Filter out subject that doesn't need room
-    workloadList = workloadList.filter(
-      (workload) => !SUBJECT_NO_ROOM.includes(workload.subject.code)
-    )
-
-    // Step 2: Assign workload to room first priority by `constant`
-    for (const { roomName, teacherNameList } of ROOM_TEACHER_PAIR) {
-      const room = await Room.findOne({
-        relations: [
-          'workloadList',
-          'workloadList.timeList',
-          'workloadList.teacherWorkloadList',
-          'workloadList.teacherWorkloadList.teacher',
-          'workloadList.teacherWorkloadList.workload',
-        ],
-        where: { name: roomName },
-      })
-      if (!room) continue
-      room.workloadList = room.workloadList.filter(
-        (workload) =>
-          workload.academicYear === academic_year &&
-          workload.semester === semester
-      )
-
-      for (const workload of workloadList) {
-        const foundAllTeacher = workload
-          .getTeacherList()
-          .every((teacher) => teacherNameList.includes(teacher.name))
-        if (!foundAllTeacher) continue
-
-        // Room found & Teacher list found!
-        // Check if can assign workload to that room
-        let isTimeOverlap = false
-        for (const roomWorkload of room.workloadList) {
-          const roomWorkloadDay = roomWorkload.dayOfWeek
-          const roomWorkloadStart = roomWorkload.getFirstTimeSlot()
-          const roomWorkloadEnd = roomWorkload.getLastTimeSlot()
-
-          const workloadDay = workload.dayOfWeek
-          const workloadStart = workload.getFirstTimeSlot()
-          const workloadEnd = workload.getLastTimeSlot()
-
-          if (
-            workloadDay === roomWorkloadDay &&
-            workloadStart <= roomWorkloadEnd &&
-            workloadEnd >= roomWorkloadStart
-          ) {
-            isTimeOverlap = true
-          }
-        }
-        // If can't assign skip then to next workload
-        if (isTimeOverlap) continue
-
-        // Assign workload to that room
-        workload.room = room
-        await workload.save()
-      }
-    }
-
-    // Step 3: Assign remaining workload to any room that fit
-    workloadList = workloadList.filter((workload) => !workload.room)
-    for (const workload of workloadList) {
-      const roomList = await Room.find({
-        relations: [
-          'workloadList',
-          'workloadList.timeList',
-          'workloadList.teacherWorkloadList',
-          'workloadList.teacherWorkloadList.teacher',
-          'workloadList.teacherWorkloadList.workload',
-        ],
-        order: {
-          name: 'ASC',
-        },
-      })
-
-      // Search for room that fit with this workload
-      for (const room of roomList) {
-        room.workloadList = room.workloadList.filter(
-          (workload) =>
-            workload.academicYear === academic_year &&
-            workload.semester === semester
-        )
-
-        // Check if can assign workload to this room
-        let isTimeOverlap = false
-        for (const roomWorkload of room.workloadList) {
-          const roomWorkloadDay = roomWorkload.dayOfWeek
-          const roomWorkloadStart = roomWorkload.getFirstTimeSlot()
-          const roomWorkloadEnd = roomWorkload.getLastTimeSlot()
-
-          const workloadDay = workload.dayOfWeek
-          const workloadStart = workload.getFirstTimeSlot()
-          const workloadEnd = workload.getLastTimeSlot()
-
-          if (
-            workloadDay === roomWorkloadDay &&
-            workloadStart <= roomWorkloadEnd &&
-            workloadEnd >= roomWorkloadStart
-          ) {
-            isTimeOverlap = true
-          }
-        }
-        // If can't assign then skip to next room
-        if (isTimeOverlap) continue
-
-        // Assign workload to that room
-        workload.room = room
-        await workload.save()
-      }
-    }
-
-    return 'OK'
-  }
-
-  @Delete('/room/reset-assign')
-  async resetAllRoomWorkload(@QueryParams() query: IResetRoomWorkloadQuery) {
-    const { academic_year, semester } = query
-
-    const roomList = await Room.find({ relations: ['workloadList'] })
-    for (const room of roomList) {
-      room.workloadList = room.workloadList.filter(
-        (workload) =>
-          workload.academicYear !== academic_year &&
-          workload.semester !== semester
-      )
-      await room.save()
-    }
-
-    return 'Reset room workload'
-  }
+  //     return 'Reset room workload'
+  //   }
 
   // ===============
   // Room x Workload
@@ -320,11 +290,12 @@ export class RoomController {
     @Param('id') id: string,
     @QueryParams() query: IGetRoomWorkloadQuery
   ) {
-    const { academicYear, semester } = query
+    const { academicYear, semester, compensation } = query
 
     const room = await Room.findOneByIdAndJoinWorkload(id, {
       academicYear,
       semester,
+      compensation,
     })
     if (!room)
       throw new NotFoundError('ไม่พบห้องดังกล่าว', [
@@ -339,7 +310,7 @@ export class RoomController {
     }
 
     for (const _workload of room.workloadList) {
-      const thisDay = result[_workload.dayOfWeek - 1]
+      const thisDay = result[_workload.dayOfWeek]
       const { subject, room } = _workload
       const teacherListOfThisWorkload = _workload.teacherWorkloadList.map(
         (tw) => ({

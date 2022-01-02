@@ -1,5 +1,5 @@
 import { Response } from 'express'
-import { IsNull } from 'typeorm'
+import { IsNull, Not } from 'typeorm'
 import {
   Body,
   Delete,
@@ -12,7 +12,8 @@ import {
   Res,
   UseBefore,
 } from 'routing-controllers'
-import { isNil, merge, omitBy } from 'lodash'
+import { isNil, merge, omit, omitBy } from 'lodash'
+import dayjs from 'dayjs'
 
 import { Excel } from '@libs/Excel'
 import { cloneClass } from '@libs/utils'
@@ -28,6 +29,7 @@ import { TeacherWorkload } from '@models/teacherWorkload'
 
 import {
   IBodyExcelExternal,
+  ICreateCompensationWorkloadBody,
   ICreateWorkload,
   IEditWorkload,
   IGetWorkloadExcel5Query,
@@ -161,6 +163,63 @@ export class WorkloadController {
     return file
   }
 
+  // ============
+  // Compensation
+  // ============
+
+  @Post('/workload/:id/compensation')
+  @ValidateBody(ICreateCompensationWorkloadBody)
+  async createCompensationWorkload(
+    @Param('id') id: string,
+    @Body() body: ICreateCompensationWorkloadBody
+  ) {
+    const { roomId, originalDate, compensatedDate, compensatedTimeList } = body
+
+    const workload = await Workload.findOne({
+      relations: [
+        'compensationFrom',
+        'timeList',
+        'room',
+        'subject',
+        'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
+      ],
+      where: { id },
+    })
+    if (!workload)
+      throw new NotFoundError('ไม่พบภาระงานที่จะชดเชย', [
+        `Workload id id(${id}) is not found`,
+      ])
+
+    const room = await Room.findOne({
+      where: { id: roomId },
+    })
+    if (!room && roomId)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${roomId}) is not found`,
+      ])
+
+    const compensationWorkload = Workload.create({
+      ...omit(workload, 'id'),
+      dayOfWeek: dayjs(compensatedDate).weekday(),
+      room,
+      compensationFrom: workload,
+      compensationFromDate: originalDate,
+      compensationDate: compensatedDate,
+      timeList: compensatedTimeList.map(([startTime, endTime]) =>
+        Time.createFromTimeString(startTime, endTime)
+      ),
+    })
+    compensationWorkload.teacherWorkloadList = workload.teacherWorkloadList.map(
+      (tw) => {
+        return TeacherWorkload.create({ ...tw, workload: compensationWorkload })
+      }
+    )
+
+    await TeacherWorkload.save(compensationWorkload.teacherWorkloadList)
+    return 'Compensation-Workload created'
+  }
+
   // =============
   // CRUD Endpoint
   // =============
@@ -170,13 +229,17 @@ export class WorkloadController {
   async getWorkload(@QueryParams() query: IGetWorkloadQuery) {
     const queryPayload = omitBy(
       {
-        ...query,
+        ...omit(query, ['compensation']),
         room: query.room === 'NULL' ? IsNull() : query.room,
+        compensationFrom: { true: Not(IsNull()), false: IsNull() }[
+          String(query.compensation)
+        ],
       },
       isNil
     )
     const workloadList = await Workload.find({
       relations: [
+        'compensationFrom',
         'room',
         'subject',
         'timeList',
@@ -189,6 +252,7 @@ export class WorkloadController {
 
     return workloadList.map((workload) => ({
       workloadId: workload.id,
+      roomId: workload.room?.id,
       subjectCode: workload.subject.code,
       subjectName: workload.subject.name,
       section: workload.section,
