@@ -1,33 +1,28 @@
+import { DayOfWeek, WorkloadType, Degree } from '@constants/common'
 import { Excel, PaperSize } from '@libs/Excel'
 import { mapTimeSlotToTime } from '@libs/mapper'
+import { NotFoundError } from '@errors/notFoundError'
+import { IDownloadExtTeacherWorkloadExcelQuery } from '@controllers/types/teacher'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { DayOfWeek, WorkloadType, Degree } from '@constants/common'
-import { IBodyExcelExternal } from '@controllers/types/workload'
-import { NotFoundError } from '@errors/notFoundError'
 
 export async function generateWorkloadExcel3External(
   excel: Excel,
   teacher: Teacher,
-  academicYear: number,
-  semester: number,
-  body: IBodyExcelExternal
+  query: IDownloadExtTeacherWorkloadExcelQuery
 ) {
-  teacher.teacherWorkloadList = teacher
-    .filterTeacherWorkloadList({
-      academicYear,
-      semester,
-    })
-    .sort(
-      (a, b) =>
-        a.workload.dayOfWeek - b.workload.dayOfWeek ||
-        a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
-    )
+  const { month, workloadList, academicYear, semester } = query
+
+  teacher.teacherWorkloadList = teacher.teacherWorkloadList.sort(
+    (a, b) =>
+      a.workload.dayOfWeek - b.workload.dayOfWeek ||
+      a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
+  )
 
   const setting = await Setting.get()
 
   // ===== Excel setup =====
-  excel.addSheet(`${body.month}`, {
+  excel.addSheet(`${month}`, {
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
@@ -170,7 +165,7 @@ export async function generateWorkloadExcel3External(
   excel.cell('L5').value('ทั่วไป').border('box').align('center')
   excel.cell('M5').value('นานาชาติ').border('box').align('center')
 
-  excel.cells('N3:T3').value(`เดือน${body.month}`).border('box').align('center')
+  excel.cells('N3:T3').value(`เดือน${month}`).border('box').align('center')
   {
     let week = 0
     for (const col of Excel.range('N:T')) {
@@ -291,7 +286,7 @@ export async function generateWorkloadExcel3External(
       }
 
       // ==== Render Week date
-      const workloadBody = body.workloadList.find(
+      const workloadBody = workloadList.find(
         (w) => w.workloadId === workload.subject.id
       )
       if (!workloadBody) {

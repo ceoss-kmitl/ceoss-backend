@@ -128,39 +128,6 @@ export class IEditWorkload {
 // Workload Excel
 // ==============
 
-export class IDownloadTeacherWorkloadExcelQuery extends IAcademicTime {}
-
-class IDayExcelExternal {
-  @IsNumber()
-  day: number
-
-  @IsBoolean()
-  isCompensated: boolean
-
-  @IsString()
-  remark: string
-}
-
-class IWorkloadExcelExternal {
-  @IsString()
-  workloadId: string
-
-  @ValidateNested({ each: true })
-  @IsArray()
-  @Type(() => IDayExcelExternal)
-  dayList: IDayExcelExternal[]
-}
-
-export class IBodyExcelExternal {
-  @IsString()
-  month: string
-
-  @ValidateNested({ each: true })
-  @IsArray()
-  @Type(() => IWorkloadExcelExternal)
-  workloadList: IWorkloadExcelExternal[]
-}
-
 export class IGetWorkloadExcel5Query {
   @Type(() => Number)
   @IsNumber()

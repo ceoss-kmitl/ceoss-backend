@@ -27,11 +27,13 @@ import {
   IGetTeacherQuery,
   IGetTeacherWorkloadResponse,
   IGetTeacherWorkloadQuery,
+  IDownloadTeacherWorkloadExcelQuery,
+  IDownloadExtTeacherWorkloadExcelQuery,
 } from './types/teacher'
-import { IDownloadTeacherWorkloadExcelQuery } from './types/workload'
 import { generateWorkloadExcel1 } from './templates/workloadExcel1'
 import { generateWorkloadExcel2 } from './templates/workloadExcel2'
 import { generateWorkloadExcel3 } from './templates/workloadExcel3'
+import { generateWorkloadExcel3External } from './templates/workloadExcel3External'
 
 @JsonController()
 export class TeacherController {
@@ -80,6 +82,35 @@ export class TeacherController {
 
     const yearSemester = `${String(academicYear).substring(2, 4)}-${semester}`
     const file = await excel.createFile(`${yearSemester} ${teacher.name}`)
+    return file
+  }
+
+  @Get('/teacher-external/:id/workload/excel')
+  @ValidateQuery(IDownloadExtTeacherWorkloadExcelQuery)
+  async getWorkloadExcelExternal(
+    @Res() res: Response,
+    @Param('id') id: string,
+    @QueryParams() query: IDownloadExtTeacherWorkloadExcelQuery
+  ) {
+    console.log('>>', JSON.stringify(query, null, 2))
+
+    const { month, academicYear, semester } = query
+
+    const teacher = await Teacher.findOneByIdAndJoinWorkload(id, {
+      academicYear,
+      semester,
+      compensation: false,
+    })
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher (${id}) is not found`,
+      ])
+
+    const excel = new Excel(res)
+    await generateWorkloadExcel3External(excel, cloneClass(teacher), query)
+
+    const monthAndYear = `${month} ${String(academicYear).substring(2, 4)}`
+    const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
     return file
   }
 

@@ -26,10 +26,8 @@ import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
 
 import {
-  IBodyExcelExternal,
   ICreateCompensationWorkloadBody,
   ICreateWorkload,
-  IDownloadTeacherWorkloadExcelQuery,
   IEditWorkload,
   IGetWorkloadExcel5Query,
   IGetWorkloadQuery,
@@ -45,44 +43,6 @@ export class WorkloadController {
   // ==============
   // Workload Excel
   // ==============
-
-  // Use POST instead of GET because body part is required
-  //   @Post('/workload/excel-external')
-  //   @ValidateQuery(IGetWorkloadExcelQuery)
-  //   async getWorkloadExcelExternal(
-  //     @Res() res: Response,
-  //     @QueryParams() query: IGetWorkloadExcelQuery,
-  //     @Body() body: IBodyExcelExternal
-  //   ) {
-  //     const { teacher_id, academic_year, semester } = query
-
-  //     const teacher = await Teacher.findOne(teacher_id, {
-  //       relations: [
-  //         'teacherWorkloadList',
-  //         'teacherWorkloadList.teacher',
-  //         'teacherWorkloadList.workload',
-  //         'teacherWorkloadList.workload.timeList',
-  //         'teacherWorkloadList.workload.subject',
-  //       ],
-  //     })
-  //     if (!teacher)
-  //       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-  //         `Teacher ${teacher_id} is not found`,
-  //       ])
-
-  //     const excel = new Excel(res)
-  //     await generateWorkloadExcel3External(
-  //       excel,
-  //       cloneClass(teacher),
-  //       academic_year,
-  //       semester,
-  //       body
-  //     )
-
-  //     const monthAndYear = `${body.month} ${String(academic_year).substr(2, 2)}`
-  //     const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
-  //     return file
-  //   }
 
   //   @Get('/workload/excel-5')
   //   @ValidateQuery(IGetWorkloadExcel5Query)

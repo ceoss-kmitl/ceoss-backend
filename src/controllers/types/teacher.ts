@@ -1,5 +1,12 @@
 import { Transform, Type } from 'class-transformer'
-import { IsBoolean, IsOptional, IsString } from 'class-validator'
+import {
+  IsArray,
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator'
 
 import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 
@@ -98,4 +105,45 @@ export class IGetTeacherQuery {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean
+}
+
+// =============
+// Teacher Excel
+// =============
+
+export class IDownloadTeacherWorkloadExcelQuery extends IAcademicTime {}
+
+class IDayExcelExternal {
+  @Type(() => Number)
+  @IsNumber()
+  day: number
+
+  // Can not use `@Type Boolean` like others
+  // Not sure why :(
+  @Transform(({ value }) => value === 'true')
+  @IsBoolean()
+  isCompensated: boolean
+
+  @IsString()
+  remark: string
+}
+
+class IWorkloadExcelExternal {
+  @IsString()
+  workloadId: string
+
+  @Type(() => IDayExcelExternal)
+  @IsArray()
+  @ValidateNested({ each: true })
+  dayList: IDayExcelExternal[]
+}
+
+export class IDownloadExtTeacherWorkloadExcelQuery extends IAcademicTime {
+  @IsString()
+  month: string
+
+  @Type(() => IWorkloadExcelExternal)
+  @IsArray()
+  @ValidateNested({ each: true })
+  workloadList: IWorkloadExcelExternal[]
 }
