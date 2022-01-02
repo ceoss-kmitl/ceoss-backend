@@ -147,3 +147,5 @@ export class IDownloadExtTeacherWorkloadExcelQuery extends IAcademicTime {
   @ValidateNested({ each: true })
   workloadList: IWorkloadExcelExternal[]
 }
+
+export class IDownloadTeacherWorkloadExcel5Query extends IAcademicTime {}

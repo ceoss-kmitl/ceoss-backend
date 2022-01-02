@@ -29,11 +29,13 @@ import {
   IGetTeacherWorkloadQuery,
   IDownloadTeacherWorkloadExcelQuery,
   IDownloadExtTeacherWorkloadExcelQuery,
+  IDownloadTeacherWorkloadExcel5Query,
 } from './types/teacher'
 import { generateWorkloadExcel1 } from './templates/workloadExcel1'
 import { generateWorkloadExcel2 } from './templates/workloadExcel2'
 import { generateWorkloadExcel3 } from './templates/workloadExcel3'
 import { generateWorkloadExcel3External } from './templates/workloadExcel3External'
+import { generateWorkloadExcel5 } from './templates/workloadExcel5'
 
 @JsonController()
 export class TeacherController {
@@ -92,8 +94,6 @@ export class TeacherController {
     @Param('id') id: string,
     @QueryParams() query: IDownloadExtTeacherWorkloadExcelQuery
   ) {
-    console.log('>>', JSON.stringify(query, null, 2))
-
     const { month, academicYear, semester } = query
 
     const teacher = await Teacher.findOneByIdAndJoinWorkload(id, {
@@ -111,6 +111,30 @@ export class TeacherController {
 
     const monthAndYear = `${month} ${String(academicYear).substring(2, 4)}`
     const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
+    return file
+  }
+
+  @Get('/teacher/workload/excel-5')
+  @ValidateQuery(IDownloadTeacherWorkloadExcel5Query)
+  async getWorkloadExcel5(
+    @Res() res: Response,
+    @QueryParams() query: IDownloadTeacherWorkloadExcel5Query
+  ) {
+    const { academicYear, semester } = query
+
+    const teacherList = await Teacher.findManyAndJoinWorkload({
+      isActive: true,
+      isExternal: false,
+      compensation: false,
+      academicYear,
+      semester,
+    })
+
+    const excel = new Excel(res)
+    await generateWorkloadExcel5(excel, teacherList, academicYear, semester)
+
+    const yearSemester = `${String(academicYear).substring(2, 4)}-${semester}`
+    const file = await excel.createFile(`${yearSemester} หลักฐานการเบิกจ่าย`)
     return file
   }
 

@@ -1,4 +1,3 @@
-import { Response } from 'express'
 import { IsNull, Not } from 'typeorm'
 import {
   Body,
@@ -9,13 +8,10 @@ import {
   Post,
   Put,
   QueryParams,
-  Res,
 } from 'routing-controllers'
 import { isNil, merge, omit, omitBy } from 'lodash'
 import dayjs from 'dayjs'
 
-import { Excel } from '@libs/Excel'
-import { cloneClass } from '@libs/utils'
 import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 import { Workload } from '@models/workload'
@@ -29,52 +25,11 @@ import {
   ICreateCompensationWorkloadBody,
   ICreateWorkload,
   IEditWorkload,
-  IGetWorkloadExcel5Query,
   IGetWorkloadQuery,
 } from './types/workload'
-import { generateWorkloadExcel1 } from './templates/workloadExcel1'
-import { generateWorkloadExcel2 } from './templates/workloadExcel2'
-import { generateWorkloadExcel3 } from './templates/workloadExcel3'
-import { generateWorkloadExcel5 } from './templates/workloadExcel5'
-import { generateWorkloadExcel3External } from './templates/workloadExcel3External'
 
 @JsonController()
 export class WorkloadController {
-  // ==============
-  // Workload Excel
-  // ==============
-
-  //   @Get('/workload/excel-5')
-  //   @ValidateQuery(IGetWorkloadExcel5Query)
-  //   async getWorkloadExcel5(
-  //     @Res() res: Response,
-  //     @QueryParams() query: IGetWorkloadExcel5Query
-  //   ) {
-  //     const { academic_year, semester } = query
-
-  //     const teacherList = await Teacher.createQueryBuilder('teacher')
-  //       .leftJoinAndSelect('teacher.teacherWorkloadList', 'teacherWorkloadList')
-  //       .innerJoinAndSelect(
-  //         'teacherWorkloadList.workload',
-  //         'workload',
-  //         'workload.academicYear = :academic_year AND workload.semester = :semester',
-  //         { academic_year, semester }
-  //       )
-  //       .innerJoinAndSelect('teacherWorkloadList.teacher', 't')
-  //       .innerJoinAndSelect('workload.timeList', 'timeList')
-  //       .where('teacher.isActive = :isActive', { isActive: true })
-  //       .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
-  //       .andWhere('teacher.isExternal = :isExternal', { isExternal: false })
-  //       .getMany()
-
-  //     const excel = new Excel(res)
-  //     await generateWorkloadExcel5(excel, teacherList, academic_year, semester)
-
-  //     const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
-  //     const file = await excel.createFile(`${yearAndSemester} หลักฐานการเบิกจ่าย`)
-  //     return file
-  //   }
-
   // =======================
   // Workload x Compensation
   // =======================
