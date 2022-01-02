@@ -11,11 +11,7 @@ export async function generateWorkloadExcel1(
   semester: number
 ) {
   // Start: Prepare workload for rendering
-  teacher.teacherWorkloadList = teacher
-    .filterTeacherWorkloadList({
-      academicYear,
-      semester,
-    })
+  teacher.teacherWorkloadList = teacher.teacherWorkloadList
     .sort(
       (a, b) =>
         a.workload.dayOfWeek - b.workload.dayOfWeek ||
@@ -214,7 +210,7 @@ export async function generateWorkloadExcel1(
       [WorkloadType.LAB]: '(ป)',
     }
 
-    const row = 7 + (dayOfWeek - 1) * 2
+    const row = 7 + dayOfWeek * 2
     for (let i = 0; i < timeList.length; i++) {
       let start = Excel.toAlphabet(3 + (timeList[i].startSlot - 1))
       let end = Excel.toAlphabet(3 + (timeList[i].endSlot - 1))

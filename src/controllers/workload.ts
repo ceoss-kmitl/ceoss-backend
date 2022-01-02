@@ -10,14 +10,12 @@ import {
   Put,
   QueryParams,
   Res,
-  UseBefore,
 } from 'routing-controllers'
 import { isNil, merge, omit, omitBy } from 'lodash'
 import dayjs from 'dayjs'
 
 import { Excel } from '@libs/Excel'
 import { cloneClass } from '@libs/utils'
-import { schema } from '@middlewares/schema'
 import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 import { Workload } from '@models/workload'
@@ -31,9 +29,9 @@ import {
   IBodyExcelExternal,
   ICreateCompensationWorkloadBody,
   ICreateWorkload,
+  IDownloadTeacherWorkloadExcelQuery,
   IEditWorkload,
   IGetWorkloadExcel5Query,
-  IGetWorkloadExcelQuery,
   IGetWorkloadQuery,
 } from './types/workload'
 import { generateWorkloadExcel1 } from './templates/workloadExcel1'
@@ -44,128 +42,82 @@ import { generateWorkloadExcel3External } from './templates/workloadExcel3Extern
 
 @JsonController()
 export class WorkloadController {
-  @Get('/workload/excel')
-  @UseBefore(schema(IGetWorkloadExcelQuery, 'query'))
-  async getWorkloadExcel(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcelQuery
-  ) {
-    const { teacher_id, academic_year, semester } = query
-
-    const teacher = await Teacher.findOne({
-      where: { id: teacher_id },
-      relations: [
-        'teacherWorkloadList',
-        'teacherWorkloadList.workload',
-        'teacherWorkloadList.teacher',
-        'teacherWorkloadList.workload.subject',
-        'teacherWorkloadList.workload.timeList',
-        'teacherWorkloadList.workload.teacherWorkloadList',
-        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
-      ],
-    })
-    if (!teacher)
-      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${teacher_id} is not found`,
-      ])
-
-    const excel = new Excel(res)
-    await generateWorkloadExcel1(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester
-    )
-    await generateWorkloadExcel2(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester
-    )
-    await generateWorkloadExcel3(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester
-    )
-
-    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
-    const file = await excel.createFile(`${yearAndSemester} ${teacher.name}`)
-    return file
-  }
+  // ==============
+  // Workload Excel
+  // ==============
 
   // Use POST instead of GET because body part is required
-  @Post('/workload/excel-external')
-  @UseBefore(schema(IGetWorkloadExcelQuery, 'query'))
-  async getWorkloadExcelExternal(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcelQuery,
-    @Body() body: IBodyExcelExternal
-  ) {
-    const { teacher_id, academic_year, semester } = query
+  //   @Post('/workload/excel-external')
+  //   @ValidateQuery(IGetWorkloadExcelQuery)
+  //   async getWorkloadExcelExternal(
+  //     @Res() res: Response,
+  //     @QueryParams() query: IGetWorkloadExcelQuery,
+  //     @Body() body: IBodyExcelExternal
+  //   ) {
+  //     const { teacher_id, academic_year, semester } = query
 
-    const teacher = await Teacher.findOne(teacher_id, {
-      relations: [
-        'teacherWorkloadList',
-        'teacherWorkloadList.teacher',
-        'teacherWorkloadList.workload',
-        'teacherWorkloadList.workload.timeList',
-        'teacherWorkloadList.workload.subject',
-      ],
-    })
-    if (!teacher)
-      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${teacher_id} is not found`,
-      ])
+  //     const teacher = await Teacher.findOne(teacher_id, {
+  //       relations: [
+  //         'teacherWorkloadList',
+  //         'teacherWorkloadList.teacher',
+  //         'teacherWorkloadList.workload',
+  //         'teacherWorkloadList.workload.timeList',
+  //         'teacherWorkloadList.workload.subject',
+  //       ],
+  //     })
+  //     if (!teacher)
+  //       throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+  //         `Teacher ${teacher_id} is not found`,
+  //       ])
 
-    const excel = new Excel(res)
-    await generateWorkloadExcel3External(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester,
-      body
-    )
+  //     const excel = new Excel(res)
+  //     await generateWorkloadExcel3External(
+  //       excel,
+  //       cloneClass(teacher),
+  //       academic_year,
+  //       semester,
+  //       body
+  //     )
 
-    const monthAndYear = `${body.month} ${String(academic_year).substr(2, 2)}`
-    const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
-    return file
-  }
+  //     const monthAndYear = `${body.month} ${String(academic_year).substr(2, 2)}`
+  //     const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
+  //     return file
+  //   }
 
-  @Get('/workload/excel-5')
-  @UseBefore(schema(IGetWorkloadExcel5Query, 'query'))
-  async getWorkloadExcel5(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcel5Query
-  ) {
-    const { academic_year, semester } = query
+  //   @Get('/workload/excel-5')
+  //   @ValidateQuery(IGetWorkloadExcel5Query)
+  //   async getWorkloadExcel5(
+  //     @Res() res: Response,
+  //     @QueryParams() query: IGetWorkloadExcel5Query
+  //   ) {
+  //     const { academic_year, semester } = query
 
-    const teacherList = await Teacher.createQueryBuilder('teacher')
-      .leftJoinAndSelect('teacher.teacherWorkloadList', 'teacherWorkloadList')
-      .innerJoinAndSelect(
-        'teacherWorkloadList.workload',
-        'workload',
-        'workload.academicYear = :academic_year AND workload.semester = :semester',
-        { academic_year, semester }
-      )
-      .innerJoinAndSelect('teacherWorkloadList.teacher', 't')
-      .innerJoinAndSelect('workload.timeList', 'timeList')
-      .where('teacher.isActive = :isActive', { isActive: true })
-      .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
-      .andWhere('teacher.isExternal = :isExternal', { isExternal: false })
-      .getMany()
+  //     const teacherList = await Teacher.createQueryBuilder('teacher')
+  //       .leftJoinAndSelect('teacher.teacherWorkloadList', 'teacherWorkloadList')
+  //       .innerJoinAndSelect(
+  //         'teacherWorkloadList.workload',
+  //         'workload',
+  //         'workload.academicYear = :academic_year AND workload.semester = :semester',
+  //         { academic_year, semester }
+  //       )
+  //       .innerJoinAndSelect('teacherWorkloadList.teacher', 't')
+  //       .innerJoinAndSelect('workload.timeList', 'timeList')
+  //       .where('teacher.isActive = :isActive', { isActive: true })
+  //       .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
+  //       .andWhere('teacher.isExternal = :isExternal', { isExternal: false })
+  //       .getMany()
 
-    const excel = new Excel(res)
-    await generateWorkloadExcel5(excel, teacherList, academic_year, semester)
+  //     const excel = new Excel(res)
+  //     await generateWorkloadExcel5(excel, teacherList, academic_year, semester)
 
-    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
-    const file = await excel.createFile(`${yearAndSemester} หลักฐานการเบิกจ่าย`)
-    return file
-  }
+  //     const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
+  //     const file = await excel.createFile(`${yearAndSemester} หลักฐานการเบิกจ่าย`)
+  //     return file
+  //   }
 
-  // ============
-  // Compensation
-  // ============
+  // =======================
+  // Workload x Compensation
+  // =======================
 
   @Post('/workload/:id/compensation')
   @ValidateBody(ICreateCompensationWorkloadBody)
@@ -325,7 +277,6 @@ export class WorkloadController {
     return 'Workload created'
   }
 
-  // NOTE: Now can edit only `teacherWorkloadList`
   @Put('/workload/:id')
   @ValidateBody(IEditWorkload)
   async editWorkload(@Param('id') id: string, @Body() body: IEditWorkload) {

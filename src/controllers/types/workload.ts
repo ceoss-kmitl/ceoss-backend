@@ -4,7 +4,6 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
-  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -13,6 +12,10 @@ import {
 } from 'class-validator'
 
 import { IAcademicTime } from './common'
+
+// =======================
+// Workload x Compensation
+// =======================
 
 export class ICreateCompensationWorkloadBody {
   @IsString()
@@ -31,16 +34,9 @@ export class ICreateCompensationWorkloadBody {
   compensatedTimeList: string[][]
 }
 
-// ============
-// Request type
-// ============
-
-export class IGetTeacherWorkloadQuery extends IAcademicTime {
-  @Type(() => Boolean)
-  @IsBoolean()
-  @IsOptional()
-  compensation?: boolean
-}
+// =========
+// CRUD type
+// =========
 
 export class IGetWorkloadQuery extends IAcademicTime {
   @IsString()
@@ -128,27 +124,21 @@ export class IEditWorkload {
   teacherList: IEditWorkloadTeacherList[]
 }
 
-export class IGetWorkloadExcelQuery {
-  @IsString()
-  teacher_id: string
+// ==============
+// Workload Excel
+// ==============
 
-  @Type(() => Number)
+export class IDownloadTeacherWorkloadExcelQuery extends IAcademicTime {}
+
+class IDayExcelExternal {
   @IsNumber()
-  academic_year: number
+  day: number
 
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
-}
+  @IsBoolean()
+  isCompensated: boolean
 
-export class IBodyExcelExternal {
   @IsString()
-  month: string
-
-  @ValidateNested({ each: true })
-  @IsArray()
-  @Type(() => IWorkloadExcelExternal)
-  workloadList: IWorkloadExcelExternal[]
+  remark: string
 }
 
 class IWorkloadExcelExternal {
@@ -161,15 +151,14 @@ class IWorkloadExcelExternal {
   dayList: IDayExcelExternal[]
 }
 
-class IDayExcelExternal {
-  @IsNumber()
-  day: number
-
-  @IsBoolean()
-  isCompensated: boolean
-
+export class IBodyExcelExternal {
   @IsString()
-  remark: string
+  month: string
+
+  @ValidateNested({ each: true })
+  @IsArray()
+  @Type(() => IWorkloadExcelExternal)
+  workloadList: IWorkloadExcelExternal[]
 }
 
 export class IGetWorkloadExcel5Query {

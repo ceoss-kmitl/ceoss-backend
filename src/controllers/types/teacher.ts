@@ -3,9 +3,47 @@ import { IsBoolean, IsOptional, IsString } from 'class-validator'
 
 import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 
-// ============
-// Request type
-// ============
+import { IAcademicTime } from './common'
+
+// ==================
+// Teacher x Workload
+// ==================
+
+export class IGetTeacherWorkloadQuery extends IAcademicTime {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  compensation?: boolean
+}
+
+export interface IGetTeacherWorkloadResponse {
+  workloadList: {
+    id: string
+    subjectId: string
+    roomId?: string
+    code: string
+    name: string
+    section: number
+    type: WorkloadType
+    fieldOfStudy: string
+    degree: Degree
+    classYear: number
+    dayOfWeek: DayOfWeek
+    startSlot: number
+    endSlot: number
+    timeList: { start: string; end: string }[]
+    teacherList: {
+      teacherId: string
+      weekCount: number
+      isClaim: boolean
+    }[]
+    isClaim: boolean
+  }[]
+}
+
+// =========
+// CRUD type
+// =========
 
 export class ICreateTeacher {
   @Transform(({ value }) => value?.trim())
@@ -60,33 +98,4 @@ export class IGetTeacherQuery {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean
-}
-
-// =============
-// Response type
-// =============
-
-export interface IGetTeacherWorkloadResponse {
-  workloadList: {
-    id: string
-    subjectId: string
-    roomId?: string
-    code: string
-    name: string
-    section: number
-    type: WorkloadType
-    fieldOfStudy: string
-    degree: Degree
-    classYear: number
-    dayOfWeek: DayOfWeek
-    startSlot: number
-    endSlot: number
-    timeList: { start: string; end: string }[]
-    teacherList: {
-      teacherId: string
-      weekCount: number
-      isClaim: boolean
-    }[]
-    isClaim: boolean
-  }[]
 }

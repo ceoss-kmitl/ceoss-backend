@@ -7,11 +7,15 @@ import {
   Post,
   Put,
   QueryParams,
+  Res,
 } from 'routing-controllers'
+import { Response } from 'express'
 import { Not } from 'typeorm'
 import { isNil, merge, omitBy } from 'lodash'
 
 import { DayOfWeek } from '@constants/common'
+import { Excel } from '@libs/Excel'
+import { cloneClass } from '@libs/utils'
 import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 import { BadRequestError } from '@errors/badRequestError'
@@ -22,11 +26,63 @@ import {
   IEditTeacher,
   IGetTeacherQuery,
   IGetTeacherWorkloadResponse,
+  IGetTeacherWorkloadQuery,
 } from './types/teacher'
-import { IGetTeacherWorkloadQuery } from './types/workload'
+import { IDownloadTeacherWorkloadExcelQuery } from './types/workload'
+import { generateWorkloadExcel1 } from './templates/workloadExcel1'
+import { generateWorkloadExcel2 } from './templates/workloadExcel2'
+import { generateWorkloadExcel3 } from './templates/workloadExcel3'
 
 @JsonController()
 export class TeacherController {
+  // =============
+  // Teacher Excel
+  // =============
+
+  @Get('/teacher/:id/workload/excel')
+  @ValidateQuery(IDownloadTeacherWorkloadExcelQuery)
+  async getWorkloadExcel(
+    @Res() res: Response,
+    @Param('id') id: string,
+    @QueryParams() query: IDownloadTeacherWorkloadExcelQuery
+  ) {
+    const { academicYear, semester } = query
+
+    const teacher = await Teacher.findOneByIdAndJoinWorkload(id, {
+      academicYear,
+      semester,
+      compensation: false,
+    })
+    if (!teacher)
+      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
+        `Teacher id(${id}) is not found`,
+      ])
+
+    const excel = new Excel(res)
+    await generateWorkloadExcel1(
+      excel,
+      cloneClass(teacher),
+      academicYear,
+      semester
+    )
+    await generateWorkloadExcel2(
+      excel,
+      cloneClass(teacher),
+      academicYear,
+      semester
+    )
+    await generateWorkloadExcel3(
+      excel,
+      cloneClass(teacher),
+      academicYear,
+      semester
+    )
+
+    const yearSemester = `${String(academicYear).substring(2, 4)}-${semester}`
+    const file = await excel.createFile(`${yearSemester} ${teacher.name}`)
+    return file
+  }
+
   // ==================
   // Teacher x Workload
   // ==================

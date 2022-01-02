@@ -64,6 +64,7 @@ export class Teacher extends BaseEntity {
     const teacher = await this.findOne({
       relations: [
         'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
         'teacherWorkloadList.workload',
         'teacherWorkloadList.workload.compensationFrom',
         'teacherWorkloadList.workload.room',
