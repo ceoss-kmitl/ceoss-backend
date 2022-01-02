@@ -35,49 +35,11 @@ export class IEditRoom {
   capacity?: number
 }
 
-export class IGetRoomWorkloadQuery extends IAcademicTime {
-  @Type(() => Boolean)
-  @IsBoolean()
-  @IsOptional()
-  compensation?: boolean
-}
+// ==========
+// Room Excel
+// ==========
 
-export class IAssignWorkloadToRoom {
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  workloadIdList?: string[]
-}
-
-export class IAutoAssignWorkloadToRoomQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
-
-export class IResetRoomWorkloadQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
-
-export class IGetRoomExcelQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
+export class IGetRoomExcelQuery extends IAcademicTime {}
 
 // ===============
 // Room x Workload
@@ -96,3 +58,25 @@ export class IGetAvailableRoom extends IAcademicTime {
   @IsString()
   endTime: string
 }
+
+export class IGetRoomWorkloadQuery extends IAcademicTime {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  compensation?: boolean
+}
+
+export class IAssignWorkloadToRoom {
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  workloadIdList?: string[]
+}
+
+// ===========
+// Room Action
+// ===========
+
+export class IAutoAssignWorkloadToRoomQuery extends IAcademicTime {}
+
+export class IResetRoomWorkloadQuery extends IAcademicTime {}
