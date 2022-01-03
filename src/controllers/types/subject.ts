@@ -1,9 +1,6 @@
-import { Transform, Type } from 'class-transformer'
+import { Transform } from 'class-transformer'
 import {
-  IsArray,
   IsBoolean,
-  IsDate,
-  IsDateString,
   IsNumber,
   IsNumberString,
   IsOptional,
@@ -18,25 +15,6 @@ import { IAcademicTime } from './common'
 // ==================
 
 export class IGetSubjectCompensationWorkloadQuery extends IAcademicTime {}
-
-export class ICreateSubjectCompensationWorkloadBody {
-  @IsString()
-  @IsOptional()
-  roomId?: string
-
-  @IsString()
-  originalWorkloadId: string
-
-  @IsDateString()
-  originalDate: string
-
-  @Type(() => Date)
-  @IsDate()
-  compensatedDate: Date
-
-  @IsArray({ each: true })
-  compensatedTimeList: string[][]
-}
 
 // =========
 // CRUD type

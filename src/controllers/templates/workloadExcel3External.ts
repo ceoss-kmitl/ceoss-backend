@@ -1,10 +1,10 @@
 import { DayOfWeek, WorkloadType, Degree } from '@constants/common'
 import { Excel, PaperSize } from '@libs/Excel'
-import { mapTimeSlotToTime } from '@libs/mapper'
 import { NotFoundError } from '@errors/notFoundError'
 import { IDownloadExtTeacherWorkloadExcelQuery } from '@controllers/types/teacher'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
+import { Time } from '@models/time'
 
 export async function generateWorkloadExcel3External(
   excel: Excel,
@@ -247,8 +247,8 @@ export async function generateWorkloadExcel3External(
       excel.cell(`I${6 + index}`).border('left', 'right')
       {
         const column = workload.type === WorkloadType.LECTURE ? 'H' : 'I'
-        const startTime = mapTimeSlotToTime(time.startSlot, '.')
-        const endTime = mapTimeSlotToTime(time.endSlot + 1, '.')
+        const startTime = Time.toTimeString(time.startSlot, '.')
+        const endTime = Time.toTimeString(time.endSlot + 1, '.')
         excel
           .cell(`${column}${6 + index}`)
           .value(`${startTime}-${endTime}`)

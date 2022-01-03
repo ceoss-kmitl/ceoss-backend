@@ -1,8 +1,8 @@
 import { Excel, PaperSize } from '@libs/Excel'
-import { mapTimeSlotToTime } from '@libs/mapper'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { DayOfWeek, WorkloadType, Degree } from '@constants/common'
+import { Time } from '@models/time'
 
 // CEPP, PROJECT1, PROJECT2
 const FILTERED_SUBJECT = ['01076014', '01076311', '01076312']
@@ -17,11 +17,7 @@ export async function generateWorkloadExcel3(
   academicYear: number,
   semester: number
 ) {
-  teacher.teacherWorkloadList = teacher
-    .filterTeacherWorkloadList({
-      academicYear,
-      semester,
-    })
+  teacher.teacherWorkloadList = teacher.teacherWorkloadList
     .filter(
       (tw) => !FILTERED_SUBJECT.includes(tw.workload.subject.code) && tw.isClaim
     )
@@ -289,8 +285,8 @@ export async function generateWorkloadExcel3(
       excel.cell(`I${currentRow}`).border('box')
       {
         const column = workload.type === WorkloadType.LECTURE ? 'H' : 'I'
-        const startTime = mapTimeSlotToTime(time.startSlot, '.')
-        const endTime = mapTimeSlotToTime(time.endSlot + 1, '.')
+        const startTime = Time.toTimeString(time.startSlot, '.')
+        const endTime = Time.toTimeString(time.endSlot + 1, '.')
         excel
           .cell(`${column}${currentRow}`)
           .value(`${startTime}-${endTime}`)

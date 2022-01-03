@@ -11,11 +11,10 @@ import {
 } from 'routing-controllers'
 import { Response } from 'express'
 import { Not } from 'typeorm'
-import { isNil, merge, omitBy } from 'lodash'
+import { isNil, merge, omitBy, cloneDeep } from 'lodash'
 
 import { DayOfWeek } from '@constants/common'
 import { Excel } from '@libs/Excel'
-import { cloneClass } from '@libs/utils'
 import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 import { BadRequestError } from '@errors/badRequestError'
@@ -65,19 +64,19 @@ export class TeacherController {
     const excel = new Excel(res)
     await generateWorkloadExcel1(
       excel,
-      cloneClass(teacher),
+      cloneDeep(teacher),
       academicYear,
       semester
     )
     await generateWorkloadExcel2(
       excel,
-      cloneClass(teacher),
+      cloneDeep(teacher),
       academicYear,
       semester
     )
     await generateWorkloadExcel3(
       excel,
-      cloneClass(teacher),
+      cloneDeep(teacher),
       academicYear,
       semester
     )
@@ -107,7 +106,7 @@ export class TeacherController {
       ])
 
     const excel = new Excel(res)
-    await generateWorkloadExcel3External(excel, cloneClass(teacher), query)
+    await generateWorkloadExcel3External(excel, cloneDeep(teacher), query)
 
     const monthAndYear = `${month} ${String(academicYear).substring(2, 4)}`
     const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)

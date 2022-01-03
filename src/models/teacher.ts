@@ -11,7 +11,6 @@ import { nanoid } from 'nanoid'
 import { IAcademicTime } from '@controllers/types/common'
 
 import { TeacherWorkload } from './teacherWorkload'
-import { Workload } from './workload'
 
 @Entity()
 export class Teacher extends BaseEntity {
@@ -160,21 +159,12 @@ export class Teacher extends BaseEntity {
     return `${this.title}${this.name}`
   }
 
-  /** Required relation with `TeacherWorkload` */
+  /** Required relation with `TeacherWorkload.Workload` */
   public getWorkloadList() {
     return this.teacherWorkloadList.map((tw) => tw.workload)
   }
 
-  public filterTeacherWorkloadList(
-    options: Partial<Workload>
-  ): TeacherWorkload[] {
-    return this.teacherWorkloadList.filter((teacherWorkload: any) =>
-      Object.entries(options).every(
-        ([key, value]) => teacherWorkload.workload[key] === value
-      )
-    )
-  }
-
+  /** Required relation with `TeacherWorkload.Workload|Teacher` */
   public getWeekCount(workloadId: string) {
     const teacherWorkload = this.teacherWorkloadList.find(
       (teacherWorkload) =>
@@ -185,6 +175,7 @@ export class Teacher extends BaseEntity {
     return teacherWorkload.weekCount
   }
 
+  /** Required relation with `TeacherWorkload.Workload|Teacher` */
   public getIsClaim(workloadId: string) {
     const teacherWorkload = this.teacherWorkloadList.find(
       (teacherWorkload) =>
