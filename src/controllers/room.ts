@@ -121,24 +121,24 @@ export class RoomController {
 
     // Step 2: Assign workload to room first priority by `constant`
     for (const { roomName, teacherNameList } of ROOM_TEACHER_PAIR) {
-      const room = await Room.findOne({
-        relations: [
-          'workloadList',
-          'workloadList.timeList',
-          'workloadList.teacherWorkloadList',
-          'workloadList.teacherWorkloadList.teacher',
-          'workloadList.teacherWorkloadList.workload',
-        ],
-        where: { name: roomName },
-      })
-      if (!room) continue
-      room.workloadList = room.workloadList.filter(
-        (workload) =>
-          workload.academicYear === academicYear &&
-          workload.semester === semester
-      )
-
       for (const workload of workloadList) {
+        const room = await Room.findOne({
+          relations: [
+            'workloadList',
+            'workloadList.timeList',
+            'workloadList.teacherWorkloadList',
+            'workloadList.teacherWorkloadList.teacher',
+            'workloadList.teacherWorkloadList.workload',
+          ],
+          where: { name: roomName },
+        })
+        if (!room) continue
+        room.workloadList = room.workloadList.filter(
+          (workload) =>
+            workload.academicYear === academicYear &&
+            workload.semester === semester
+        )
+
         const foundAllTeacher = workload
           .getTeacherList()
           .every((teacher) => teacherNameList.includes(teacher.name))
