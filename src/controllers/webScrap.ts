@@ -1,118 +1,24 @@
-import {
-  Get,
-  JsonController,
-  QueryParams,
-  UseBefore,
-} from 'routing-controllers'
-import { IWebScrapQuery } from '@controllers/types/webScrap'
-import { schema } from '@middlewares/schema'
+import { Get, JsonController, Post, QueryParams } from 'routing-controllers'
+import { uniqBy, chain, isEmpty } from 'lodash'
+
+import { Degree } from '@constants/common'
 import { WebScrap } from '@libs/WebScrap'
-import { Degree, Workload } from '@models/workload'
+import { ValidateQuery } from '@middlewares/validator'
+import { NotFoundError } from '@errors/notFoundError'
+import { Workload } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { Time } from '@models/time'
-import { NotFoundError } from '@errors/notFoundError'
 import { TeacherWorkload } from '@models/teacherWorkload'
+
+import { IWebScrapQuery } from './types/webScrap'
 
 // REG example url
 // http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=2563&semester=1
 
 @JsonController()
 export class WebScrapController {
-  @Get('/web-scrap')
-  @UseBefore(schema(IWebScrapQuery, 'query'))
-  async scrapDataFromRegKMITL(@QueryParams() query: IWebScrapQuery) {
-    const { academic_year, semester } = query
-    const setting = await Setting.get()
-
-    const rawUrl = setting.webScrapUrl.replace(/&year=\d+&semester=\d/g, '')
-    setting.webScrapUrl = `${rawUrl}&year=${academic_year}&semester=${semester}`
-
-    const webScrap = new WebScrap(setting.webScrapUrl)
-    await webScrap.init()
-    const data = webScrap.extractData()
-
-    const subjectErrorList: string[] = []
-
-    for (const _classYear of data) {
-      for (const _subject of _classYear.subjectList) {
-        for (const _section of _subject.sectionList) {
-          for (const _teacher of _section.teacherList) {
-            // Step 1: Find teacher in DB. If not found then skip to next teacher
-            const teacher = await Teacher.findByName(_teacher.name, {
-              relations: ['teacherWorkloadList'],
-            })
-            if (!teacher) {
-              continue
-            }
-
-            // Step 2: Find subject in DB. If not found then add to error list and skip
-            const subject = await Subject.findOneByCode(_subject.subjectCode)
-            if (!subject) {
-              subjectErrorList.push(
-                `(${_subject.subjectCode})${_subject.subjectName}`
-              )
-              continue
-            }
-
-            // Step 3: Find workload in DB. If not found then create it
-            let workload = await Workload.findOne({
-              relations: ['subject', 'timeList', 'teacherWorkloadList'],
-              where: {
-                academicYear: academic_year,
-                semester,
-                subject: { id: subject.id },
-                section: _section.section,
-                dayOfWeek: _section.dayOfWeek,
-              },
-            })
-            if (!workload) {
-              workload = new Workload()
-              workload.subject = subject
-              workload.section = _section.section
-              workload.type = _section.subjectType
-              workload.dayOfWeek = _section.dayOfWeek
-              workload.compensatedList = []
-              workload.academicYear = academic_year
-              workload.semester = semester
-              workload.degree = Degree.Bachelor
-              workload.fieldOfStudy = 'D'
-              workload.classYear = _classYear.classYear
-              workload.timeList = _section.timeSlotList.map(
-                ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
-              )
-              await workload.save()
-
-              // Step 4: Link workload to teacher then save!
-              const teacherWorkload = new TeacherWorkload()
-              teacherWorkload.workload = workload
-              teacherWorkload.teacher = teacher
-
-              await teacherWorkload.save()
-            }
-          }
-        }
-      }
-    }
-
-    if (subjectErrorList.length > 0) {
-      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
-        `Subject not found: ${[...new Set(subjectErrorList)].join(', ')}`,
-      ])
-    }
-
-    const todayDate = new Date()
-    setting.webScrapUpdatedDate = todayDate
-
-    await setting.save()
-    return todayDate.toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
-
   @Get('/web-scrap/updated-date')
   async getUpdatedDate() {
     const setting = await Setting.get()
@@ -126,50 +32,57 @@ export class WebScrapController {
     return updatedDate
   }
 
-  // TODO: Remove this when go on production
-  @Get('/web-scrap/save')
-  @UseBefore(schema(IWebScrapQuery, 'query'))
-  async scrapDataFromRegKMITLSaveToDatabase(
-    @QueryParams() query: IWebScrapQuery
-  ) {
-    const { academic_year, semester } = query
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
-    const webScrap = new WebScrap(URL)
+  @Post('/web-scrap')
+  @ValidateQuery(IWebScrapQuery)
+  async scrapDataFromRegKMITL(@QueryParams() query: IWebScrapQuery) {
+    const { academicYear, semester, save } = query
+    const setting = await Setting.get()
+
+    const rawUrl = setting.webScrapUrl.replace(/&year=\d+&semester=\d/g, '')
+    setting.webScrapUrl = `${rawUrl}&year=${academicYear}&semester=${semester}`
+
+    const webScrap = new WebScrap(setting.webScrapUrl)
     await webScrap.init()
     const data = webScrap.extractData()
+
+    const subjectErrorList: Pick<Subject, 'code' | 'name'>[] = []
+    const teacherErrorList: Pick<Teacher, 'title' | 'name'>[] = []
+    const willBeSaveList: TeacherWorkload[] = []
 
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
         for (const _section of _subject.sectionList) {
           for (const _teacher of _section.teacherList) {
-            // Step 1: Find teacher in DB. If not found then create
-            let teacher = await Teacher.findByName(_teacher.name)
+            // Step 1: Find teacher in DB. If not found then skip to next teacher
+            const teacher = await Teacher.findOne({
+              where: { name: _teacher.name },
+              relations: ['teacherWorkloadList'],
+            })
             if (!teacher) {
-              teacher = new Teacher()
-              teacher.title = _teacher.title
-              teacher.name = _teacher.name
-              await teacher.save()
+              teacherErrorList.push({
+                title: _teacher.title,
+                name: _teacher.name,
+              })
+              continue
             }
 
-            // Step 2: Find subject in DB. If not found then create
-            let subject = await Subject.findOneByCode(_subject.subjectCode)
+            // Step 2: Find subject in DB. If not found then add to error list and skip
+            const subject = await Subject.findOne({
+              where: { code: _subject.subjectCode },
+            })
             if (!subject) {
-              subject = new Subject()
-              subject.code = _subject.subjectCode
-              subject.name = _subject.subjectName
-              subject.credit = _subject.credit
-              subject.lectureHours = _subject.lectureHours
-              subject.labHours = _subject.labHours
-              subject.independentHours = _subject.independentHours
-              subject.isRequired = true
-              await subject.save()
+              subjectErrorList.push({
+                code: _subject.subjectCode,
+                name: _subject.subjectName,
+              })
+              continue
             }
 
-            // Step 3: Find workload in DB. If not found then create
+            // Step 3: Find workload in DB. If not found then create it
             let workload = await Workload.findOne({
               relations: ['subject', 'timeList', 'teacherWorkloadList'],
               where: {
-                academicYear: academic_year,
+                academicYear,
                 semester,
                 subject: { id: subject.id },
                 section: _section.section,
@@ -182,110 +95,159 @@ export class WebScrapController {
               workload.section = _section.section
               workload.type = _section.subjectType
               workload.dayOfWeek = _section.dayOfWeek
-              workload.compensatedList = []
-              workload.academicYear = academic_year
+              workload.academicYear = academicYear
               workload.semester = semester
-              workload.degree = Degree.Bachelor
+              workload.degree = Degree.BACHELOR
               workload.fieldOfStudy = 'D'
               workload.classYear = _classYear.classYear
               workload.timeList = _section.timeSlotList.map(
                 ({ startSlot, endSlot }) => Time.create({ startSlot, endSlot })
               )
-              await workload.save()
 
-              // Step 4: Link workload to teacher then save!
+              // Step 4: Link workload to teacher!
               const teacherWorkload = new TeacherWorkload()
-              teacherWorkload.teacher = teacher
               teacherWorkload.workload = workload
-
-              await teacherWorkload.save()
+              teacherWorkload.teacher = teacher
+              teacherWorkload.isClaim = true
+              teacherWorkload.weekCount = 15
+              willBeSaveList.push(teacherWorkload)
             }
           }
         }
       }
     }
 
-    return 'Scrap Save-All OK'
+    if (!isEmpty(teacherErrorList) || !isEmpty(subjectErrorList)) {
+      throw new NotFoundError('ไม่พบอาจารย์หรือวิชาดังกล่าว', [
+        ...uniqBy(teacherErrorList, 'name')
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((t) => `${t.title}${t.name}`),
+        ...uniqBy(subjectErrorList, 'code')
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((s) => `${s.code} - ${s.name}`),
+      ])
+    }
+
+    const todayDate = new Date()
+    setting.webScrapUpdatedDate = todayDate
+
+    if (save === true) {
+      await TeacherWorkload.save(willBeSaveList)
+      await setting.save()
+    }
+
+    return chain(willBeSaveList)
+      .map((tw) => ({
+        subject: `${tw.workload.subject.code} - ${tw.workload.subject.name}`,
+        teacher: `${tw.teacher.title}${tw.teacher.name}`,
+      }))
+      .uniqBy((each) => `${each.subject} + ${each.teacher}`)
+      .groupBy('teacher')
+      .mapValues((each) => each.map((e) => e.subject))
+      .toPairs()
+      .value()
   }
 
   // TODO: Remove this when go on production
-  @Get('/web-scrap/save/teacher-only')
-  @UseBefore(schema(IWebScrapQuery, 'query'))
+  @Post('/web-scrap/save/teacher-only')
+  @ValidateQuery(IWebScrapQuery)
   async scrapTeacherFromRegKMITLSaveToDatabase(
     @QueryParams() query: IWebScrapQuery
   ) {
-    const { academic_year, semester } = query
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
+    const { academicYear, semester } = query
+    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academicYear}&semester=${semester}`
     const webScrap = new WebScrap(URL)
     await webScrap.init()
     const data = webScrap.extractData()
 
-    const savedTeacher = []
+    const tmpList = []
 
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
         for (const _section of _subject.sectionList) {
           for (const _teacher of _section.teacherList) {
-            let teacher = await Teacher.findByName(_teacher.name)
-            if (!teacher) {
-              teacher = new Teacher()
-              teacher.title = _teacher.title
-              teacher.name = _teacher.name
-              teacher.executiveRole = ''
+            let teacher = await Teacher.findOne({
+              where: { name: _teacher.name },
+            })
+            if (teacher) {
+              continue
             }
-            savedTeacher.push(teacher)
-            await teacher.save()
+
+            teacher = new Teacher()
+            teacher.title = _teacher.title
+            teacher.name = _teacher.name
+            teacher.executiveRole = ''
+            teacher.isActive = true
+            teacher.isExternal = false
+            tmpList.push(teacher)
           }
         }
       }
     }
 
-    return savedTeacher
+    const uniqueList = uniqBy(tmpList, 'name')
+    await Teacher.save(uniqueList)
+
+    return uniqueList
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((teacher) => `${teacher.title}${teacher.name}`)
+
+    return await Teacher.save(uniqBy(tmpList, 'name'))
   }
 
   // TODO: Remove this when go on production
-  @Get('/web-scrap/save/subject-only')
-  @UseBefore(schema(IWebScrapQuery, 'query'))
+  @Post('/web-scrap/save/subject-only')
+  @ValidateQuery(IWebScrapQuery)
   async scrapSubjectFromRegKMITLSaveToDatabase(
     @QueryParams() query: IWebScrapQuery
   ) {
-    const { academic_year, semester } = query
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
+    const { academicYear, semester } = query
+    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academicYear}&semester=${semester}`
     const webScrap = new WebScrap(URL)
     await webScrap.init()
     const data = webScrap.extractData()
 
-    const savedSubject = []
+    const tmpList = []
 
     for (const _classYear of data) {
       for (const _subject of _classYear.subjectList) {
-        let subject = await Subject.findOneByCode(_subject.subjectCode)
-        if (!subject) {
-          subject = new Subject()
-          subject.code = _subject.subjectCode
-          subject.name = _subject.subjectName
-          subject.credit = _subject.credit
-          subject.lectureHours = _subject.lectureHours
-          subject.labHours = _subject.labHours
-          subject.independentHours = _subject.independentHours
-          subject.isRequired = true
+        let subject = await Subject.findOne({
+          where: { code: _subject.subjectCode },
+        })
+        if (subject) {
+          continue
         }
-        savedSubject.push(subject)
-        await subject.save()
+
+        subject = new Subject()
+        subject.code = _subject.subjectCode
+        subject.name = _subject.subjectName
+        subject.credit = _subject.credit
+        subject.lectureHours = _subject.lectureHours
+        subject.labHours = _subject.labHours
+        subject.independentHours = _subject.independentHours
+        subject.isRequired = true
+        subject.curriculumCode = 'CE'
+        subject.isInter = false
+        tmpList.push(subject)
       }
     }
 
-    return savedSubject
+    const uniqueList = uniqBy(tmpList, 'code')
+    await Subject.save(uniqueList)
+
+    return uniqueList
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((subject) => `${subject.code} - ${subject.name}`)
   }
 
   // TODO: Remove this when go on production
-  @Get('/web-scrap/not-save')
-  @UseBefore(schema(IWebScrapQuery, 'query'))
+  @Post('/web-scrap/not-save')
+  @ValidateQuery(IWebScrapQuery)
   async scrapDataFromRegKMITLNotSaveToDatabase(
     @QueryParams() query: IWebScrapQuery
   ) {
-    const { academic_year, semester } = query
-    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academic_year}&semester=${semester}`
+    const { academicYear, semester } = query
+    const URL = `http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=${academicYear}&semester=${semester}`
     const webScrap = new WebScrap(URL)
     await webScrap.init()
     const data = webScrap.extractData()

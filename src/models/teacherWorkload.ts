@@ -12,6 +12,7 @@ export class TeacherWorkload extends BaseEntity {
 
   @ManyToOne(() => Workload, (workload) => workload.teacherWorkloadList, {
     primary: true,
+    cascade: true,
     onDelete: 'CASCADE',
   })
   workload: Workload

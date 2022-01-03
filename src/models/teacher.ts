@@ -3,13 +3,14 @@ import {
   BeforeInsert,
   Column,
   Entity,
-  FindOneOptions,
   OneToMany,
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-import { TeacherWorkload } from '@models/teacherWorkload'
-import { Workload } from '@models/workload'
+
+import { IAcademicTime } from '@controllers/types/common'
+
+import { TeacherWorkload } from './teacherWorkload'
 
 @Entity()
 export class Teacher extends BaseEntity {
@@ -22,50 +23,148 @@ export class Teacher extends BaseEntity {
   @Column()
   title: string
 
-  @Column({ default: '' })
+  @Column()
   executiveRole: string
 
-  @Column({ default: true })
+  @Column()
   isActive: boolean
 
-  @Column({ default: false })
+  @Column()
   isExternal: boolean
 
   @OneToMany(
     () => TeacherWorkload,
-    (teacherWorkload) => teacherWorkload.teacher
+    (teacherWorkload) => teacherWorkload.teacher,
+    { cascade: true }
   )
   teacherWorkloadList: TeacherWorkload[]
+
+  // ==============
+  // Hooks function
+  // ==============
 
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
   }
 
-  static findByName(name: string, options: FindOneOptions<Teacher> = {}) {
-    return this.findOne({ where: { name }, ...options })
+  // ===============
+  // Static function
+  // ===============
+
+  static async findOneByIdAndJoinWorkload(
+    id: string,
+    {
+      academicYear,
+      semester,
+      compensation,
+    }: IAcademicTime & { compensation?: boolean }
+  ) {
+    const teacher = await this.findOne({
+      relations: [
+        'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.compensationFrom',
+        'teacherWorkloadList.workload.room',
+        'teacherWorkloadList.workload.subject',
+        'teacherWorkloadList.workload.timeList',
+        'teacherWorkloadList.workload.teacherWorkloadList',
+        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
+      ],
+      where: { id },
+    })
+
+    if (teacher) {
+      teacher.teacherWorkloadList = teacher.teacherWorkloadList.filter(
+        (tw) =>
+          tw.workload?.academicYear === academicYear &&
+          tw.workload?.semester === semester
+      )
+      if (compensation !== undefined) {
+        teacher.teacherWorkloadList = compensation
+          ? teacher.teacherWorkloadList.filter(
+              (tw) => tw.workload.compensationFrom
+            )
+          : teacher.teacherWorkloadList.filter(
+              (tw) => !tw.workload.compensationFrom
+            )
+      }
+    }
+    return teacher
   }
+
+  static async findManyAndJoinWorkload({
+    academicYear,
+    semester,
+    compensation,
+    isClaim,
+    isActive,
+    isExternal,
+  }: IAcademicTime & {
+    compensation?: boolean
+    isClaim?: boolean
+    isActive?: boolean
+    isExternal?: boolean
+  }) {
+    const teacherList = await this.find({
+      relations: [
+        'teacherWorkloadList',
+        'teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.compensationFrom',
+        'teacherWorkloadList.workload.room',
+        'teacherWorkloadList.workload.subject',
+        'teacherWorkloadList.workload.timeList',
+        'teacherWorkloadList.workload.teacherWorkloadList',
+        'teacherWorkloadList.workload.teacherWorkloadList.workload',
+        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
+      ],
+      where: {
+        isActive,
+        isExternal,
+      },
+    })
+
+    teacherList.forEach((teacher) => {
+      teacher.teacherWorkloadList = teacher.teacherWorkloadList.filter(
+        (tw) =>
+          tw.workload?.academicYear === academicYear &&
+          tw.workload?.semester === semester
+      )
+      if (isClaim !== undefined) {
+        teacher.teacherWorkloadList = teacher.teacherWorkloadList.filter(
+          (tw) => tw.isClaim === isClaim
+        )
+      }
+      if (compensation !== undefined) {
+        teacher.teacherWorkloadList = compensation
+          ? teacher.teacherWorkloadList.filter(
+              (tw) => tw.workload.compensationFrom
+            )
+          : teacher.teacherWorkloadList.filter(
+              (tw) => !tw.workload.compensationFrom
+            )
+      }
+    })
+
+    return teacherList
+  }
+
+  // ===============
+  // Public function
+  // ===============
 
   public getFullName() {
     return `${this.title}${this.name}`
   }
 
+  /** Required relation with `TeacherWorkload.Workload` */
   public getWorkloadList() {
-    return this.teacherWorkloadList.map(
-      (teacherWorkload) => teacherWorkload.workload
-    )
+    return this.teacherWorkloadList.map((tw) => tw.workload)
   }
 
-  public filterTeacherWorkloadList(
-    options: Partial<Workload>
-  ): TeacherWorkload[] {
-    return this.teacherWorkloadList.filter((teacherWorkload: any) =>
-      Object.entries(options).every(
-        ([key, value]) => teacherWorkload.workload[key] === value
-      )
-    )
-  }
-
+  /** Required relation with `TeacherWorkload.Workload|Teacher` */
   public getWeekCount(workloadId: string) {
     const teacherWorkload = this.teacherWorkloadList.find(
       (teacherWorkload) =>
@@ -76,6 +175,7 @@ export class Teacher extends BaseEntity {
     return teacherWorkload.weekCount
   }
 
+  /** Required relation with `TeacherWorkload.Workload|Teacher` */
   public getIsClaim(workloadId: string) {
     const teacherWorkload = this.teacherWorkloadList.find(
       (teacherWorkload) =>

@@ -1,7 +1,7 @@
 import { Excel, PaperSize } from '@libs/Excel'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
+import { WorkloadType } from '@constants/common'
 import { TeacherWorkload } from '@models/teacherWorkload'
 
 export async function generateWorkloadExcel1(
@@ -11,11 +11,7 @@ export async function generateWorkloadExcel1(
   semester: number
 ) {
   // Start: Prepare workload for rendering
-  teacher.teacherWorkloadList = teacher
-    .filterTeacherWorkloadList({
-      academicYear,
-      semester,
-    })
+  teacher.teacherWorkloadList = teacher.teacherWorkloadList
     .sort(
       (a, b) =>
         a.workload.dayOfWeek - b.workload.dayOfWeek ||
@@ -210,11 +206,11 @@ export async function generateWorkloadExcel1(
     } = workload
 
     const subjectType = {
-      [WorkloadType.Lecture]: '(ท)',
-      [WorkloadType.Lab]: '(ป)',
+      [WorkloadType.LECTURE]: '(ท)',
+      [WorkloadType.LAB]: '(ป)',
     }
 
-    const row = 7 + (dayOfWeek - 1) * 2
+    const row = 7 + dayOfWeek * 2
     for (let i = 0; i < timeList.length; i++) {
       let start = Excel.toAlphabet(3 + (timeList[i].startSlot - 1))
       let end = Excel.toAlphabet(3 + (timeList[i].endSlot - 1))

@@ -1,14 +1,22 @@
-import { Type } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
-  IsDateString,
+  IsBoolean,
+  IsDate,
   IsNumber,
   IsOptional,
   IsString,
   Matches,
 } from 'class-validator'
 
+import { IAcademicTime } from './common'
+
+// =========
+// CRUD type
+// =========
+
 export class ICreateRoom {
+  @Transform(({ value }) => value?.trim())
   @IsString()
   name: string
 
@@ -17,6 +25,7 @@ export class ICreateRoom {
 }
 
 export class IEditRoom {
+  @Transform(({ value }) => value?.trim())
   @IsString()
   @IsOptional()
   name?: string
@@ -26,64 +35,20 @@ export class IEditRoom {
   capacity?: number
 }
 
-export class IGetRoomWorkloadQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
+// ==========
+// Room Excel
+// ==========
 
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
+export class IGetRoomExcelQuery extends IAcademicTime {}
 
-export class IAssignWorkloadToRoom {
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  workloadIdList?: string[]
-}
+// ===============
+// Room x Workload
+// ===============
 
-export class IAutoAssignWorkloadToRoomQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
-
-export class IResetRoomWorkloadQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
-
-export class IGetRoomExcelQuery {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-}
-
-export class IGetAvailableRoomCompensated {
-  @IsNumber()
-  @Type(() => Number)
-  academic_year: number
-
-  @IsNumber()
-  @Type(() => Number)
-  semester: number
-
-  @IsDateString()
-  compensatedDate: string
+export class IGetAvailableRoom extends IAcademicTime {
+  @Type(() => Date)
+  @IsDate()
+  compensatedDate: Date
 
   @Matches(/\d\d\:\d\d/)
   @IsString()
@@ -93,3 +58,25 @@ export class IGetAvailableRoomCompensated {
   @IsString()
   endTime: string
 }
+
+export class IGetRoomWorkloadQuery extends IAcademicTime {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  compensation?: boolean
+}
+
+export class IAssignWorkloadToRoom {
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  workloadIdList?: string[]
+}
+
+// ===========
+// Room Action
+// ===========
+
+export class IAutoAssignWorkloadToRoomQuery extends IAcademicTime {}
+
+export class IResetRoomWorkloadQuery extends IAcademicTime {}

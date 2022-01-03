@@ -1,8 +1,9 @@
-import { DayOfWeek, Degree, WorkloadType } from '@models/workload'
-import { Type } from 'class-transformer'
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
+import { Transform, Type } from 'class-transformer'
 import {
   IsArray,
   IsBoolean,
+  IsDate,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -10,24 +11,46 @@ import {
   ValidateNested,
 } from 'class-validator'
 
-export class ITeacherWorkloadQuery {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
+import { IAcademicTime } from './common'
 
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
+// =======================
+// Workload x Compensation
+// =======================
+
+export class ICreateCompensationWorkloadBody {
+  @IsString()
+  @IsOptional()
+  roomId?: string
+
+  @Type(() => Date)
+  @IsDate()
+  originalDate: Date
+
+  @Type(() => Date)
+  @IsDate()
+  compensatedDate: Date
+
+  @IsArray({ each: true })
+  compensatedTimeList: string[][]
 }
 
-export class IGetWorkloadNoRoomQuery {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
+// =========
+// CRUD type
+// =========
 
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
+export class IGetWorkloadQuery extends IAcademicTime {
+  @IsString()
+  @IsOptional()
+  room?: string
+
+  @IsString()
+  @IsOptional()
+  subject?: string
+
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  compensation?: boolean
 }
 
 class ITeacherList {
@@ -75,6 +98,7 @@ export class ICreateWorkload {
   @IsEnum(Degree)
   degree: Degree
 
+  @Transform(({ value }) => value?.trim()?.toUpperCase())
   @IsString()
   fieldOfStudy: string
 
@@ -98,58 +122,4 @@ export class IEditWorkload {
   @ValidateNested({ each: true })
   @IsArray()
   teacherList: IEditWorkloadTeacherList[]
-}
-
-export class IGetWorkloadExcelQuery {
-  @IsString()
-  teacher_id: string
-
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
-}
-
-export class IBodyExcelExternal {
-  @IsString()
-  month: string
-
-  @ValidateNested({ each: true })
-  @IsArray()
-  @Type(() => IWorkloadExcelExternal)
-  workloadList: IWorkloadExcelExternal[]
-}
-
-class IWorkloadExcelExternal {
-  @IsString()
-  workloadId: string
-
-  @ValidateNested({ each: true })
-  @IsArray()
-  @Type(() => IDayExcelExternal)
-  dayList: IDayExcelExternal[]
-}
-
-class IDayExcelExternal {
-  @IsNumber()
-  day: number
-
-  @IsBoolean()
-  isCompensated: boolean
-
-  @IsString()
-  remark: string
-}
-
-export class IGetWorkloadExcel5Query {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
-
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
 }

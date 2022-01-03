@@ -1,7 +1,7 @@
 import Fetch from 'node-fetch'
 import Iconv from 'iconv-lite'
 import Cheerio, { CheerioAPI } from 'cheerio'
-import { DayOfWeek, WorkloadType } from '@models/workload'
+import { DayOfWeek, WorkloadType } from '@constants/common'
 
 export class WebScrap {
   private url: string
@@ -115,15 +115,15 @@ export class WebScrap {
   }
 
   private mapDayToDayOfWeek(day: string | null) {
-    if (!day) return DayOfWeek.Monday
+    if (!day) return DayOfWeek.MONDAY
     const Day = {
-      จ: DayOfWeek.Monday,
-      อ: DayOfWeek.Tuesday,
-      พ: DayOfWeek.Wednesday,
-      พฤ: DayOfWeek.Thursday,
-      ศ: DayOfWeek.Friday,
-      ส: DayOfWeek.Saturday,
-      อา: DayOfWeek.Sunday,
+      จ: DayOfWeek.MONDAY,
+      อ: DayOfWeek.TUESDAY,
+      พ: DayOfWeek.WEDNESDAY,
+      พฤ: DayOfWeek.THURSDAY,
+      ศ: DayOfWeek.FRIDAY,
+      ส: DayOfWeek.SATURDAY,
+      อา: DayOfWeek.SUNDAY,
     } as any
     return Day[day.replace('.', '')]
   }
@@ -138,11 +138,11 @@ export class WebScrap {
   }
 
   private mapTypeToWorkloadType(type: string | null) {
-    if (!type) return WorkloadType.Lecture
+    if (!type) return WorkloadType.LECTURE
     const typeStr = type.replace(/[\(\)]/g, '')
     const Workload = {
-      ท: WorkloadType.Lecture,
-      ป: WorkloadType.Lab,
+      ท: WorkloadType.LECTURE,
+      ป: WorkloadType.LAB,
     } as any
     return Workload[typeStr]
   }

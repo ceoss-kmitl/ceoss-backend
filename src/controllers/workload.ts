@@ -1,4 +1,3 @@
-import { query, Response } from 'express'
 import { IsNull, Not } from 'typeorm'
 import {
   Body,
@@ -9,321 +8,193 @@ import {
   Post,
   Put,
   QueryParams,
-  Res,
-  UseBefore,
 } from 'routing-controllers'
-import {
-  IBodyExcelExternal,
-  ICreateWorkload,
-  IEditWorkload,
-  IGetWorkloadExcel5Query,
-  IGetWorkloadExcelQuery,
-  IGetWorkloadNoRoomQuery,
-  ITeacherWorkloadQuery,
-} from '@controllers/types/workload'
-import { generateWorkloadExcel1 } from '@controllers/templates/workloadExcel1'
-import { generateWorkloadExcel2 } from '@controllers/templates/workloadExcel2'
-import { generateWorkloadExcel3 } from '@controllers/templates/workloadExcel3'
-import { generateWorkloadExcel5 } from '@controllers/templates/workloadExcel5'
-import { generateWorkloadExcel3External } from '@controllers/templates/workloadExcel3External'
-import { Excel } from '@libs/Excel'
-import { mapTimeSlotToTime, mapTimeToTimeSlot } from '@libs/mapper'
-import { cloneClass } from '@libs/utils'
-import { schema } from '@middlewares/schema'
-import { DayOfWeek, Degree, Workload, WorkloadType } from '@models/workload'
+import { isNil, merge, omit, omitBy } from 'lodash'
+import dayjs from 'dayjs'
+
+import { ValidateBody, ValidateQuery } from '@middlewares/validator'
+import { NotFoundError } from '@errors/notFoundError'
+import { Workload } from '@models/workload'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
 import { Teacher } from '@models/teacher'
 import { Time } from '@models/time'
 import { TeacherWorkload } from '@models/teacherWorkload'
-import { NotFoundError } from '@errors/notFoundError'
+
+import {
+  ICreateCompensationWorkloadBody,
+  ICreateWorkload,
+  IEditWorkload,
+  IGetWorkloadQuery,
+} from './types/workload'
 
 @JsonController()
 export class WorkloadController {
-  @Get('/workload/excel')
-  @UseBefore(schema(IGetWorkloadExcelQuery, 'query'))
-  async getWorkloadExcel(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcelQuery
+  // =======================
+  // Workload x Compensation
+  // =======================
+
+  @Post('/workload/:id/compensation')
+  @ValidateBody(ICreateCompensationWorkloadBody)
+  async createCompensationWorkload(
+    @Param('id') id: string,
+    @Body() body: ICreateCompensationWorkloadBody
   ) {
-    const { teacher_id, academic_year, semester } = query
+    const { roomId, originalDate, compensatedDate, compensatedTimeList } = body
 
-    const teacher = await Teacher.findOne({
-      where: { id: teacher_id },
+    const workload = await Workload.findOne({
       relations: [
-        'teacherWorkloadList',
-        'teacherWorkloadList.workload',
-        'teacherWorkloadList.teacher',
-        'teacherWorkloadList.workload.subject',
-        'teacherWorkloadList.workload.timeList',
-        'teacherWorkloadList.workload.teacherWorkloadList',
-        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
-      ],
-    })
-    if (!teacher)
-      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${teacher_id} is not found`,
-      ])
-
-    const excel = new Excel(res)
-    await generateWorkloadExcel1(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester
-    )
-    await generateWorkloadExcel2(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester
-    )
-    await generateWorkloadExcel3(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester
-    )
-
-    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
-    const file = await excel.createFile(`${yearAndSemester} ${teacher.name}`)
-    return file
-  }
-
-  // Use POST instead of GET because body part is required
-  @Post('/workload/excel-external')
-  @UseBefore(schema(IGetWorkloadExcelQuery, 'query'))
-  async getWorkloadExcelExternal(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcelQuery,
-    @Body() body: IBodyExcelExternal
-  ) {
-    const { teacher_id, academic_year, semester } = query
-
-    const teacher = await Teacher.findOne(teacher_id, {
-      relations: [
+        'compensationFrom',
+        'timeList',
+        'room',
+        'subject',
         'teacherWorkloadList',
         'teacherWorkloadList.teacher',
-        'teacherWorkloadList.workload',
-        'teacherWorkloadList.workload.timeList',
-        'teacherWorkloadList.workload.subject',
       ],
+      where: { id },
     })
-    if (!teacher)
-      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${teacher_id} is not found`,
+    if (!workload)
+      throw new NotFoundError('ไม่พบภาระงานที่จะชดเชย', [
+        `Workload id id(${id}) is not found`,
       ])
 
-    const excel = new Excel(res)
-    await generateWorkloadExcel3External(
-      excel,
-      cloneClass(teacher),
-      academic_year,
-      semester,
-      body
+    const room = await Room.findOne({
+      where: { id: roomId },
+    })
+    if (!room && roomId)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${roomId}) is not found`,
+      ])
+
+    const compensationWorkload = Workload.create({
+      ...omit(workload, 'id'),
+      dayOfWeek: dayjs(compensatedDate).weekday(),
+      room,
+      compensationFrom: workload,
+      compensationFromDate: originalDate,
+      compensationDate: compensatedDate,
+      timeList: compensatedTimeList.map(([startTime, endTime]) =>
+        Time.createFromTimeString(startTime, endTime)
+      ),
+    })
+    compensationWorkload.teacherWorkloadList = workload.teacherWorkloadList.map(
+      (tw) => {
+        return TeacherWorkload.create({ ...tw, workload: compensationWorkload })
+      }
     )
 
-    const monthAndYear = `${body.month} ${String(academic_year).substr(2, 2)}`
-    const file = await excel.createFile(`${monthAndYear} ${teacher.name}`)
-    return file
+    await TeacherWorkload.save(compensationWorkload.teacherWorkloadList)
+    return 'Compensation-Workload created'
   }
 
-  @Get('/workload/excel-5')
-  @UseBefore(schema(IGetWorkloadExcel5Query, 'query'))
-  async getWorkloadExcel5(
-    @Res() res: Response,
-    @QueryParams() query: IGetWorkloadExcel5Query
-  ) {
-    const { academic_year, semester } = query
+  // =============
+  // CRUD Endpoint
+  // =============
 
-    const teacherList = await Teacher.createQueryBuilder('teacher')
-      .leftJoinAndSelect('teacher.teacherWorkloadList', 'teacherWorkloadList')
-      .innerJoinAndSelect(
-        'teacherWorkloadList.workload',
-        'workload',
-        'workload.academicYear = :academic_year AND workload.semester = :semester',
-        { academic_year, semester }
-      )
-      .innerJoinAndSelect('teacherWorkloadList.teacher', 't')
-      .innerJoinAndSelect('workload.timeList', 'timeList')
-      .where('teacher.isActive = :isActive', { isActive: true })
-      .andWhere('teacherWorkloadList.isClaim = :isClaim', { isClaim: true })
-      .andWhere('teacher.isExternal = :isExternal', { isExternal: false })
-      .getMany()
-
-    const excel = new Excel(res)
-    await generateWorkloadExcel5(excel, teacherList, academic_year, semester)
-
-    const yearAndSemester = `${String(academic_year).substr(2, 2)}-${semester}`
-    const file = await excel.createFile(`${yearAndSemester} หลักฐานการเบิกจ่าย`)
-    return file
-  }
-
-  @Get('/workload/teacher/:teacherId')
-  @UseBefore(schema(ITeacherWorkloadQuery, 'query'))
-  async getTeacherWorkload(
-    @Param('teacherId') teacherId: string,
-    @QueryParams() query: ITeacherWorkloadQuery
-  ) {
-    const teacher = await Teacher.findOne({
-      where: { id: teacherId },
+  @Get('/workload')
+  @ValidateQuery(IGetWorkloadQuery)
+  async getWorkload(@QueryParams() query: IGetWorkloadQuery) {
+    const queryPayload = omitBy(
+      {
+        ...omit(query, ['compensation']),
+        room: query.room === 'NULL' ? IsNull() : query.room,
+        compensationFrom: { true: Not(IsNull()), false: IsNull() }[
+          String(query.compensation)
+        ],
+      },
+      isNil
+    )
+    const workloadList = await Workload.find({
       relations: [
+        'compensationFrom',
+        'room',
+        'subject',
+        'timeList',
         'teacherWorkloadList',
-        'teacherWorkloadList.workload',
         'teacherWorkloadList.teacher',
-        'teacherWorkloadList.workload.subject',
-        'teacherWorkloadList.workload.timeList',
-        'teacherWorkloadList.workload.teacherWorkloadList',
-        'teacherWorkloadList.workload.teacherWorkloadList.workload',
-        'teacherWorkloadList.workload.teacherWorkloadList.teacher',
+        'teacherWorkloadList.workload',
       ],
-    })
-    if (!teacher)
-      throw new NotFoundError('ไม่พบอาจารย์ดังกล่าว', [
-        `Teacher ${teacherId} is not found`,
-      ])
-
-    teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
-      academicYear: query.academic_year,
-      semester: query.semester,
+      where: { ...queryPayload },
     })
 
-    const result = [] as {
-      workloadList: {
-        id: string
-        subjectId: string
-        code: string
-        name: string
-        section: number
-        type: WorkloadType
-        fieldOfStudy: string
-        degree: Degree
-        classYear: number
-        dayOfWeek: DayOfWeek
-        startSlot: number
-        endSlot: number
-        timeList: { start: string; end: string }[]
-        teacherList: {
-          teacherId: string
-          weekCount: number
-          isClaim: boolean
-        }[]
-        isClaim: boolean
-      }[]
-    }[]
-
-    for (let day = DayOfWeek.Monday; day <= DayOfWeek.Sunday; day++) {
-      result.push({
-        workloadList: [],
-      })
-    }
-
-    for (const workload of teacher.getWorkloadList()) {
-      const thatDay = result[workload.dayOfWeek - 1]
-      const { subject } = workload
-
-      thatDay.workloadList.push({
-        id: workload.id,
-        subjectId: subject.id,
-        code: subject.code,
-        name: subject.name,
-        section: workload.section,
-        type: workload.type,
-        fieldOfStudy: workload.fieldOfStudy,
-        degree: workload.degree,
-        classYear: workload.classYear,
-        dayOfWeek: workload.dayOfWeek,
-        startSlot: workload.getFirstTimeSlot(),
-        endSlot: workload.getLastTimeSlot(),
-        timeList: workload.timeList.map((time) => ({
-          start: mapTimeSlotToTime(time.startSlot),
-          end: mapTimeSlotToTime(time.endSlot + 1),
-        })),
-        teacherList: workload.getTeacherList().map((teacher) => ({
-          teacherId: teacher.id,
-          weekCount: workload.getWeekCount(teacher.id),
-          isClaim: workload.getIsClaim(teacher.id),
-        })),
-        isClaim: workload.getIsClaim(teacherId),
-      })
-    }
-
-    return result
+    return workloadList.map((workload) => ({
+      workloadId: workload.id,
+      roomId: workload.room?.id,
+      subjectCode: workload.subject.code,
+      subjectName: workload.subject.name,
+      section: workload.section,
+      dayOfWeek: workload.dayOfWeek,
+      startTime: Time.toTimeString(workload.getFirstTimeSlot()),
+      endTime: Time.toTimeString(workload.getLastTimeSlot() + 1),
+      teacherList: workload
+        .getTeacherList()
+        .map((teacher) => teacher.getFullName()),
+    }))
   }
 
   @Post('/workload')
-  @UseBefore(schema(ICreateWorkload))
+  @ValidateBody(ICreateWorkload)
   async createWorkload(@Body() body: ICreateWorkload) {
-    const {
-      teacherList,
-      subjectId,
-      roomId,
-      type,
-      degree,
-      fieldOfStudy,
-      section,
-      dayOfWeek,
-      timeList,
-      academicYear,
-      semester,
-      classYear,
-    } = body
-
-    const subject = await Subject.findOne({ where: { id: subjectId } })
+    const subject = await Subject.findOne({
+      where: { id: body.subjectId },
+    })
     if (!subject)
       throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
-        `Subject ${subjectId} is not found`,
+        `Subject id(${body.subjectId}) is not found`,
       ])
 
-    const room = await Room.findOne({ where: { id: roomId } })
+    const room = await Room.findOne({
+      where: { id: body.roomId },
+    })
+    if (!room && body.roomId)
+      throw new NotFoundError('ไม่พบห้องดังกล่าว', [
+        `Room id(${body.roomId}) is not found`,
+      ])
 
-    const workloadTimeList = timeList.map(([startTime, endTime]) =>
+    const timeList = body.timeList.map(([startTime, endTime]) =>
       Time.create({
-        startSlot: mapTimeToTimeSlot(startTime),
-        endSlot: mapTimeToTimeSlot(endTime) - 1,
+        startSlot: Time.fromTimeString(startTime),
+        endSlot: Time.fromTimeString(endTime) - 1,
       })
     )
 
+    const workloadPayload = {
+      ...body,
+      subject,
+      room,
+      timeList,
+    }
     const workload = new Workload()
-    workload.subject = subject
-    workload.room = room as any
-    workload.type = type
-    workload.degree = degree
-    workload.fieldOfStudy = fieldOfStudy
-    workload.section = section
-    workload.dayOfWeek = dayOfWeek
-    workload.timeList = workloadTimeList
-    workload.academicYear = academicYear
-    workload.semester = semester
-    workload.classYear = classYear
-    workload.compensatedList = []
+    merge(workload, workloadPayload)
 
-    for (const _teacher of teacherList) {
+    const twList: TeacherWorkload[] = []
+    for (const _teacher of body.teacherList) {
       const teacher = await Teacher.findOne({
         where: { id: _teacher.teacherId },
         relations: ['teacherWorkloadList'],
       })
       if (!teacher)
         throw new NotFoundError('ไม่พบรายชื่อผู้สอน', [
-          `Teacher ${_teacher.teacherId} is not found`,
+          `Teacher id(${_teacher.teacherId}) is not found`,
         ])
 
-      const teacherWorkload = new TeacherWorkload()
-      teacherWorkload.workload = await workload.save()
-      teacherWorkload.teacher = teacher
-      teacherWorkload.isClaim = _teacher.isClaim
-      teacherWorkload.weekCount = _teacher.weekCount
-
-      await teacherWorkload.save()
+      const twPayload = {
+        ..._teacher,
+        workload,
+        teacher,
+      }
+      const tw = new TeacherWorkload()
+      merge(tw, twPayload)
+      twList.push(tw)
     }
 
-    return 'OK'
+    await TeacherWorkload.save(twList)
+    return 'Workload created'
   }
 
   @Put('/workload/:id')
-  @UseBefore(schema(IEditWorkload))
+  @ValidateBody(IEditWorkload)
   async editWorkload(@Param('id') id: string, @Body() body: IEditWorkload) {
-    const { teacherList } = body
     const workload = await Workload.findOne({
       where: { id },
       relations: [
@@ -334,74 +205,36 @@ export class WorkloadController {
     })
     if (!workload)
       throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
-        `Workload ${id} is not found`,
+        `Workload id(${id}) is not found`,
       ])
 
-    const tmpTeacherWorkloadList = []
-    for (const teacher of teacherList) {
-      const teacherWorkload = workload.getTeacherWorkload(teacher.teacherId)
-      if (!teacherWorkload)
+    const twList: TeacherWorkload[] = []
+    for (const _teacher of body.teacherList) {
+      const tw = workload.getTeacherWorkload(_teacher.teacherId)
+      if (!tw)
         throw new NotFoundError('ไม่พบภาระงานของผู้สอน', [
-          `TeacherWorkload of teacher ${teacher.teacherId} is not found`,
+          `TeacherWorkload of teacher id(${_teacher.teacherId}) is not found`,
         ])
 
-      teacherWorkload.isClaim = teacher.isClaim
-      teacherWorkload.weekCount = teacher.weekCount
-
-      tmpTeacherWorkloadList.push(teacherWorkload)
+      merge(tw, _teacher)
+      twList.push(tw)
     }
 
-    for (const tw of tmpTeacherWorkloadList) {
-      await tw.save()
-    }
-    return 'Workload Edited'
+    await TeacherWorkload.save(twList)
+    return 'Workload edited'
   }
 
   @Delete('/workload/:id')
   async deleteWorkload(@Param('id') id: string) {
-    const workload = await Workload.findOne({ where: { id } })
+    const workload = await Workload.findOne({
+      where: { id },
+    })
     if (!workload)
       throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
-        `Workload ${id} is not found`,
+        `Workload id(${id}) is not found`,
       ])
 
     await workload.remove()
-    return 'Workload discarded'
-  }
-
-  @Get('/workload/no-room')
-  async getWorkloadWithUnAssignedRoom(
-    @QueryParams() query: IGetWorkloadNoRoomQuery
-  ) {
-    const { academic_year, semester } = query
-    const workloadList = await Workload.find({
-      relations: [
-        'room',
-        'subject',
-        'timeList',
-        'teacherWorkloadList',
-        'teacherWorkloadList.teacher',
-        'teacherWorkloadList.workload',
-      ],
-      where: {
-        room: IsNull(),
-        subject: Not(IsNull()),
-        academicYear: academic_year,
-        semester: semester,
-      },
-    })
-
-    return workloadList.map((workload) => ({
-      workloadId: workload.id,
-      subjectCode: workload.subject.code,
-      subjectName: workload.subject.name,
-      section: workload.section,
-      dayOfWeek: workload.dayOfWeek,
-      startTime: mapTimeSlotToTime(workload.getFirstTimeSlot()),
-      endTime: mapTimeSlotToTime(workload.getLastTimeSlot() + 1),
-      teacherList: workload
-        .getTeacherList()
-        .map((teacher) => teacher.getFullName()),
-    }))
+    return 'Workload deleted'
   }
 }

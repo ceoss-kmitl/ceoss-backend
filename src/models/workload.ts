@@ -8,53 +8,18 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-import { Subject } from '@models/subject'
-import { Room } from '@models/room'
-import { Time } from '@models/time'
-import { TeacherWorkload } from '@models/teacherWorkload'
-import { Compensated } from '@models/compensated'
 
-export enum WorkloadType {
-  Lecture = 'LECTURE',
-  Lab = 'LAB',
-}
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 
-export enum DayOfWeek {
-  Monday = 1,
-  Tuesday,
-  Wednesday,
-  Thursday,
-  Friday,
-  Saturday,
-  Sunday,
-}
-
-export enum Degree {
-  Bachelor = 'BACHELOR',
-  BachelorCon = 'BACHELOR_CONTINUE',
-  BachelorInter = 'BACHELOR_INTER',
-  Pundit = 'PUNDIT',
-  PunditInter = 'PUNDIT_INTER',
-}
+import { Subject } from './subject'
+import { Room } from './room'
+import { Time } from './time'
+import { TeacherWorkload } from './teacherWorkload'
 
 @Entity()
 export class Workload extends BaseEntity {
   @PrimaryColumn()
   id: string
-
-  @ManyToOne(() => Subject, (subject) => subject.workloadList, {
-    onDelete: 'CASCADE',
-  })
-  subject: Subject
-
-  @OneToMany(
-    () => TeacherWorkload,
-    (teacherWorkload) => teacherWorkload.workload
-  )
-  teacherWorkloadList: TeacherWorkload[]
-
-  @Column()
-  section: number
 
   @Column({ type: 'enum', enum: WorkloadType })
   type: WorkloadType
@@ -62,16 +27,14 @@ export class Workload extends BaseEntity {
   @Column({ type: 'enum', enum: DayOfWeek })
   dayOfWeek: DayOfWeek
 
-  @OneToMany(() => Time, (time) => time.workload, {
-    cascade: true,
-  })
-  timeList: Time[]
+  @Column({ type: 'enum', enum: Degree })
+  degree: Degree
 
-  @ManyToOne(() => Room, (room) => room.workloadList, { onDelete: 'CASCADE' })
-  room: Room
+  @Column({ type: 'timestamptz', nullable: true })
+  compensationFromDate?: Date
 
-  @OneToMany(() => Compensated, (compensated) => compensated.workload)
-  compensatedList: Compensated[]
+  @Column({ type: 'timestamptz', nullable: true })
+  compensationDate?: Date
 
   @Column()
   academicYear: number
@@ -79,8 +42,8 @@ export class Workload extends BaseEntity {
   @Column()
   semester: number
 
-  @Column({ type: 'enum', enum: Degree })
-  degree: Degree
+  @Column()
+  section: number
 
   @Column()
   fieldOfStudy: string
@@ -88,31 +51,83 @@ export class Workload extends BaseEntity {
   @Column()
   classYear: number
 
+  @OneToMany(() => Time, (time) => time.workload, {
+    cascade: true,
+  })
+  timeList: Time[]
+
+  @ManyToOne(() => Room, (room) => room.workloadList, {
+    onDelete: 'CASCADE',
+  })
+  room?: Room
+
+  @ManyToOne(() => Subject, (subject) => subject.workloadList, {
+    onDelete: 'CASCADE',
+  })
+  subject: Subject
+
+  @OneToMany(() => TeacherWorkload, (tw) => tw.workload, {
+    onDelete: 'CASCADE',
+  })
+  teacherWorkloadList: TeacherWorkload[]
+
+  @ManyToOne(() => Workload, (workload) => workload.compensationList, {
+    onDelete: 'CASCADE',
+  })
+  compensationFrom: Workload
+
+  @OneToMany(() => Workload, (workload) => workload.compensationFrom)
+  compensationList: Workload[]
+
+  // ==============
+  // Hooks function
+  // ==============
+
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
   }
 
+  // ===============
+  // Static function
+  // ===============
+
+  // ===============
+  // Public function
+  // ===============
+
+  /** Required relation with `Time` */
   public getFirstTimeSlot() {
     const sortedTimeList = [...this.timeList].sort(
       (a, b) => a.startSlot - b.startSlot
     )
-    return sortedTimeList[0]?.startSlot
+    return sortedTimeList[0].startSlot
   }
 
+  /** Required relation with `Time` */
   public getLastTimeSlot() {
     const sortedTimeList = [...this.timeList].sort(
       (b, a) => a.startSlot - b.startSlot
     )
-    return sortedTimeList[0]?.endSlot
+    return sortedTimeList[0].endSlot
   }
 
+  /** Required relation with `Time` */
+  public getTimeStringList() {
+    return this.timeList.map((time) => ({
+      start: Time.toTimeString(time.startSlot),
+      end: Time.toTimeString(time.endSlot + 1),
+    }))
+  }
+
+  /** Required relation with `TeacherWorkload` */
   public getTeacherList() {
     return this.teacherWorkloadList.map(
       (teacherWorkload) => teacherWorkload.teacher
     )
   }
 
+  /** Required relation with `TeacherWorkload` */
   public getTeacherWorkload(teacherId: string) {
     return this.teacherWorkloadList.find(
       (teacherWorkload) =>

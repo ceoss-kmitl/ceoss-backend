@@ -1,7 +1,9 @@
+import { isEmpty } from 'lodash'
+
 import { Excel, PaperSize } from '@libs/Excel'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
+import { WorkloadType } from '@constants/common'
 
 export async function generateWorkloadExcel2(
   excel: Excel,
@@ -9,11 +11,6 @@ export async function generateWorkloadExcel2(
   academicYear: number,
   semester: number
 ) {
-  teacher.teacherWorkloadList = teacher.filterTeacherWorkloadList({
-    academicYear,
-    semester,
-  })
-
   const setting = await Setting.get()
 
   let claimInter = false
@@ -99,13 +96,16 @@ export async function generateWorkloadExcel2(
     excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
   }
 
+  console.log('AAa')
+
   // ===== workload =====
   teacher.getWorkloadList().forEach((workload, index) => {
+    console.log('BBB')
     const { subject, type, section, classYear, fieldOfStudy } = workload
 
     const subjectType = {
-      [WorkloadType.Lecture]: '(ท)',
-      [WorkloadType.Lab]: '(ป)',
+      [WorkloadType.LECTURE]: '(ท)',
+      [WorkloadType.LAB]: '(ป)',
     }
 
     // ===== Subject column =====
@@ -167,9 +167,11 @@ export async function generateWorkloadExcel2(
 
   // ===== Least 11 rows =====
 
-  let row = teacher.getWorkloadList().length + 7
+  let row = Math.max(teacher.getWorkloadList().length, 1) + 7
   if (row < 18) {
     for (row; row < 18; row++) {
+      console.log('row', row)
+
       excel.cells(`A${row}:B${row}`).border('right', 'left')
       excel.cells(`C${row}:I${row}`).border('right')
       excel.cells(`J${row}:K${row}`).border('right')
@@ -179,6 +181,7 @@ export async function generateWorkloadExcel2(
   }
 
   // ===== Summary =====
+  console.log('CCC')
 
   excel
     .cells(`A${row}:L${row}`)
@@ -238,6 +241,7 @@ export async function generateWorkloadExcel2(
     .align('center')
 
   // ===== Sign area sub dean =====
+  console.log('DDD')
 
   if (claimInter == false) {
     excel
@@ -289,4 +293,13 @@ export async function generateWorkloadExcel2(
     .value(`คณบดีคณะวิศวกรรมศาสตร์`)
     .border('left', 'right', 'bottom')
     .align('center')
+  console.log('Ee')
+
+  // Fallback to fill outline when workload is empty
+  if (isEmpty(teacher.getWorkloadList())) {
+    excel.cells('C7:I7').border('right')
+    excel.cells('J7:K7').border('right')
+    excel.cell('L7').border('right')
+    excel.cell('M7').border('right')
+  }
 }

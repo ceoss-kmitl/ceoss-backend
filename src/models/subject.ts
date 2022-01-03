@@ -7,7 +7,10 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-import { Workload } from '@models/workload'
+
+import { IAcademicTime } from '@controllers/types/common'
+
+import { Workload } from './workload'
 
 @Entity()
 export class Subject extends BaseEntity {
@@ -35,25 +38,66 @@ export class Subject extends BaseEntity {
   @Column()
   independentHours: number
 
-  @Column({ default: 'CE' })
+  @Column()
   curriculumCode: string
 
-  @Column({ default: false })
+  @Column()
   isInter: boolean
 
   @OneToMany(() => Workload, (workload) => workload.subject)
   workloadList: Workload[]
+
+  // ==============
+  // Hooks function
+  // ==============
 
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
   }
 
-  static findOneByCode(code: string) {
-    return this.findOne({ where: { code } })
+  // ===============
+  // Static function
+  // ===============
+
+  static async findOneByIdAndJoinWorkload(
+    id: string,
+    { academicYear, semester }: IAcademicTime
+  ) {
+    const subject = await this.findOne({
+      relations: [
+        'workloadList',
+        'workloadList.room',
+        'workloadList.subject',
+        'workloadList.timeList',
+        'workloadList.compensationList',
+        'workloadList.compensationFrom',
+        'workloadList.compensationFrom.room',
+        'workloadList.compensationFrom.timeList',
+        'workloadList.teacherWorkloadList',
+        'workloadList.teacherWorkloadList.workload',
+        'workloadList.teacherWorkloadList.teacher',
+      ],
+      where: { id },
+    })
+
+    if (subject) {
+      subject.workloadList = subject.workloadList.filter(
+        (workload) =>
+          workload.academicYear === academicYear &&
+          workload.semester === semester
+      )
+    }
+    return subject
   }
 
-  /** Example: 3(3-3-0) */
+  // ===============
+  // Public function
+  // ===============
+
+  /**
+   * Example result: `3(1-2-1)`
+   */
   public getFullCredit() {
     return `${this.credit}(${this.lectureHours}-${this.labHours}-${this.independentHours})`
   }

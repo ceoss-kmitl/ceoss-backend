@@ -1,7 +1,7 @@
 import { Excel, PaperSize } from '@libs/Excel'
 import { Room } from '@models/Room'
 import { Time } from '@models/time'
-import { WorkloadType } from '@models/workload'
+import { WorkloadType } from '@constants/common'
 
 export async function generateRoomExcel(
   excel: Excel,
@@ -12,20 +12,21 @@ export async function generateRoomExcel(
   // Remove break time slot from timeList
   roomList.forEach((room) => {
     room.workloadList.forEach((workload) => {
-      const { timeList } = workload
       const newTimeList = []
-      workload.timeList.sort((a, b) => a.startSlot - b.startSlot)
+      const tmpTimeList = [...workload.timeList].sort(
+        (a, b) => a.startSlot - b.startSlot
+      )
 
-      for (let i = 0; i < timeList.length; i++) {
+      for (let i = 0; i < tmpTimeList.length; i++) {
         // Means next time slot should merge with current time
-        if (timeList[i + 1]?.startSlot - timeList[i]?.endSlot === 2) {
+        if (tmpTimeList[i + 1]?.startSlot - tmpTimeList[i]?.endSlot === 2) {
           const time = new Time()
-          time.startSlot = timeList[i].startSlot
-          time.endSlot = timeList[i + 1].endSlot
+          time.startSlot = tmpTimeList[i].startSlot
+          time.endSlot = tmpTimeList[i + 1].endSlot
           newTimeList.push(time)
           i++
         } else {
-          newTimeList.push(timeList[i])
+          newTimeList.push(tmpTimeList[i])
         }
       }
       workload.timeList = newTimeList
@@ -150,11 +151,11 @@ export async function generateRoomExcel(
       } = workload
 
       const subjectType = {
-        [WorkloadType.Lecture]: '(ท)',
-        [WorkloadType.Lab]: '(ป)',
+        [WorkloadType.LECTURE]: '(ท)',
+        [WorkloadType.LAB]: '(ป)',
       }
 
-      const row = 4 + (dayOfWeek - 1) * 2
+      const row = 4 + dayOfWeek * 2
       for (let i = 0; i < timeList.length; i++) {
         const start = Excel.toAlphabet(3 + (timeList[i].startSlot - 1))
         const end = Excel.toAlphabet(3 + (timeList[i].endSlot - 1))
