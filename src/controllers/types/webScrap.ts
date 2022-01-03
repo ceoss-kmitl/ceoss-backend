@@ -1,12 +1,11 @@
 import { Type } from 'class-transformer'
-import { IsNumber } from 'class-validator'
+import { IsBoolean, IsOptional } from 'class-validator'
 
-export class IWebScrapQuery {
-  @Type(() => Number)
-  @IsNumber()
-  academic_year: number
+import { IAcademicTime } from './common'
 
-  @Type(() => Number)
-  @IsNumber()
-  semester: number
+export class IWebScrapQuery extends IAcademicTime {
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  save?: boolean
 }
