@@ -34,6 +34,32 @@ export class ICreateCompensationWorkloadBody {
   compensatedTimeList: string[][]
 }
 
+// ====================
+// Workload x Assistant
+// ====================
+class IAssitantWorkloadList {
+  @IsString()
+  assistantId: string
+
+  @IsString()
+  assistantName: string
+
+  @IsArray()
+  @IsString({ each: true })
+  dayList: string[]
+}
+
+export class IEditAssistantOfWorkload {
+  @Type(() => IAssitantWorkloadList)
+  @IsArray()
+  @ValidateNested({ each: true })
+  assistantList: IAssitantWorkloadList[]
+
+  @IsArray()
+  @IsString({ each: true })
+  workloadIdList: string[]
+}
+
 // =========
 // CRUD type
 // =========

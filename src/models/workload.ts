@@ -15,6 +15,7 @@ import { Subject } from './subject'
 import { Room } from './room'
 import { Time } from './time'
 import { TeacherWorkload } from './teacherWorkload'
+import { AssistantWorkload } from './assistantWorkload'
 
 @Entity()
 export class Workload extends BaseEntity {
@@ -71,6 +72,9 @@ export class Workload extends BaseEntity {
   })
   teacherWorkloadList: TeacherWorkload[]
 
+  @OneToMany(() => AssistantWorkload, (aw) => aw.workload)
+  assistantWorkloadList: AssistantWorkload[]
+
   @ManyToOne(() => Workload, (workload) => workload.compensationList, {
     onDelete: 'CASCADE',
   })
@@ -124,6 +128,13 @@ export class Workload extends BaseEntity {
   public getTeacherList() {
     return this.teacherWorkloadList.map(
       (teacherWorkload) => teacherWorkload.teacher
+    )
+  }
+
+  /** Required relation with `AssistantWorkload` */
+  public getAssistantList() {
+    return this.assistantWorkloadList.map(
+      (assistantWorkload) => assistantWorkload.assistant
     )
   }
 

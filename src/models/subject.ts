@@ -77,6 +77,8 @@ export class Subject extends BaseEntity {
         'workloadList.teacherWorkloadList',
         'workloadList.teacherWorkloadList.workload',
         'workloadList.teacherWorkloadList.teacher',
+        'workloadList.assistantWorkloadList',
+        'workloadList.assistantWorkloadList.assistant',
       ],
       where: { id },
     })

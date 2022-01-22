@@ -1,4 +1,4 @@
-import { IsNull, Not } from 'typeorm'
+import { In, IsNull, Not } from 'typeorm'
 import {
   Body,
   Delete,
@@ -24,9 +24,12 @@ import { TeacherWorkload } from '@models/teacherWorkload'
 import {
   ICreateCompensationWorkloadBody,
   ICreateWorkload,
+  IEditAssistantOfWorkload,
   IEditWorkload,
   IGetWorkloadQuery,
 } from './types/workload'
+import { Assistant } from '@models/assistant'
+import { AssistantWorkload } from '@models/assistantWorkload'
 
 @JsonController()
 export class WorkloadController {
@@ -85,6 +88,56 @@ export class WorkloadController {
 
     await TeacherWorkload.save(compensationWorkload.teacherWorkloadList)
     return 'Compensation-Workload created'
+  }
+
+  // ====================
+  // Workload x Assistant
+  // ====================
+  @Put('/workload/assistant')
+  @ValidateBody(IEditAssistantOfWorkload)
+  async editAssistantListOfWorkload(@Body() body: IEditAssistantOfWorkload) {
+    const workloadList = await Workload.find({
+      relations: [
+        'assistantWorkloadList',
+        'assistantWorkloadList.assistant',
+        'assistantWorkloadList.workload',
+      ],
+      where: {
+        id: In(body.workloadIdList),
+      },
+    })
+    if (workloadList.length !== body.workloadIdList.length)
+      throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
+        `Workload id(${body.workloadIdList.join(', ')}) is not found`,
+      ])
+
+    for (const _workload of workloadList) {
+      const assistantList = _workload.getAssistantList()
+      const awList: AssistantWorkload[] = []
+
+      // Remove old AW
+      await AssistantWorkload.remove(_workload.assistantWorkloadList)
+
+      for (const _assistant of body.assistantList) {
+        // Find existing TA or Create, then update it
+        const assistant =
+          assistantList.find((each) => each.id === _assistant.assistantId) ||
+          Assistant.create()
+
+        assistant.id = _assistant.assistantId
+        assistant.name = _assistant.assistantName.trim()
+
+        const aw = new AssistantWorkload()
+        aw.assistant = assistant
+        aw.workload = _workload
+        aw.dayList = _assistant.dayList.map((day) => new Date(day))
+        awList.push(aw)
+      }
+      // Add new AW
+      await AssistantWorkload.save(awList)
+    }
+
+    return 'Assistant workload updated'
   }
 
   // =============
