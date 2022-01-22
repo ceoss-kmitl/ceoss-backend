@@ -1,4 +1,4 @@
-import { IsNull, Not } from 'typeorm'
+import { In, IsNull, Not } from 'typeorm'
 import {
   Body,
   Delete,
@@ -93,48 +93,49 @@ export class WorkloadController {
   // ====================
   // Workload x Assistant
   // ====================
-  @Put('/workload/:id/assistant')
+  @Put('/workload/assistant')
   @ValidateBody(IEditAssistantOfWorkload)
-  async editAssistantListOfWorkload(
-    @Param('id') id: string,
-    @Body() body: IEditAssistantOfWorkload
-  ) {
-    const workload = await Workload.findOne({
+  async editAssistantListOfWorkload(@Body() body: IEditAssistantOfWorkload) {
+    const workloadList = await Workload.find({
       relations: [
         'assistantWorkloadList',
         'assistantWorkloadList.assistant',
         'assistantWorkloadList.workload',
       ],
-      where: { id },
+      where: {
+        id: In(body.workloadIdList),
+      },
     })
-    if (!workload)
-      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
-        `Workload id(${id}) is not found`,
+    if (workloadList.length !== body.workloadIdList.length)
+      throw new NotFoundError('ไม่พบภาระงานดังกล่าว', [
+        `Workload id(${body.workloadIdList.join(', ')}) is not found`,
       ])
 
-    const assistantList = workload.getAssistantList()
-    const awList: AssistantWorkload[] = []
+    for (const _workload of workloadList) {
+      const assistantList = _workload.getAssistantList()
+      const awList: AssistantWorkload[] = []
 
-    // Remove old AW
-    await AssistantWorkload.remove(workload.assistantWorkloadList)
+      // Remove old AW
+      await AssistantWorkload.remove(_workload.assistantWorkloadList)
 
-    for (const _assistant of body.list) {
-      // Find existing TA or Create, then update it
-      const assistant =
-        assistantList.find((each) => each.id === _assistant.assistantId) ||
-        Assistant.create()
+      for (const _assistant of body.assistantList) {
+        // Find existing TA or Create, then update it
+        const assistant =
+          assistantList.find((each) => each.id === _assistant.assistantId) ||
+          Assistant.create()
 
-      assistant.id = _assistant.assistantId
-      assistant.name = _assistant.assistantName.trim()
+        assistant.id = _assistant.assistantId
+        assistant.name = _assistant.assistantName.trim()
 
-      const aw = new AssistantWorkload()
-      aw.assistant = assistant
-      aw.workload = workload
-      aw.dayList = _assistant.dayList.map((day) => new Date(day))
-      awList.push(aw)
+        const aw = new AssistantWorkload()
+        aw.assistant = assistant
+        aw.workload = _workload
+        aw.dayList = _assistant.dayList.map((day) => new Date(day))
+        awList.push(aw)
+      }
+      // Add new AW
+      await AssistantWorkload.save(awList)
     }
-    // Add new AW
-    await AssistantWorkload.save(awList)
 
     return 'Assistant workload updated'
   }

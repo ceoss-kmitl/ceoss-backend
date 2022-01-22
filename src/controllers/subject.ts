@@ -19,6 +19,7 @@ import { Subject } from '@models/subject'
 import {
   ICreateSubject,
   IEditSubject,
+  IGetSubjectSectionInfoQuery,
   IGetSubjectCompensationWorkloadQuery,
 } from './types/subject'
 
@@ -63,6 +64,60 @@ export class SubjectController {
           originalRoom: w.compensationFrom.room?.name,
           compensatedRoom: w.room?.name,
         })),
+      })
+    )
+
+    return result
+  }
+
+  // ====================
+  // Subject x Section
+  // ====================
+  @Get('/subject/:id/section')
+  @ValidateQuery(IGetSubjectSectionInfoQuery)
+  async getAssistantListOfSubject(
+    @Param('id') id: string,
+    @QueryParams() query: IGetSubjectSectionInfoQuery
+  ) {
+    const { academicYear, semester } = query
+    const subject = await Subject.findOneByIdAndJoinWorkload(id, {
+      academicYear,
+      semester,
+    })
+    if (!subject)
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject id(${id}) is not found`,
+      ])
+
+    const workloadGroupBySection = chain(subject.workloadList)
+      .groupBy((workload) => workload.section)
+      .mapValues((workloadList) =>
+        workloadList.filter((w) => !w.compensationDate)
+      )
+      .value()
+    const result = Object.entries(workloadGroupBySection).map(
+      ([section, workloadList]) => ({
+        section: Number(section),
+        workloadIdList: workloadList.map((w) => w.id),
+        assistantList: chain(workloadList)
+          .map((w) => w.assistantWorkloadList)
+          .flatten()
+          .map((aw) => ({
+            id: aw.assistant.id,
+            name: aw.assistant.name,
+            dayList: aw.dayList,
+          }))
+          .uniqBy((assistant) => assistant.id)
+          .value(),
+        teacherList: chain(workloadList)
+          .map((w) => w.teacherWorkloadList)
+          .flatten()
+          .map((tw) => ({
+            id: tw.teacher.id,
+            name: tw.teacher.name,
+          }))
+          .uniqBy((teacher) => teacher.id)
+          .value(),
       })
     )
 

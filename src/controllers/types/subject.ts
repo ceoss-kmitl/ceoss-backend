@@ -16,6 +16,12 @@ import { IAcademicTime } from './common'
 
 export class IGetSubjectCompensationWorkloadQuery extends IAcademicTime {}
 
+// ==================
+// Subject x Section
+// ==================
+
+export class IGetSubjectSectionInfoQuery extends IAcademicTime {}
+
 // =========
 // CRUD type
 // =========

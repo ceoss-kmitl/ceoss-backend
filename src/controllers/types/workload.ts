@@ -53,7 +53,11 @@ export class IEditAssistantOfWorkload {
   @Type(() => IAssitantWorkloadList)
   @IsArray()
   @ValidateNested({ each: true })
-  list: IAssitantWorkloadList[]
+  assistantList: IAssitantWorkloadList[]
+
+  @IsArray()
+  @IsString({ each: true })
+  workloadIdList: string[]
 }
 
 // =========
