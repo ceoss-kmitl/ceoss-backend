@@ -24,9 +24,12 @@ import { TeacherWorkload } from '@models/teacherWorkload'
 import {
   ICreateCompensationWorkloadBody,
   ICreateWorkload,
+  IEditAssistantOfWorkload,
   IEditWorkload,
   IGetWorkloadQuery,
 } from './types/workload'
+import { Assistant } from '@models/assistant'
+import { AssistantWorkload } from '@models/assistantWorkload'
 
 @JsonController()
 export class WorkloadController {
@@ -85,6 +88,55 @@ export class WorkloadController {
 
     await TeacherWorkload.save(compensationWorkload.teacherWorkloadList)
     return 'Compensation-Workload created'
+  }
+
+  // ====================
+  // Workload x Assistant
+  // ====================
+  @Put('/workload/:id/assistant')
+  @ValidateBody(IEditAssistantOfWorkload)
+  async editAssistantListOfWorkload(
+    @Param('id') id: string,
+    @Body() body: IEditAssistantOfWorkload
+  ) {
+    const workload = await Workload.findOne({
+      relations: [
+        'assistantWorkloadList',
+        'assistantWorkloadList.assistant',
+        'assistantWorkloadList.workload',
+      ],
+      where: { id },
+    })
+    if (!workload)
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Workload id(${id}) is not found`,
+      ])
+
+    const assistantList = workload.getAssistantList()
+    const awList: AssistantWorkload[] = []
+
+    // Remove old AW
+    await AssistantWorkload.remove(workload.assistantWorkloadList)
+
+    for (const _assistant of body.list) {
+      // Find existing TA or Create, then update it
+      const assistant =
+        assistantList.find((each) => each.id === _assistant.assistantId) ||
+        Assistant.create()
+
+      assistant.id = _assistant.assistantId
+      assistant.name = _assistant.assistantName.trim()
+
+      const aw = new AssistantWorkload()
+      aw.assistant = assistant
+      aw.workload = workload
+      aw.dayList = _assistant.dayList.map((day) => new Date(day))
+      awList.push(aw)
+    }
+    // Add new AW
+    await AssistantWorkload.save(awList)
+
+    return 'Assistant workload updated'
   }
 
   // =============
