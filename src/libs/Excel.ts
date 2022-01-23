@@ -287,6 +287,14 @@ export class Excel {
    * excel.value(20).numberFormat('0.00') => '20.00'
    * excel.value(3.56).numberFormat('0.0') => '3.6'
    * excel.value(4000).numberFormat('0,000') => '4,000'
+   *
+   * More explaination about format:
+   * A;B;C;D
+   * A is format for positive number
+   * B is format for negative number
+   * C is format for zero
+   * D is format for number
+   * @exmaple '0,000;;;' this will only format positive number and hide the rest
    */
   public numberFormat(format: string) {
     this.activeCell.numFmt = format
@@ -320,6 +328,7 @@ export class Excel {
       ...this.activeCell.alignment,
       textRotation: degree,
     }
+    return this
   }
 
   /**

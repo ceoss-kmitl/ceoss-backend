@@ -96,11 +96,8 @@ export async function generateWorkloadExcel2(
     excel.cells(`A${8 + index}:B${8 + index}`).border('right', 'left')
   }
 
-  console.log('AAa')
-
   // ===== workload =====
   teacher.getWorkloadList().forEach((workload, index) => {
-    console.log('BBB')
     const { subject, type, section, classYear, fieldOfStudy } = workload
 
     const subjectType = {
@@ -170,8 +167,6 @@ export async function generateWorkloadExcel2(
   let row = Math.max(teacher.getWorkloadList().length, 1) + 7
   if (row < 18) {
     for (row; row < 18; row++) {
-      console.log('row', row)
-
       excel.cells(`A${row}:B${row}`).border('right', 'left')
       excel.cells(`C${row}:I${row}`).border('right')
       excel.cells(`J${row}:K${row}`).border('right')
@@ -181,8 +176,6 @@ export async function generateWorkloadExcel2(
   }
 
   // ===== Summary =====
-  console.log('CCC')
-
   excel
     .cells(`A${row}:L${row}`)
     .value(`รวมจำนวนชม.ที่สอนทั้งหมด/สัปดาห์`)
@@ -241,8 +234,6 @@ export async function generateWorkloadExcel2(
     .align('center')
 
   // ===== Sign area sub dean =====
-  console.log('DDD')
-
   if (claimInter == false) {
     excel
       .cells(`H${row + 2}:I${row + 2}`)
@@ -293,7 +284,6 @@ export async function generateWorkloadExcel2(
     .value(`คณบดีคณะวิศวกรรมศาสตร์`)
     .border('left', 'right', 'bottom')
     .align('center')
-  console.log('Ee')
 
   // Fallback to fill outline when workload is empty
   if (isEmpty(teacher.getWorkloadList())) {

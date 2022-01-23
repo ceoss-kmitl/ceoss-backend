@@ -62,7 +62,12 @@ export class Subject extends BaseEntity {
 
   static async findOneByIdAndJoinWorkload(
     id: string,
-    { academicYear, semester }: IAcademicTime
+    {
+      academicYear,
+      semester,
+      section,
+      compensation,
+    }: IAcademicTime & { section?: number; compensation?: boolean }
   ) {
     const subject = await this.findOne({
       relations: [
@@ -89,7 +94,25 @@ export class Subject extends BaseEntity {
           workload.academicYear === academicYear &&
           workload.semester === semester
       )
+
+      if (section !== undefined) {
+        subject.workloadList = subject.workloadList.filter(
+          (workload) => workload.section === section
+        )
+        if (subject.workloadList.length === 0) {
+          return undefined
+        }
+      }
+
+      if (compensation !== undefined) {
+        subject.workloadList = compensation
+          ? subject.workloadList.filter((workload) => workload.compensationFrom)
+          : subject.workloadList.filter(
+              (workload) => !workload.compensationFrom
+            )
+      }
     }
+
     return subject
   }
 
