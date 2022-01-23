@@ -20,3 +20,8 @@ export enum WorkloadType {
   LECTURE = 'LECTURE',
   LAB = 'LAB',
 }
+
+export enum DocumentPattern {
+  ONSITE = 'ONSITE',
+  ONLINE = 'ONLINE',
+}

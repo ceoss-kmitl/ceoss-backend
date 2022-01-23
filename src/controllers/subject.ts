@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import {
   Body,
   Delete,
@@ -7,28 +8,73 @@ import {
   Post,
   Put,
   QueryParams,
+  Res,
 } from 'routing-controllers'
-import { chain, isNil, merge, omitBy } from 'lodash'
+import { chain, cloneDeep, isNil, merge, omitBy } from 'lodash'
 import { Not } from 'typeorm'
+import { Response } from 'express'
 
 import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { BadRequestError } from '@errors/badRequestError'
 import { NotFoundError } from '@errors/notFoundError'
 import { Subject } from '@models/subject'
+import { Excel } from '@libs/Excel'
 
 import {
   ICreateSubject,
   IEditSubject,
   IGetSubjectSectionInfoQuery,
   IGetSubjectCompensationWorkloadQuery,
+  IDownloadAssistantExcelQuery,
 } from './types/subject'
+import { generateAssistantExcel1 } from './templates/assistantExcel1'
 
 @JsonController()
 export class SubjectController {
+  // =============
+  // Subject Excel
+  // =============
+
+  @Get('/subject/:id/section/:section/assistant/excel')
+  @ValidateQuery(IDownloadAssistantExcelQuery)
+  async downloadAssistantSubject(
+    @Res() res: Response,
+    @Param('id') id: string,
+    @Param('section') section: number,
+    @QueryParams() query: IDownloadAssistantExcelQuery
+  ) {
+    const { academicYear, semester, documentDate } = query
+
+    const subject = await Subject.findOneByIdAndJoinWorkload(id, {
+      academicYear,
+      semester,
+      section,
+    })
+    if (!subject)
+      throw new NotFoundError('ไม่พบวิชาดังกล่าว', [
+        `Subject id(${id}) is not found`,
+      ])
+
+    const excel = new Excel(res)
+    console.log('A', query)
+
+    try {
+      await generateAssistantExcel1(excel, cloneDeep(subject), query)
+    } catch (error) {
+      console.log('ERR', error)
+    }
+
+    const monthYear = dayjs(documentDate).format('MM BB')
+    const subjectCodeNameSection = `${subject.code} ${subject.name} (กลุ่ม ${section})`
+    const file = await excel.createFile(
+      `TA วิชา ${subjectCodeNameSection} - ${monthYear}`
+    )
+    return file
+  }
+
   // ==================
   // Subject x Workload
   // ==================
-
   @Get('/subject/:id/compensation-workload')
   @ValidateQuery(IGetSubjectCompensationWorkloadQuery)
   async getSubjectCompensatedHistory(
@@ -70,9 +116,10 @@ export class SubjectController {
     return result
   }
 
-  // ====================
+  // =================
   // Subject x Section
-  // ====================
+  // =================
+
   @Get('/subject/:id/section')
   @ValidateQuery(IGetSubjectSectionInfoQuery)
   async getAssistantListOfSubject(
@@ -114,7 +161,7 @@ export class SubjectController {
           .flatten()
           .map((tw) => ({
             id: tw.teacher.id,
-            name: tw.teacher.name,
+            name: `${tw.teacher.title}${tw.teacher.name}`,
           }))
           .uniqBy((teacher) => teacher.id)
           .value(),

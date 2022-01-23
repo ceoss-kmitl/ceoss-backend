@@ -1,6 +1,8 @@
 import { Transform } from 'class-transformer'
 import {
   IsBoolean,
+  IsDateString,
+  IsEnum,
   IsNumber,
   IsNumberString,
   IsOptional,
@@ -8,7 +10,30 @@ import {
   Length,
 } from 'class-validator'
 
+import { DocumentPattern } from '@constants/common'
+
 import { IAcademicTime } from './common'
+
+// =============
+// Subject Excel
+// =============
+
+export class IDownloadAssistantExcelQuery extends IAcademicTime {
+  @IsDateString()
+  documentDate: string
+
+  @IsEnum(DocumentPattern)
+  documentPattern: DocumentPattern
+
+  @IsString()
+  approvalNumber: string
+
+  @IsDateString()
+  approvalDate: string
+
+  @IsString()
+  teacherId: string
+}
 
 // ==================
 // Subject x Workload

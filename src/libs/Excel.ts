@@ -320,6 +320,7 @@ export class Excel {
       ...this.activeCell.alignment,
       textRotation: degree,
     }
+    return this
   }
 
   /**
