@@ -35,6 +35,9 @@ export class Setting extends BaseEntity {
   @Column()
   labPayRateExternal: number
 
+  @Column({ default: 0 })
+  assistantPayRate: number
+
   @Column()
   normalClaimLimit: number
 
@@ -60,6 +63,7 @@ export class Setting extends BaseEntity {
     setting.labPayRateInter = 0
     setting.lecturePayRateExternal = 0
     setting.labPayRateExternal = 0
+    setting.assistantPayRate = 0
     setting.normalClaimLimit = 0
     setting.interClaimLimit = 0
     setting.webScrapUrl =

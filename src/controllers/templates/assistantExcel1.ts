@@ -7,13 +7,21 @@ import { Setting } from '@models/setting'
 import { Subject } from '@models/subject'
 import { Assistant } from '@models/assistant'
 import { Time } from '@models/time'
+import { DocumentPattern } from '@constants/common'
 
 export async function generateAssistantExcel1(
   excel: Excel,
   subject: Subject,
   query: IDownloadAssistantExcelQuery
 ) {
-  const { documentDate, documentPattern, approvalNumber, approvalDate } = query
+  const {
+    academicYear,
+    semester,
+    documentDate,
+    documentPattern,
+    approvalNumber,
+    approvalDate,
+  } = query
 
   const setting = await Setting.get()
   const section = subject.workloadList[0].section
@@ -59,28 +67,45 @@ export async function generateAssistantExcel1(
 
   // ===== Title =====
   excel.font('Cordia New').fontSize(14)
+
+  const TitleTextLine1 = {
+    [DocumentPattern.ONLINE]: `ทางออนไลน์ แบบ Video Call วิชา ${subject.code} ${subject.name}   (กลุ่ม ${section}) `,
+    [DocumentPattern.ONSITE]: `สอนรายวิชาปฏิบัติการ ${subject.code} ${subject.name} (กลุ่ม ${section}) ประจำภาคเรียนที่ ${semester}/${academicYear}`,
+  }
   excel
     .cells('A1:AG1')
     .value(
-      `หลักฐานการจ่ายเงินตอบแทนให้นักศึกษาช่วยปฏิบัติงานทางออนไลน์ แบบ Video Call วิชา ${subject.code} ${subject.name}   (กลุ่ม ${section}) `
+      `หลักฐานการจ่ายเงินตอบแทนให้นักศึกษาช่วยปฏิบัติงาน${TitleTextLine1[documentPattern]}`
     )
     .bold()
     .align('center', 'middle')
+
+  const TitleTextLine2 = {
+    [DocumentPattern.ONLINE]: `ประจำเดือน  ${dayjs(documentDate).format(
+      'MMMM  BBBB'
+    )}`,
+    [DocumentPattern.ONSITE]: `ชื่อส่วนราชการ คณะวิศวกรรมศาสตร์   จังหวัด  กรุงเทพฯ  ประจำเดือน  ${dayjs(
+      documentDate
+    ).format('MMMM  BBBB')}`,
+  }
   excel
     .cells('A2:AG2')
-    .value(`ประจำเดือน  ${dayjs(documentDate).format('MMMM  BBBB')}`)
+    .value(TitleTextLine2[documentPattern])
     .bold()
     .align('center', 'middle')
     .fontSize(16)
+
+  const TitleTextLine3 = {
+    [DocumentPattern.ONLINE]: `"ตามหนังสือขออนุมัติเลขที่  ${approvalNumber} ลงวันที่ ${dayjs(
+      approvalDate
+    ).format(
+      'D MMMM BBBB'
+    )}  ยอดเงิน  "&TEXT(AD20,"#,##0;;;")&" บาท  คณะวิศวกรรมศาสตร์ สจล."`,
+    [DocumentPattern.ONSITE]: `"เบิกตามฎีกาที่...................................................ลงวันที่..........................................เดือน.......................................พ.ศ. ........................"`,
+  }
   excel
     .cells('A3:AG3')
-    .formula(
-      `"ตามหนังสือขออนุมัติเลขที่  ${approvalNumber} ลงวันที่ ${dayjs(
-        approvalDate
-      ).format(
-        'D MMMM BBBB'
-      )}  ยอดเงิน  "&TEXT(AD20,"#,##0;;;")&" บาท  คณะวิศวกรรมศาสตร์ สจล."`
-    )
+    .formula(TitleTextLine3[documentPattern])
     .bold()
     .align('center', 'middle')
     .fontSize(16)
@@ -225,19 +250,28 @@ export async function generateAssistantExcel1(
     .align('left', 'middle')
     .formula(`".........."&BAHTTEXT(AD20)&".........."`)
     .bold()
+
+  const ApprovalText = {
+    [DocumentPattern.ONLINE]: 'ช่วยปฏิบัติงานทางออนไลน์แบบ Video Call จริง',
+    [DocumentPattern.ONSITE]: 'ปฏิบัติงานนอกเวลาจริง',
+  }
   excel
-    .cells('B23:AG23')
-    .align('left', 'middle')
-    .value(
-      'ขอรับรองว่า ผู้มีรายชื่อข้างต้นช่วยปฏิบัติงานทางออนไลน์แบบ Video Call จริง'
-    )
+    .cells('B23:O23')
+    .align('center', 'middle')
+    .value(`ขอรับรองว่า ผู้มีรายชื่อข้างต้น${ApprovalText[documentPattern]}`)
     .bold()
 
+  const GuardianSign = {
+    [DocumentPattern.ONLINE]: 'อาจารย์ผู้รับผิดชอบ',
+    [DocumentPattern.ONSITE]: 'หัวหน้าผู้ควบคุม',
+  }
   excel
     .cells('B24:O24')
     .align('center', 'middle')
     .bold()
-    .value('ลงชื่อ........................................อาจารย์ผู้รับผิดชอบ')
+    .value(
+      `ลงชื่อ........................................${GuardianSign[documentPattern]}`
+    )
   excel
     .cells('R24:AD24')
     .align('center', 'middle')
@@ -313,7 +347,7 @@ export async function generateAssistantExcel1(
     // อัตราเงินตอบแทน
     excel
       .cell(`C${7 + i}`)
-      .value(100)
+      .value(setting.assistantPayRate)
       .bold()
 
     // วันเวลาเอียง ๆ

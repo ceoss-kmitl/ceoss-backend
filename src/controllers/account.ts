@@ -6,13 +6,12 @@ import {
   Param,
   Post,
   Put,
-  UseBefore,
 } from 'routing-controllers'
 import { ICreateAccount, IEditAccount } from '@controllers/types/account'
-import { schema } from '@middlewares/schema'
 import { Account } from '@models/account'
 import { NotFoundError } from '@errors/notFoundError'
 import { BadRequestError } from '@errors/badRequestError'
+import { ValidateBody } from '@middlewares/validator'
 
 @JsonController()
 export class AccountController {
@@ -38,7 +37,7 @@ export class AccountController {
   }
 
   @Post('/account')
-  @UseBefore(schema(ICreateAccount))
+  @ValidateBody(ICreateAccount)
   async create(@Body() body: ICreateAccount) {
     const { username, password, isAdmin } = body
     const isExist = await Account.findOneByUsername(username)
@@ -57,7 +56,7 @@ export class AccountController {
   }
 
   @Put('/account/:id')
-  @UseBefore(schema(IEditAccount))
+  @ValidateBody(IEditAccount)
   async edit(@Param('id') id: string, @Body() body: IEditAccount) {
     const { username, password, isAdmin } = body
     const isExist = await Account.findOneByUsername(username)
