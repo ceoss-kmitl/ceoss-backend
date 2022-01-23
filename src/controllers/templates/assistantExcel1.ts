@@ -1,29 +1,21 @@
 import dayjs from 'dayjs'
-import { range } from 'lodash'
+import { range, chain } from 'lodash'
 
 import { IDownloadAssistantExcelQuery } from '@controllers/types/subject'
 import { Excel, PaperSize } from '@libs/Excel'
 import { Setting } from '@models/setting'
 import { Subject } from '@models/subject'
+import { Assistant } from '@models/assistant'
+import { Time } from '@models/time'
 
 export async function generateAssistantExcel1(
   excel: Excel,
   subject: Subject,
   query: IDownloadAssistantExcelQuery
 ) {
-  const {
-    academicYear,
-    semester,
-    documentDate,
-    documentPattern,
-    approvalNumber,
-    approvalDate,
-    teacherId,
-  } = query
+  const { documentDate, documentPattern, approvalNumber, approvalDate } = query
 
   const setting = await Setting.get()
-  console.log('B', subject)
-
   const section = subject.workloadList[0].section
 
   // ===== Excel setup =====
@@ -82,10 +74,12 @@ export async function generateAssistantExcel1(
     .fontSize(16)
   excel
     .cells('A3:AG3')
-    .value(
-      `ตามหนังสือขออนุมัติเลขที่  ${approvalNumber} ลงวันที่ ${dayjs(
+    .formula(
+      `"ตามหนังสือขออนุมัติเลขที่  ${approvalNumber} ลงวันที่ ${dayjs(
         approvalDate
-      ).format('D MMMM BBBB')}  ยอดเงิน  900 บาท  คณะวิศวกรรมศาสตร์ สจล.`
+      ).format(
+        'D MMMM BBBB'
+      )}  ยอดเงิน  "&TEXT(AD20,"#,##0;;;")&" บาท  คณะวิศวกรรมศาสตร์ สจล."`
     )
     .bold()
     .align('center', 'middle')
@@ -189,11 +183,22 @@ export async function generateAssistantExcel1(
     }
     excel.cell(`AA${row}`).align('center', 'middle').border('box')
     excel.cell(`AB${row}`).align('center', 'middle').border('box')
-    excel.cell(`AC${row}`).align('center', 'middle').border('box')
+
+    excel.fontSize(14)
+    excel
+      .cell(`AC${row}`)
+      .align('center', 'middle')
+      .border('box')
+      .formula(`SUM(D${row}:Z${row})`)
+      .numberFormat('General;#;;@')
+      .bold()
     excel
       .cell(`AD${row}`)
       .align('right', 'middle')
       .border('box', 'left-bold', 'right-bold')
+      .formula(`AC${row}*C${row}`)
+      .numberFormat('#,##0;;;')
+      .bold()
     excel.cell(`AE${row}`).border('box', 'right-bold')
     excel.cell(`AF${row}`).border('box', 'right-bold')
     excel.cell(`AG${row}`).border('box', 'right-bold')
@@ -202,6 +207,9 @@ export async function generateAssistantExcel1(
       for (const col of Excel.range('A:AG')) {
         excel.cell(`${col}${row}`).border('bottom-bold')
       }
+      excel.fontSize(14)
+      excel.cell('AC20').formula('SUM(AC7:AC19)').bold()
+      excel.cell('AD20').formula('SUM(AD7:AD19)').numberFormat('#,##0').bold()
     }
   }
 
@@ -235,4 +243,93 @@ export async function generateAssistantExcel1(
     .align('center', 'middle')
     .bold()
     .value('ลงชื่อ........................................ผู้จ่ายเงิน')
+
+  /**
+   * ==================================
+   * [     INSERT DATA INTO TABLE     ]
+   * ==================================
+   */
+
+  // Start Prepare data
+  const tmpList: {
+    assistant: Assistant
+    dateList: string[]
+    time: string
+    timeSlot: number
+  }[] = []
+  subject.workloadList.forEach((workload) => {
+    workload.assistantWorkloadList.forEach((aw) => {
+      const timeSlotStart = workload.getFirstTimeSlot()
+      const timeSlotEnd = workload.getLastTimeSlot() + 1
+
+      tmpList.push({
+        assistant: aw.assistant,
+        dateList: aw.dayList.map((day) =>
+          dayjs(day).format('ddddที่ D MMM BB')
+        ),
+        time: `${Time.toTimeString(timeSlotStart)} - ${Time.toTimeString(
+          timeSlotEnd
+        )}`,
+        timeSlot: (timeSlotEnd - timeSlotStart) / 4,
+      })
+    })
+  })
+  const assistantWithDateList = chain(tmpList)
+    .groupBy('assistant.id')
+    .mapValues((value) => ({
+      assistant: value[0].assistant,
+      dateTimeList: chain(
+        value.map((each) =>
+          each.dateList.map(
+            (d) => [`${d} (${each.time})`, each.timeSlot] as [string, number]
+          )
+        )
+      )
+        .flatten()
+        .sort((a, b) => a[0].localeCompare(b[0], 'th'))
+        .value(),
+    }))
+    .values()
+    .value()
+  // End Prepare data
+
+  // Start insert
+  for (let i = 0; i < assistantWithDateList.length; i++) {
+    const data = assistantWithDateList[i]
+
+    excel.fontSize(14)
+    // ลำดับที่
+    excel
+      .cell(`A${7 + i}`)
+      .value(i + 1)
+      .bold()
+
+    // ชื่อ
+    excel
+      .cell(`B${7 + i}`)
+      .value(data.assistant.name)
+      .bold()
+
+    // อัตราเงินตอบแทน
+    excel
+      .cell(`C${7 + i}`)
+      .value(100)
+      .bold()
+
+    // วันเวลาเอียง ๆ
+    for (let j = 0; j < data.dateTimeList.length; j++) {
+      const [dateTime, hr] = data.dateTimeList[j]
+      const col = Excel.toAlphabet(Excel.toNumber('D') + j)
+
+      excel.fontSize(12)
+      excel.cell(`${col}6`).value(dateTime).bold()
+
+      excel.fontSize(14)
+      excel
+        .cell(`${col}${7 + i}`)
+        .bold()
+        .value(hr)
+        .numberFormat('General;#;;@')
+    }
+  }
 }

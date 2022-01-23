@@ -56,13 +56,7 @@ export class SubjectController {
       ])
 
     const excel = new Excel(res)
-    console.log('A', query)
-
-    try {
-      await generateAssistantExcel1(excel, cloneDeep(subject), query)
-    } catch (error) {
-      console.log('ERR', error)
-    }
+    await generateAssistantExcel1(excel, cloneDeep(subject), query)
 
     const monthYear = dayjs(documentDate).format('MM BB')
     const subjectCodeNameSection = `${subject.code} ${subject.name} (กลุ่ม ${section})`
