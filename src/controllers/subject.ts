@@ -140,13 +140,18 @@ export class SubjectController {
       ([section, workloadList]) => ({
         section: Number(section),
         workloadIdList: workloadList.map((w) => w.id),
+        dayList: chain(workloadList)
+          .map((w) => w.assistantWorkloadList)
+          .flatten()
+          .head()
+          .get('dayList', [])
+          .value(),
         assistantList: chain(workloadList)
           .map((w) => w.assistantWorkloadList)
           .flatten()
           .map((aw) => ({
             id: aw.assistant.id,
             name: aw.assistant.name,
-            dayList: aw.dayList,
           }))
           .uniqBy((assistant) => assistant.id)
           .value(),

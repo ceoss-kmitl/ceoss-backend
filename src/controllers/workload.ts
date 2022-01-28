@@ -130,7 +130,7 @@ export class WorkloadController {
         const aw = new AssistantWorkload()
         aw.assistant = assistant
         aw.workload = _workload
-        aw.dayList = _assistant.dayList.map((day) => new Date(day))
+        aw.dayList = body.dayList.map((day) => new Date(day))
         awList.push(aw)
       }
       // Add new AW
