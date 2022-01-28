@@ -347,7 +347,11 @@ export async function generateAssistantExcel1(
     // อัตราเงินตอบแทน
     excel
       .cell(`C${7 + i}`)
-      .value(setting.assistantPayRate)
+      .value(
+        subject.isInter
+          ? setting.assistantPayRateInter
+          : setting.assistantPayRate
+      )
       .bold()
 
     // วันเวลาเอียง ๆ
