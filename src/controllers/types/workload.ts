@@ -43,10 +43,6 @@ class IAssitantWorkloadList {
 
   @IsString()
   assistantName: string
-
-  @IsArray()
-  @IsString({ each: true })
-  dayList: string[]
 }
 
 export class IEditAssistantOfWorkload {
@@ -54,6 +50,10 @@ export class IEditAssistantOfWorkload {
   @IsArray()
   @ValidateNested({ each: true })
   assistantList: IAssitantWorkloadList[]
+
+  @IsArray()
+  @IsString({ each: true })
+  dayList: string[]
 
   @IsArray()
   @IsString({ each: true })
