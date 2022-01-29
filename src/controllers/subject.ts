@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import {
+  Authorized,
   Body,
   Delete,
   Get,
@@ -37,6 +38,7 @@ export class SubjectController {
 
   @Get('/subject/:id/section/:section/assistant/excel')
   @ValidateQuery(IDownloadAssistantExcelQuery)
+  @Authorized()
   async downloadAssistantSubject(
     @Res() res: Response,
     @Param('id') id: string,
@@ -71,6 +73,7 @@ export class SubjectController {
   // ==================
   @Get('/subject/:id/compensation-workload')
   @ValidateQuery(IGetSubjectCompensationWorkloadQuery)
+  @Authorized()
   async getSubjectCompensatedHistory(
     @Param('id') id: string,
     @QueryParams() query: IGetSubjectCompensationWorkloadQuery
@@ -116,6 +119,7 @@ export class SubjectController {
 
   @Get('/subject/:id/section')
   @ValidateQuery(IGetSubjectSectionInfoQuery)
+  @Authorized()
   async getAssistantListOfSubject(
     @Param('id') id: string,
     @QueryParams() query: IGetSubjectSectionInfoQuery
@@ -175,6 +179,7 @@ export class SubjectController {
   // =============
 
   @Get('/subject')
+  @Authorized()
   async getSubject() {
     const subjectList = await Subject.find({
       order: { name: 'ASC' },
@@ -184,6 +189,7 @@ export class SubjectController {
 
   @Post('/subject')
   @ValidateBody(ICreateSubject)
+  @Authorized()
   async create(@Body() body: ICreateSubject) {
     const isExist = await Subject.findOne({
       where: { code: body.code },
@@ -202,6 +208,7 @@ export class SubjectController {
 
   @Put('/subject/:id')
   @ValidateBody(IEditSubject)
+  @Authorized()
   async edit(@Param('id') id: string, @Body() body: IEditSubject) {
     const subject = await Subject.findOne({
       where: { id },
@@ -230,6 +237,7 @@ export class SubjectController {
   }
 
   @Delete('/subject/:id')
+  @Authorized()
   async delete(@Param('id') id: string) {
     const subject = await Subject.findOne({
       where: { id },

@@ -8,6 +8,7 @@ import {
   Delete,
   QueryParams,
   Res,
+  Authorized,
 } from 'routing-controllers'
 import { Response } from 'express'
 import { In, IsNull, Not } from 'typeorm'
@@ -45,6 +46,7 @@ export class RoomController {
 
   @Get('/room/excel')
   @ValidateQuery(IGetRoomExcelQuery)
+  @Authorized()
   async getRoomExcel(
     @Res() res: Response,
     @QueryParams() query: IGetRoomExcelQuery
@@ -85,6 +87,7 @@ export class RoomController {
   // ===========
 
   @Post('/room/auto-assign')
+  @Authorized()
   async autoAssignWorkloadToRoom(
     @QueryParams() query: IAutoAssignWorkloadToRoomQuery
   ) {
@@ -216,6 +219,7 @@ export class RoomController {
   }
 
   @Post('/room/reset-assign')
+  @Authorized()
   async resetAllRoomWorkload(@QueryParams() query: IResetRoomWorkloadQuery) {
     const { academicYear, semester } = query
 
@@ -240,6 +244,7 @@ export class RoomController {
 
   @Get('/room/available-workload')
   @ValidateQuery(IGetAvailableRoom)
+  @Authorized()
   async getAvailableRoomForThisWorkload(
     @QueryParams() query: IGetAvailableRoom
   ) {
@@ -277,6 +282,7 @@ export class RoomController {
 
   @Get('/room/:id/workload')
   @ValidateQuery(IGetRoomWorkloadQuery)
+  @Authorized()
   async getRoomWorkload(
     @Param('id') id: string,
     @QueryParams() query: IGetRoomWorkloadQuery
@@ -336,6 +342,7 @@ export class RoomController {
 
   @Post('/room/:id/workload')
   @ValidateBody(IAssignWorkloadToRoom)
+  @Authorized()
   async assignWorkloadToRoom(
     @Param('id') id: string,
     @Body() body: IAssignWorkloadToRoom
@@ -365,6 +372,7 @@ export class RoomController {
   }
 
   @Delete('/room/:roomId/workload/:workloadId')
+  @Authorized()
   async unAssignWorkloadFromRoom(
     @Param('roomId') roomId: string,
     @Param('workloadId') workloadId: string
@@ -399,6 +407,7 @@ export class RoomController {
   // =============
 
   @Get('/room')
+  @Authorized()
   async getRoom() {
     const roomList = await Room.find({
       order: { name: 'ASC' },
@@ -408,6 +417,7 @@ export class RoomController {
 
   @Post('/room')
   @ValidateBody(ICreateRoom)
+  @Authorized()
   async createRoom(@Body() body: ICreateRoom) {
     const isExist = await Room.findOne({
       where: { name: body.name },
@@ -426,6 +436,7 @@ export class RoomController {
 
   @Put('/room/:id')
   @ValidateBody(IEditRoom)
+  @Authorized()
   async editRoom(@Param('id') id: string, @Body() body: IEditRoom) {
     const room = await Room.findOne({
       where: { id },
@@ -454,6 +465,7 @@ export class RoomController {
   }
 
   @Delete('/room/:id')
+  @Authorized()
   async deleteRoom(@Param('id') id: string) {
     const room = await Room.findOne({
       where: { id },
