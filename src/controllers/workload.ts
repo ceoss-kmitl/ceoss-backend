@@ -1,5 +1,6 @@
 import { In, IsNull, Not } from 'typeorm'
 import {
+  Authorized,
   Body,
   Delete,
   Get,
@@ -39,6 +40,7 @@ export class WorkloadController {
 
   @Post('/workload/:id/compensation')
   @ValidateBody(ICreateCompensationWorkloadBody)
+  @Authorized()
   async createCompensationWorkload(
     @Param('id') id: string,
     @Body() body: ICreateCompensationWorkloadBody
@@ -95,6 +97,7 @@ export class WorkloadController {
   // ====================
   @Put('/workload/assistant')
   @ValidateBody(IEditAssistantOfWorkload)
+  @Authorized()
   async editAssistantListOfWorkload(@Body() body: IEditAssistantOfWorkload) {
     const workloadList = await Workload.find({
       relations: [
@@ -146,6 +149,7 @@ export class WorkloadController {
 
   @Get('/workload')
   @ValidateQuery(IGetWorkloadQuery)
+  @Authorized()
   async getWorkload(@QueryParams() query: IGetWorkloadQuery) {
     const queryPayload = omitBy(
       {
@@ -187,6 +191,7 @@ export class WorkloadController {
 
   @Post('/workload')
   @ValidateBody(ICreateWorkload)
+  @Authorized()
   async createWorkload(@Body() body: ICreateWorkload) {
     const subject = await Subject.findOne({
       where: { id: body.subjectId },
@@ -247,6 +252,7 @@ export class WorkloadController {
 
   @Put('/workload/:id')
   @ValidateBody(IEditWorkload)
+  @Authorized()
   async editWorkload(@Param('id') id: string, @Body() body: IEditWorkload) {
     const workload = await Workload.findOne({
       where: { id },
@@ -278,6 +284,7 @@ export class WorkloadController {
   }
 
   @Delete('/workload/:id')
+  @Authorized()
   async deleteWorkload(@Param('id') id: string) {
     const workload = await Workload.findOne({
       where: { id },

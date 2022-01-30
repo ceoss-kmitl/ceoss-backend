@@ -1,17 +1,27 @@
 import Path from 'path'
 import Express from 'express'
+import { OAuth2Client } from 'google-auth-library'
 import { useExpressServer } from 'routing-controllers'
+import { get } from 'lodash'
+
 import { Database } from '@configs/database'
 import { ServerLogger, Logger } from '@middlewares/logger'
 import { ErrorHandler } from '@middlewares/errorHandler'
+import { Account } from '@models/account'
 
 export class Server {
   private app: Express.Application
   private port: number
 
+  static oAuth2: OAuth2Client
+
   constructor() {
     this.app = Express()
     this.port = Number(process.env.PORT) || 5050
+    Server.oAuth2 = new OAuth2Client({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    })
   }
 
   private async setupDatabase() {
@@ -32,6 +42,22 @@ export class Server {
       controllers: [controllerPath],
       defaultErrorHandler: false,
       cors: true,
+      authorizationChecker: async (action) => {
+        const auth: string = action.request.headers['authorization'] || ''
+        const accessToken = get(auth.split(' '), 1, '')
+        try {
+          const tokenInfo = await Server.oAuth2.getTokenInfo(accessToken)
+          const user = await Account.findOneOrCreate({
+            email: tokenInfo.email || '',
+            accessToken,
+          })
+          action.request.user = user
+          return true
+        } catch (error) {
+          return false
+        }
+      },
+      currentUserChecker: async (action) => action.request.user,
     })
   }
 

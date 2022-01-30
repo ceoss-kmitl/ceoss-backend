@@ -1,4 +1,10 @@
-import { Get, JsonController, Post, QueryParams } from 'routing-controllers'
+import {
+  Authorized,
+  Get,
+  JsonController,
+  Post,
+  QueryParams,
+} from 'routing-controllers'
 import { uniqBy, chain, isEmpty } from 'lodash'
 
 import { Degree } from '@constants/common'
@@ -20,6 +26,7 @@ import { IWebScrapQuery } from './types/webScrap'
 @JsonController()
 export class WebScrapController {
   @Get('/web-scrap/updated-date')
+  @Authorized()
   async getUpdatedDate() {
     const setting = await Setting.get()
     const updatedDate = new Date(
@@ -34,6 +41,7 @@ export class WebScrapController {
 
   @Post('/web-scrap')
   @ValidateQuery(IWebScrapQuery)
+  @Authorized()
   async scrapDataFromRegKMITL(@QueryParams() query: IWebScrapQuery) {
     const { academicYear, semester, save } = query
     const setting = await Setting.get()

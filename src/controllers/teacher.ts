@@ -1,4 +1,5 @@
 import {
+  Authorized,
   Body,
   Delete,
   Get,
@@ -44,6 +45,7 @@ export class TeacherController {
 
   @Get('/teacher/:id/workload/excel')
   @ValidateQuery(IDownloadTeacherWorkloadExcelQuery)
+  @Authorized()
   async getWorkloadExcel(
     @Res() res: Response,
     @Param('id') id: string,
@@ -88,6 +90,7 @@ export class TeacherController {
 
   @Get('/teacher-external/:id/workload/excel')
   @ValidateQuery(IDownloadExtTeacherWorkloadExcelQuery)
+  @Authorized()
   async getWorkloadExcelExternal(
     @Res() res: Response,
     @Param('id') id: string,
@@ -115,6 +118,7 @@ export class TeacherController {
 
   @Get('/teacher/workload/excel-5')
   @ValidateQuery(IDownloadTeacherWorkloadExcel5Query)
+  @Authorized()
   async getWorkloadExcel5(
     @Res() res: Response,
     @QueryParams() query: IDownloadTeacherWorkloadExcel5Query
@@ -143,6 +147,7 @@ export class TeacherController {
 
   @Get('/teacher/:id/workload')
   @ValidateQuery(IGetTeacherWorkloadQuery)
+  @Authorized()
   async getTeacherWorkload(
     @Param('id') id: string,
     @QueryParams() query: IGetTeacherWorkloadQuery
@@ -209,6 +214,7 @@ export class TeacherController {
 
   @Get('/teacher')
   @ValidateQuery(IGetTeacherQuery)
+  @Authorized()
   async getTeacher(@QueryParams() query: IGetTeacherQuery) {
     const teacherList = await Teacher.find({
       where: { ...query },
@@ -219,6 +225,7 @@ export class TeacherController {
 
   @Post('/teacher')
   @ValidateBody(ICreateTeacher)
+  @Authorized()
   async createTeacher(@Body() body: ICreateTeacher) {
     const isExist = await Teacher.findOne({
       where: { name: body },
@@ -237,6 +244,7 @@ export class TeacherController {
 
   @Put('/teacher/:id')
   @ValidateBody(IEditTeacher)
+  @Authorized()
   async edit(@Param('id') id: string, @Body() body: IEditTeacher) {
     const teacher = await Teacher.findOne({
       where: { id },
@@ -265,6 +273,7 @@ export class TeacherController {
   }
 
   @Delete('/teacher/:id')
+  @Authorized()
   async delete(@Param('id') id: string) {
     const teacher = await Teacher.findOne({
       where: { id },
