@@ -85,6 +85,10 @@ export class ICreateSubject {
   @IsBoolean()
   @IsOptional()
   isInter = false
+
+  @IsBoolean()
+  @IsOptional()
+  requiredRoom = true
 }
 
 export class IEditSubject {
@@ -127,4 +131,8 @@ export class IEditSubject {
   @IsBoolean()
   @IsOptional()
   isInter?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  requiredRoom?: boolean
 }

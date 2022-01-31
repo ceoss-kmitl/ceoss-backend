@@ -44,6 +44,9 @@ export class Subject extends BaseEntity {
   @Column()
   isInter: boolean
 
+  @Column({ default: true })
+  requiredRoom: boolean
+
   @OneToMany(() => Workload, (workload) => workload.subject)
   workloadList: Workload[]
 

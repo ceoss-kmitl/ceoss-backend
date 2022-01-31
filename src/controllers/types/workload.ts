@@ -77,6 +77,11 @@ export class IGetWorkloadQuery extends IAcademicTime {
   @IsBoolean()
   @IsOptional()
   compensation?: boolean
+
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  requiredRoom?: boolean
 }
 
 class ITeacherList {
