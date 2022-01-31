@@ -29,6 +29,7 @@ import {
   IDownloadAssistantExcelQuery,
 } from './types/subject'
 import { generateAssistantExcel1 } from './templates/assistantExcel1'
+// import { generateAssistantExcel2 } from './templates/assistantExcel2'
 
 @JsonController()
 export class SubjectController {
@@ -59,6 +60,7 @@ export class SubjectController {
 
     const excel = new Excel(res)
     await generateAssistantExcel1(excel, cloneDeep(subject), query)
+    // await generateAssistantExcel2(excel, cloneDeep(subject), query)
 
     const monthYear = dayjs(documentDate).format('MM BB')
     const subjectCodeNameSection = `${subject.code} ${subject.name} (กลุ่ม ${section})`
