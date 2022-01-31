@@ -17,7 +17,7 @@ import dayjs from 'dayjs'
 
 import { Excel } from '@libs/Excel'
 import { DayOfWeek } from '@constants/common'
-import { ROOM_TEACHER_PAIR, SUBJECT_NO_ROOM } from '@constants/room'
+import { ROOM_TEACHER_PAIR } from '@constants/room'
 import { ValidateBody, ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 import { BadRequestError } from '@errors/badRequestError'
@@ -119,7 +119,7 @@ export class RoomController {
 
     // Step 1: Filter out subject that doesn't need room
     workloadList = workloadList.filter(
-      (workload) => !SUBJECT_NO_ROOM.includes(workload.subject.code)
+      (workload) => workload.subject.requiredRoom
     )
 
     // Step 2: Assign workload to room first priority by `constant`

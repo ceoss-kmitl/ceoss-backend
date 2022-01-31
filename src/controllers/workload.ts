@@ -153,7 +153,7 @@ export class WorkloadController {
   async getWorkload(@QueryParams() query: IGetWorkloadQuery) {
     const queryPayload = omitBy(
       {
-        ...omit(query, ['compensation']),
+        ...omit(query, ['compensation', 'requiredRoom']),
         room: query.room === 'NULL' ? IsNull() : query.room,
         compensationFrom: { true: Not(IsNull()), false: IsNull() }[
           String(query.compensation)
@@ -174,7 +174,13 @@ export class WorkloadController {
       where: { ...queryPayload },
     })
 
-    return workloadList.map((workload) => ({
+    const filteredWorkloadList = workloadList.filter((workload) =>
+      query.requiredRoom === undefined
+        ? true
+        : workload.subject.requiredRoom === query.requiredRoom
+    )
+
+    return filteredWorkloadList.map((workload) => ({
       workloadId: workload.id,
       roomId: workload.room?.id,
       subjectCode: workload.subject.code,
