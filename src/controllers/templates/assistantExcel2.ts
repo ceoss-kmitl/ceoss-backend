@@ -1,12 +1,10 @@
 import dayjs from 'dayjs'
-import { range, chain, min, max } from 'lodash'
+import { range, chain, min, max, get } from 'lodash'
 
 import { IDownloadAssistantExcelQuery } from '@controllers/types/subject'
 import { Excel, PaperSize } from '@libs/Excel'
 import { Setting } from '@models/setting'
 import { Subject } from '@models/subject'
-import { Assistant } from '@models/assistant'
-import { Time } from '@models/time'
 import { DocumentPattern } from '@constants/common'
 import { Teacher } from '@models/teacher'
 import { NotFoundError } from '@errors/notFoundError'
@@ -125,13 +123,12 @@ export async function generateAssistantExcel2(
     .flatten()
     .flatten()
     .uniq()
+    .sort((a, b) => a - b)
     .filter((d) => dayjs(d).isSame(dayjs(documentDate), 'month'))
     .value()
 
   const startDate = dayjs(min(rawDateList))
   const lastDate = dayjs(max(rawDateList))
-
-  console.log(rawDateList)
 
   excel
     .cells('A6:I6')
@@ -142,15 +139,20 @@ export async function generateAssistantExcel2(
     )
     .align('center', 'middle')
 
-  const totalMoney = ''
+  const taPayRate = subject.isInter
+    ? setting.assistantPayRateInter
+    : setting.assistantPayRate
+
+  const totalMoney =
+    rawDateList.length * rawTaNameList.length * subject.labHours * taPayRate
 
   const TitleTextLine7 = {
     [DocumentPattern.ONLINE]: `"ตามหนังสือขออนุมัติเลขที่  ${approvalNumber} ลงวันที่ ${dayjs(
       approvalDate
-    ).format('D MMMM BBBB')}  ยอดเงิน  "&TEXT(AD20,"#,##0;;;")&" บาท"`,
+    ).format('D MMMM BBBB')}  ยอดเงิน  "&TEXT(${totalMoney},"#,##0;;;")&" บาท"`,
     [DocumentPattern.ONSITE]: `"ตามหนังสือขออนุมัติเลขที่  ${approvalNumber} ลงวันที่ ${dayjs(
       approvalDate
-    ).format('D MMMM BBBB')}  ยอดเงิน  "&TEXT(AD20,"#,##0;;;")&" บาท"`,
+    ).format('D MMMM BBBB')}  ยอดเงิน  "&TEXT(${totalMoney},"#,##0;;;")&" บาท"`,
   }
 
   excel
@@ -160,19 +162,69 @@ export async function generateAssistantExcel2(
 
   excel.cells('A8:I8').value(`คณะวิศวกรรมศาสตร์ สจล.`).align('center', 'middle')
 
-  // ===== Table Header =====
-  excel.cell('B11').value('ลำดับที่').border('box').align('center')
-  excel.cells('C11:E11').value('วัน/เดือน/ปี').border('box').align('center')
-  excel.cells('F11:G11').value('เวลา').border('box').align('center')
-  excel.cell('H11').value('ลายมือชื่อ').border('box').align('center')
+  for (const [i, name] of rawTaNameList.entries()) {
+    // ===== TA Name Header =====
+    excel
+      .cell(`B${10 + 7 * i}`)
+      .value(`${i + 1}.`)
+      .align('center')
+    excel
+      .cells(`C${10 + 7 * i}:E${10 + 7 * i}`)
+      .value(name)
+      .align('center')
 
-  // ===== Table Outline =====
-  for (const row of range(12, 14)) {
-    excel.cell(`B${row}`).border('box').align('center')
-    excel.cells(`C${row}:E${row}`).border('box').align('center')
-    excel.cells(`F${row}:G${row}`).border('box').align('center')
-    excel.cell(`H${row}`).border('box').align('center')
+    // ===== Table Header =====
+    excel
+      .cell(`B${11 + 7 * i}`)
+      .value('ลำดับที่')
+      .border('box')
+      .align('center')
+    excel
+      .cells(`C${11 + 7 * i}:E${11 + 7 * i}`)
+      .value('วัน/เดือน/ปี')
+      .border('box')
+      .align('center')
+    excel
+      .cells(`F${11 + 7 * i}:G${11 + 7 * i}`)
+      .value('เวลา')
+      .border('box')
+      .align('center')
+    excel
+      .cell(`H${11 + 7 * i}`)
+      .value('ลายมือชื่อ')
+      .border('box')
+      .align('center')
+
+    let count = 0
+    const time = chain(subject.workloadList)
+      .map((w) => w.getTimeStringList())
+      .flatten()
+      .map((t) => ({
+        start: t.start.replace(':', '.'),
+        end: t.end.replace(':', '.'),
+      }))
+      .head()
+      .value()
+
+    // ===== Table Outline =====
+    for (const row of range(12 + 7 * i, 16 + 7 * i)) {
+      excel.cell(`B${row}`).border('box').align('center')
+      excel.cells(`C${row}:E${row}`).border('box').align('center')
+      excel.cells(`F${row}:G${row}`).border('box').align('center')
+      excel.cell(`H${row}`).border('box').align('center')
+
+      if (get(rawDateList, count)) {
+        excel.cell(`B${row}`).value(`${count + 1}.`)
+        excel
+          .cell(`C${row}`)
+          .value(dayjs(rawDateList[count]).format('dddd D MMMM BBBB'))
+        excel.cell(`F${row}`).value(`${time.start}-${time.end} น.`)
+        count++
+      }
+    }
   }
+
+  const footerRow = 17 + 7 * (rawTaNameList.length - 1)
 
   // ===== Table Footer =====
 
@@ -181,150 +233,60 @@ export async function generateAssistantExcel2(
     [DocumentPattern.ONSITE]: `ทางออนไลน์ แบบ Video Call ตามลายมือชื่อทางอิเล็กทรอนิกส์จริง`,
   }
   excel
-    .cells('A16:I16')
+    .cells(`A${footerRow}:I${footerRow}'`)
     .align('center', 'middle')
     .value(
       `ข้าพเจ้าขอรับรองว่านักศึกษาได้ปฏิบัติงาน${ApprovalText[documentPattern]}`
     )
 
   excel
-    .cells('E18:I18')
+    .cells(`E${footerRow + 2}:I${footerRow + 2}`)
     .align('center', 'middle')
     .value(
       'ลงชื่อ...........................................................ผู้รับรอง'
     )
 
-  excel.cells('E19:I19').align('center', 'middle').value(`(${teacher.name})`)
+  excel
+    .cells(`E${footerRow + 3}:I${footerRow + 3}`)
+    .align('center', 'middle')
+    .value(`(${teacher.name})`)
 
   const GuardianSign = {
     [DocumentPattern.ONLINE]: 'อาจารย์ผู้รับผิดชอบ',
     [DocumentPattern.ONSITE]: 'อาจารย์ผู้รับผิดชอบ',
   }
   excel
-    .cells('E20:I20')
+    .cells(`E${footerRow + 4}:I${footerRow + 4}`)
     .align('center', 'middle')
     .value(GuardianSign[documentPattern])
 
   excel
-    .cells('E22:I22')
+    .cells(`E${footerRow + 6}:I${footerRow + 6}`)
     .align('center', 'middle')
     .value(
       'ลงชื่อ...........................................................ผู้รับรอง'
     )
   excel
-    .cells('E23:I23')
+    .cells(`E${footerRow + 7}:I${footerRow + 7}`)
     .align('center', 'middle')
     .value(`(${setting.headName})`)
   excel
-    .cells('E24:I24')
+    .cells(`E${footerRow + 8}:I${footerRow + 8}`)
     .align('center', 'middle')
     .value('หัวหน้าภาควิชาวิศวกรรมคอมพิวเตอร์')
 
   excel
-    .cells('E26:I26')
+    .cells(`E${footerRow + 10}:I${footerRow + 10}`)
     .align('center', 'middle')
     .value(
       'ลงชื่อ...........................................................ผู้รับรอง'
     )
   excel
-    .cells('E27:I27')
+    .cells(`E${footerRow + 11}:I${footerRow + 11}`)
     .align('center', 'middle')
     .value(`(${setting.viceDeanName})`)
   excel
-    .cells('E28:I28')
+    .cells(`E${footerRow + 12}:I${footerRow + 12}`)
     .align('center', 'middle')
     .value('รองคณบดีคณะวิศวกรรมศาสตร์')
-
-  /**
-   * ==================================
-   * [     INSERT DATA INTO TABLE     ]
-   * ==================================
-   */
-
-  // Start Prepare data
-  // const tmpList: {
-  //   assistant: Assistant
-  //   dateList: string[]
-  //   time: string
-  //   timeSlot: number
-  // }[] = []
-  // subject.workloadList.forEach((workload) => {
-  //   workload.assistantWorkloadList.forEach((aw) => {
-  //     const timeSlotStart = workload.getFirstTimeSlot()
-  //     const timeSlotEnd = workload.getLastTimeSlot() + 1
-
-  //     tmpList.push({
-  //       assistant: aw.assistant,
-  //       dateList: aw.dayList.map((day) =>
-  //         dayjs(day).format('ddddที่ D MMM BB')
-  //       ),
-  //       time: `${Time.toTimeString(timeSlotStart)} - ${Time.toTimeString(
-  //         timeSlotEnd
-  //       )}`,
-  //       timeSlot: (timeSlotEnd - timeSlotStart) / 4,
-  //     })
-  //   })
-  // })
-  // const assistantWithDateList = chain(tmpList)
-  //   .groupBy('assistant.id')
-  //   .mapValues((value) => ({
-  //     assistant: value[0].assistant,
-  //     dateTimeList: chain(
-  //       value.map((each) =>
-  //         each.dateList.map(
-  //           (d) => [`${d} (${each.time})`, each.timeSlot] as [string, number]
-  //         )
-  //       )
-  //     )
-  //       .flatten()
-  //       .sort((a, b) => a[0].localeCompare(b[0], 'th'))
-  //       .value(),
-  //   }))
-  //   .values()
-  //   .value()
-  // // End Prepare data
-
-  // // Start insert
-  // for (let i = 0; i < assistantWithDateList.length; i++) {
-  //   const data = assistantWithDateList[i]
-
-  //   excel.fontSize(14)
-  //   // ลำดับที่
-  //   excel
-  //     .cell(`A${7 + i}`)
-  //     .value(i + 1)
-  //     .bold()
-
-  //   // ชื่อ
-  //   excel
-  //     .cell(`B${7 + i}`)
-  //     .value(data.assistant.name)
-  //     .bold()
-
-  //   // อัตราเงินตอบแทน
-  //   excel
-  //     .cell(`C${7 + i}`)
-  //     .value(
-  //       subject.isInter
-  //         ? setting.assistantPayRateInter
-  //         : setting.assistantPayRate
-  //     )
-  //     .bold()
-
-  //   // วันเวลาเอียง ๆ
-  //   for (let j = 0; j < data.dateTimeList.length; j++) {
-  //     const [dateTime, hr] = data.dateTimeList[j]
-  //     const col = Excel.toAlphabet(Excel.toNumber('D') + j)
-
-  //     excel.fontSize(12)
-  //     excel.cell(`${col}6`).value(dateTime).bold()
-
-  //     excel.fontSize(14)
-  //     excel
-  //       .cell(`${col}${7 + i}`)
-  //       .bold()
-  //       .value(hr)
-  //       .numberFormat('General;#;;@')
-  //   }
-  // }
 }
