@@ -298,9 +298,9 @@ export async function generateAssistantExcel1(
 
       tmpList.push({
         assistant: aw.assistant,
-        dateList: aw.dayList.map((day) =>
-          dayjs(day).format('ddddที่ D MMM BB')
-        ),
+        dateList: aw.dayList
+          .filter((day) => dayjs(day).isSame(dayjs(documentDate), 'month'))
+          .map((day) => dayjs(day).format('ddddที่ D MMM BB')),
         time: `${Time.toTimeString(timeSlotStart)} - ${Time.toTimeString(
           timeSlotEnd
         )}`,
