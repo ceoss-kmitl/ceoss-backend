@@ -5,8 +5,9 @@ import { ValidateBody } from '@middlewares/validator'
 import { BadRequestError } from '@errors/badRequestError'
 import { Teacher } from '@models/teacher'
 import { Subject } from '@models/subject'
+import { Room } from '@models/room'
 
-import { ISyncTeacherBody, ISynSubjectBody } from './types/sync'
+import { ISyncTeacherBody, ISyncSubjectBody, ISyncRoomBody } from './types/sync'
 
 @JsonController()
 export class SyncController {
@@ -50,8 +51,8 @@ export class SyncController {
   }
 
   @Post('/sync/subject')
-  @ValidateBody(ISynSubjectBody)
-  async syncSubject(@Body() body: ISynSubjectBody) {
+  @ValidateBody(ISyncSubjectBody)
+  async syncSubject(@Body() body: ISyncSubjectBody) {
     const codeRegex = new RegExp(/^(\d{8})$/)
     const creditRegex = new RegExp(/^(\d\(\d\-\d\-\d\))$/)
 
@@ -97,6 +98,39 @@ export class SyncController {
     return {
       syncCount: result.length,
       result: result.map((each) => `${each.code} - ${each.name}`),
+    }
+  }
+
+  @Post('/sync/room')
+  @ValidateBody(ISyncRoomBody)
+  async syncRoom(@Body() body: ISyncRoomBody) {
+    const syncList = <Room[]>[]
+    for (const [i, _room] of body.data.entries()) {
+      if (!_room.ชื่อห้อง.trim()) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format ชื่อห้อง(${_room.ชื่อห้อง})`,
+        ])
+      }
+      if (_room.จำนวนที่นั่ง < 0) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format จำนวนที่นั่ง(${
+            _room.จำนวนที่นั่ง
+          })`,
+        ])
+      }
+
+      const room =
+        (await Room.findOne({ where: { name: _room.ชื่อห้อง } })) || new Room()
+      room.name = _room.ชื่อห้อง.trim()
+      room.capacity = _room.จำนวนที่นั่ง
+
+      syncList.push(room)
+    }
+    const result = await Room.save(syncList)
+
+    return {
+      syncCount: result.length,
+      result: result.map((each) => each.name),
     }
   }
 }
