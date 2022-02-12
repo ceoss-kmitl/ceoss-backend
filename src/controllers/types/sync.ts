@@ -19,3 +19,37 @@ export class ISyncTeacherBody {
   @IsArray()
   data: ISyncTeacher[]
 }
+
+class ISyncSubject {
+  @IsString()
+  @Type(() => String)
+  'รหัสวิชา': string
+
+  @IsString()
+  'ชื่อวิชา': string
+
+  @IsBoolean()
+  @Transform(({ value }) => (value === 'x' ? true : false))
+  'วิชาบังคับ': boolean
+
+  @IsString()
+  'หน่วยกิต': string
+
+  @IsString()
+  'หลักสูตร': string
+
+  @IsBoolean()
+  @Transform(({ value }) => (value === 'x' ? true : false))
+  'นานาชาติ': boolean
+
+  @IsBoolean()
+  @Transform(({ value }) => (value === 'x' ? true : false))
+  'ใช้ห้องเรียน': boolean
+}
+
+export class ISynSubjectBody {
+  @ValidateNested()
+  @Type(() => ISyncSubject)
+  @IsArray()
+  data: ISyncSubject[]
+}
