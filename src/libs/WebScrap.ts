@@ -1,7 +1,7 @@
 import Fetch from 'node-fetch'
 import Iconv from 'iconv-lite'
 import Cheerio, { CheerioAPI } from 'cheerio'
-import { DayOfWeek, WorkloadType } from '@models/workload'
+import { DayOfWeek, WorkloadType } from '@constants/common'
 
 export class WebScrap {
   private url: string
@@ -18,7 +18,7 @@ export class WebScrap {
     this.$ = Cheerio.load(this.html)
   }
 
-  async extractData() {
+  extractData() {
     const $ = this.$
     const tableList = $('table.hoverTable')
     const result: IWebScrapData[] = tableList.toArray().map((table, index) => {
@@ -53,8 +53,11 @@ export class WebScrap {
             teacherList: this.extractTeacherInfo(
               $(columnList[16]).text().trim()
             ),
-            time: $(columnList[10]).text().trim(),
-            ...this.extractTimeAndType($(columnList[10]).text().trim()),
+            // Split for removing แสดงวันวัน-เวลาเรียนทั้งหมด
+            time: $(columnList[10]).text().trim().split('\n')[0],
+            ...this.extractTimeAndType(
+              $(columnList[10]).text().trim().split('\n')[0]
+            ),
           })
         })
 
@@ -85,28 +88,42 @@ export class WebScrap {
   private extractTimeAndType(timeStr: string) {
     const [day] = timeStr.match(/[^\s]+\./) ?? [null]
     const [type] = timeStr.match(/\(.{1}\)/) ?? [null]
-    const time = timeStr.match(/\d{2}:\d{2}/g) ?? [null, null]
-    const startTime = time[0]
-    const endTime = time[time.length - 1]
+    const rawTimeList = timeStr.match(/\d{2}:\d{2}/g) ?? [null]
+    const timeList: { startTime: string; endTime: string }[] = []
+
+    let index = 0
+    for (const time of rawTimeList) {
+      if (!timeList[index]) timeList[index] = {} as any
+
+      if (!timeList[index].startTime) {
+        timeList[index].startTime = time ?? 'err'
+        continue
+      }
+      timeList[index].endTime = time ?? 'err'
+      index++
+    }
 
     return {
       dayOfWeek: this.mapDayToDayOfWeek(day),
-      startTimeSlot: this.mapTimeToTimeSlot(startTime),
-      endTimeSlot: this.mapTimeToTimeSlot(endTime) - 1,
+      timeList,
+      timeSlotList: timeList.map(({ startTime, endTime }) => ({
+        startSlot: this.mapTimeToTimeSlot(startTime),
+        endSlot: this.mapTimeToTimeSlot(endTime) - 1,
+      })),
       subjectType: this.mapTypeToWorkloadType(type),
     }
   }
 
   private mapDayToDayOfWeek(day: string | null) {
-    if (!day) return DayOfWeek.Monday
+    if (!day) return DayOfWeek.MONDAY
     const Day = {
-      จ: DayOfWeek.Monday,
-      อ: DayOfWeek.Tuesday,
-      พ: DayOfWeek.Wednesday,
-      พฤ: DayOfWeek.Thursday,
-      ศ: DayOfWeek.Friday,
-      ส: DayOfWeek.Saturday,
-      อา: DayOfWeek.Sunday,
+      จ: DayOfWeek.MONDAY,
+      อ: DayOfWeek.TUESDAY,
+      พ: DayOfWeek.WEDNESDAY,
+      พฤ: DayOfWeek.THURSDAY,
+      ศ: DayOfWeek.FRIDAY,
+      ส: DayOfWeek.SATURDAY,
+      อา: DayOfWeek.SUNDAY,
     } as any
     return Day[day.replace('.', '')]
   }
@@ -121,11 +138,11 @@ export class WebScrap {
   }
 
   private mapTypeToWorkloadType(type: string | null) {
-    if (!type) return WorkloadType.Lecture
+    if (!type) return WorkloadType.LECTURE
     const typeStr = type.replace(/[\(\)]/g, '')
     const Workload = {
-      ท: WorkloadType.Lecture,
-      ป: WorkloadType.Lab,
+      ท: WorkloadType.LECTURE,
+      ป: WorkloadType.LAB,
     } as any
     return Workload[typeStr]
   }
@@ -162,8 +179,8 @@ interface IWebScrapData {
       }[]
       time: string
       dayOfWeek: DayOfWeek
-      startTimeSlot: number
-      endTimeSlot: number
+      timeList: { startTime: string; endTime: string }[]
+      timeSlotList: { startSlot: number; endSlot: number }[]
       subjectType: WorkloadType
     }[]
   }[]

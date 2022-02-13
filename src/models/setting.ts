@@ -5,40 +5,46 @@ export class Setting extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @Column()
+  @Column({ default: '' })
   deanName: string
 
-  @Column()
+  @Column({ default: '' })
   viceDeanName: string
 
-  @Column()
+  @Column({ default: '' })
   headName: string
 
-  @Column()
+  @Column({ default: '' })
   directorSIIEName: string
 
-  @Column()
+  @Column({ default: 0 })
   lecturePayRateNormal: number
 
-  @Column()
+  @Column({ default: 0 })
   labPayRateNormal: number
 
-  @Column()
+  @Column({ default: 0 })
   lecturePayRateInter: number
 
-  @Column()
+  @Column({ default: 0 })
   labPayRateInter: number
 
-  @Column()
+  @Column({ default: 0 })
   lecturePayRateExternal: number
 
-  @Column()
+  @Column({ default: 0 })
   labPayRateExternal: number
 
-  @Column()
+  @Column({ default: 0 })
+  assistantPayRate: number
+
+  @Column({ default: 0 })
+  assistantPayRateInter: number
+
+  @Column({ default: 0 })
   normalClaimLimit: number
 
-  @Column()
+  @Column({ default: 0 })
   interClaimLimit: number
 
   @Column()
@@ -50,27 +56,17 @@ export class Setting extends BaseEntity {
   private static async createDefault() {
     const setting = new Setting()
     setting.id = 'CE'
-    setting.deanName = ''
-    setting.viceDeanName = ''
-    setting.headName = ''
-    setting.directorSIIEName = ''
-    setting.lecturePayRateNormal = 0
-    setting.labPayRateNormal = 0
-    setting.lecturePayRateInter = 0
-    setting.labPayRateInter = 0
-    setting.lecturePayRateExternal = 0
-    setting.labPayRateExternal = 0
-    setting.normalClaimLimit = 0
-    setting.interClaimLimit = 0
     setting.webScrapUrl =
       'http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=0&semester=0'
     setting.webScrapUpdatedDate = new Date()
 
-    await setting.save()
-    return setting
+    return await setting.save()
   }
 
   static async get() {
-    return (await this.findOne('CE')) || (await this.createDefault())
+    return (
+      (await this.findOne({ where: { id: 'CE' } })) ||
+      (await this.createDefault())
+    )
   }
 }

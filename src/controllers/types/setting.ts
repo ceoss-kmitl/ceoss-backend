@@ -3,53 +3,57 @@ import { IsNumber, IsOptional, IsString, IsUrl } from 'class-validator'
 export class IEditSetting {
   @IsString()
   @IsOptional()
-  deanName: string
+  deanName?: string
 
   @IsString()
   @IsOptional()
-  viceDeanName: string
+  viceDeanName?: string
 
   @IsString()
   @IsOptional()
-  headName: string
+  headName?: string
 
   @IsString()
   @IsOptional()
-  directorSIIEName: string
+  directorSIIEName?: string
 
   @IsNumber()
   @IsOptional()
-  lecturePayRateNormal: number
+  lecturePayRateNormal?: number
 
   @IsNumber()
   @IsOptional()
-  labPayRateNormal: number
+  labPayRateNormal?: number
 
   @IsNumber()
   @IsOptional()
-  lecturePayRateInter: number
+  lecturePayRateInter?: number
 
   @IsNumber()
   @IsOptional()
-  labPayRateInter: number
+  labPayRateInter?: number
 
   @IsNumber()
   @IsOptional()
-  lecturePayRateExternal: number
+  lecturePayRateExternal?: number
 
   @IsNumber()
   @IsOptional()
-  labPayRateExternal: number
+  labPayRateExternal?: number
 
   @IsNumber()
   @IsOptional()
-  normalClaimLimit: number
+  assistantPayRate?: number
 
   @IsNumber()
   @IsOptional()
-  interClaimLimit: number
+  normalClaimLimit?: number
+
+  @IsNumber()
+  @IsOptional()
+  interClaimLimit?: number
 
   @IsUrl()
   @IsOptional()
-  webScrapUrl: string
+  webScrapUrl?: string
 }

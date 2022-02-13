@@ -1,9 +1,11 @@
+import { UseBefore } from 'routing-controllers'
 import { Handler } from 'express'
 import { validateSync, ValidationError as Error } from 'class-validator'
 import { plainToClass, classToPlain } from 'class-transformer'
+
 import { SchemaError } from '@errors/schemaError'
 
-export const schema =
+const schema =
   (schema: any, type: 'body' | 'query' = 'body'): Handler =>
   (req, res, next) => {
     const errors: Error[] = validateSync(plainToClass(schema, req[type]), {
@@ -27,8 +29,13 @@ export const schema =
         }
       })
 
-      const message = resultArray.join(', ')
-      next(new SchemaError(message))
+      next(new SchemaError('รูปแบบข้อมูลไม่ถูกต้อง', resultArray))
     }
     next()
   }
+
+export const ValidateBody = <T>(bodyClass: T) =>
+  UseBefore(schema(bodyClass, 'body'))
+
+export const ValidateQuery = <T>(queryClass: T) =>
+  UseBefore(schema(queryClass, 'query'))

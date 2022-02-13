@@ -2,11 +2,8 @@ import {
   BaseEntity,
   BeforeInsert,
   Column,
-  CreateDateColumn,
-  DeleteDateColumn,
   Entity,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
 
@@ -16,29 +13,35 @@ export class Account extends BaseEntity {
   id: string
 
   @Column({ unique: true })
-  username: string
+  email: string
 
-  @Column()
-  password: string
-
-  @Column({ name: 'is_admin' })
-  isAdmin: boolean
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date
+  @Column({ nullable: true })
+  accessToken: string
 
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
   }
 
-  static findOneByUsername(username: string) {
-    return this.findOne({ where: { username } })
+  // ===============
+  // Static function
+  // ===============
+
+  static async findOneOrCreate(payload: {
+    email: string
+    accessToken: string
+  }) {
+    const account = await this.findOne({
+      where: {
+        email: payload.email,
+      },
+    })
+    if (!account) {
+      const newAccount = Account.create(payload)
+      return await newAccount.save()
+    }
+
+    account.accessToken = payload.accessToken
+    return await account.save()
   }
 }

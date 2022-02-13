@@ -3,81 +3,167 @@ import {
   BeforeInsert,
   Column,
   Entity,
-  JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
-import { Subject } from '@models/subject'
-import { Room } from '@models/room'
 
-export enum WorkloadType {
-  Lecture = 'LECTURE',
-  Lab = 'LAB',
-}
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 
-export enum DayOfWeek {
-  Monday = 1,
-  Tuesday,
-  Wednesday,
-  Thursday,
-  Friday,
-  Saturday,
-  Sunday,
-}
+import { Subject } from './subject'
+import { Room } from './room'
+import { Time } from './time'
+import { TeacherWorkload } from './teacherWorkload'
+import { AssistantWorkload } from './assistantWorkload'
 
 @Entity()
 export class Workload extends BaseEntity {
   @PrimaryColumn()
   id: string
 
-  @ManyToOne(() => Subject, (subject) => subject.workloadList, {
-    cascade: true,
-  })
-  @JoinColumn({ name: 'subject_id' })
-  subject: Subject
-
-  @Column()
-  section: number
-
   @Column({ type: 'enum', enum: WorkloadType })
   type: WorkloadType
 
-  @Column({ type: 'enum', enum: DayOfWeek, name: 'day_of_week' })
+  @Column({ type: 'enum', enum: DayOfWeek })
   dayOfWeek: DayOfWeek
 
-  /**
-   * slot1 - slot 52
-   * 08:00 - 20:00
-   * each slot = 15 mins
-   */
-  @Column({ name: 'start_time_slot' })
-  startTimeSlot: number
+  @Column({ type: 'enum', enum: Degree })
+  degree: Degree
 
-  @Column({ name: 'end_time_slot' })
-  endTimeSlot: number
+  @Column({ type: 'timestamptz', nullable: true })
+  compensationFromDate?: Date
 
-  @ManyToOne(() => Room, (room) => room.workloadList)
-  @JoinColumn({ name: 'room_id' })
-  room: Room
+  @Column({ type: 'timestamptz', nullable: true })
+  compensationDate?: Date
 
-  @Column({ name: 'is_compensated' })
-  isCompensated: boolean
-
-  @Column({ name: 'academic_year' })
+  @Column()
   academicYear: number
 
   @Column()
   semester: number
 
   @Column()
+  section: number
+
+  @Column()
   fieldOfStudy: string
 
-  @Column({ name: 'class_year' })
+  @Column()
   classYear: number
+
+  @OneToMany(() => Time, (time) => time.workload, {
+    cascade: true,
+  })
+  timeList: Time[]
+
+  @ManyToOne(() => Room, (room) => room.workloadList, {
+    onDelete: 'CASCADE',
+  })
+  room?: Room
+
+  @ManyToOne(() => Subject, (subject) => subject.workloadList, {
+    onDelete: 'CASCADE',
+  })
+  subject: Subject
+
+  @OneToMany(() => TeacherWorkload, (tw) => tw.workload, {
+    onDelete: 'CASCADE',
+  })
+  teacherWorkloadList: TeacherWorkload[]
+
+  @OneToMany(() => AssistantWorkload, (aw) => aw.workload)
+  assistantWorkloadList: AssistantWorkload[]
+
+  @ManyToOne(() => Workload, (workload) => workload.compensationList, {
+    onDelete: 'CASCADE',
+  })
+  compensationFrom: Workload
+
+  @OneToMany(() => Workload, (workload) => workload.compensationFrom)
+  compensationList: Workload[]
+
+  // ==============
+  // Hooks function
+  // ==============
 
   @BeforeInsert()
   private beforeInsert() {
     this.id = nanoid(10)
+  }
+
+  // ===============
+  // Static function
+  // ===============
+
+  // ===============
+  // Public function
+  // ===============
+
+  /** Required relation with `Time` */
+  public getFirstTimeSlot() {
+    const sortedTimeList = [...this.timeList].sort(
+      (a, b) => a.startSlot - b.startSlot
+    )
+    return sortedTimeList[0].startSlot
+  }
+
+  /** Required relation with `Time` */
+  public getLastTimeSlot() {
+    const sortedTimeList = [...this.timeList].sort(
+      (b, a) => a.startSlot - b.startSlot
+    )
+    return sortedTimeList[0].endSlot
+  }
+
+  /** Required relation with `Time` */
+  public getTimeStringList() {
+    return this.timeList.map((time) => ({
+      start: Time.toTimeString(time.startSlot),
+      end: Time.toTimeString(time.endSlot + 1),
+    }))
+  }
+
+  /** Required relation with `TeacherWorkload` */
+  public getTeacherList() {
+    return this.teacherWorkloadList.map(
+      (teacherWorkload) => teacherWorkload.teacher
+    )
+  }
+
+  /** Required relation with `AssistantWorkload` */
+  public getAssistantList() {
+    return this.assistantWorkloadList.map(
+      (assistantWorkload) => assistantWorkload.assistant
+    )
+  }
+
+  /** Required relation with `TeacherWorkload` */
+  public getTeacherWorkload(teacherId: string) {
+    return this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+  }
+
+  public getWeekCount(teacherId: string) {
+    const teacherWorkload = this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+    if (!teacherWorkload) return -1
+    return teacherWorkload.weekCount
+  }
+
+  public getIsClaim(teacherId: string) {
+    const teacherWorkload = this.teacherWorkloadList.find(
+      (teacherWorkload) =>
+        teacherWorkload.teacher.id === teacherId &&
+        teacherWorkload.workload.id == this.id
+    )
+    if (!teacherWorkload) return false
+    return teacherWorkload.isClaim
   }
 }

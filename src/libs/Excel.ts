@@ -11,14 +11,9 @@ export class Excel {
   private activeFontSize: number
   private response: Response
 
-  constructor(
-    response: Response,
-    sheetOptions?: Partial<ExcelJS.AddWorksheetOptions>
-  ) {
+  constructor(response: Response) {
     this.response = response
     this.workbook = new ExcelJS.Workbook()
-    this.sheet = this.workbook.addWorksheet('sheet1', sheetOptions)
-    this.activeCell = this.sheet.getCell('A1')
     this.activeFontFamily = 'TH SarabunPSK'
     this.activeFontSize = 16
   }
@@ -81,21 +76,35 @@ export class Excel {
   // === Public methods ===
 
   /**
-   * Send `.xlsx` file via `Express.js`
-   * @example return excel.createFile('workload-1')
+   * Add new worksheet
+   */
+  public addSheet(
+    name: string,
+    options?: Partial<ExcelJS.AddWorksheetOptions>
+  ) {
+    this.sheet = this.workbook.addWorksheet(name, options)
+    this.cell('A1')
+  }
+
+  /**
+   * Set active sheet
+   */
+  public setSheet(name: string) {
+    this.sheet = this.workbook.getWorksheet(name)
+    this.cell('A1')
+  }
+
+  /**
+   * Send `.xlsx` file as buffer
    */
   public async createFile(fileName: string) {
-    this.response.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    this.response.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${encodeURI(fileName)}.xlsx`
-    )
-    await this.workbook.xlsx.write(this.response)
-    this.response.end()
-    return this.response
+    const buffer = await this.workbook.xlsx.writeBuffer()
+    return {
+      fileName: `${fileName}.xlsx`,
+      fileType:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      buffer: JSON.parse(JSON.stringify(buffer)).data,
+    }
   }
 
   /**
@@ -138,13 +147,14 @@ export class Excel {
    */
   public border(...borderSide: MyBorderSide[]) {
     borderSide.forEach((side) => {
-      const style: ExcelJS.BorderStyle = side.includes('bold')
-        ? 'medium'
-        : 'thin'
+      let style: ExcelJS.BorderStyle = 'thin'
+      if (side.includes('bold')) style = 'medium'
+      if (side.includes('double')) style = 'double'
 
       switch (side) {
         case 'box':
         case 'box-bold':
+        case 'box-double':
           this.borderTop(style)
           this.borderRight(style)
           this.borderBottom(style)
@@ -152,26 +162,32 @@ export class Excel {
           break
         case 'top':
         case 'top-bold':
+        case 'top-double':
           this.borderTop(style)
           break
         case 'right':
         case 'right-bold':
+        case 'right-double':
           this.borderRight(style)
           break
         case 'bottom':
         case 'bottom-bold':
+        case 'bottom-double':
           this.borderBottom(style)
           break
         case 'left':
         case 'left-bold':
+        case 'left-double':
           this.borderLeft(style)
           break
         case 'diagonal-down':
         case 'diagonal-down-bold':
+        case 'diagonal-down-double':
           this.borderDiagonalLeftTopToRightBottom(style)
           break
         case 'diagonal-up':
         case 'diagonal-up-bold':
+        case 'diagonal-up-double':
           this.borderDiagonalLeftBottomToRightTop(style)
           break
       }
@@ -256,11 +272,33 @@ export class Excel {
   }
 
   /**
-   * Set formula of this cell BUT also have to give it a result
-   * @example formula('SUM(A1:A5)', 96)
+   * Set excel formula of this cell
+   * @example formula('SUM(A1:A5)')
    */
   public formula(expression: string) {
     this.activeCell.value = { formula: expression } as ExcelJS.CellValue
+    return this
+  }
+
+  /**
+   * Set number format of this cell
+   * @tutorial https://www.ablebits.com/office-addins-blog/2016/07/07/custom-excel-number-format/
+   * @example
+   * excel.value(20).numberFormat('0.00') => '20.00'
+   * excel.value(3.56).numberFormat('0.0') => '3.6'
+   * excel.value(4000).numberFormat('0,000') => '4,000'
+   *
+   * More explaination about format:
+   * A;B;C;D
+   * A is format for positive number
+   * B is format for negative number
+   * C is format for zero
+   * D is format for number
+   * @exmaple '0,000;;;' this will only format positive number and hide the rest
+   */
+  public numberFormat(format: string) {
+    this.activeCell.numFmt = format
+    return this
   }
 
   /**
@@ -271,6 +309,26 @@ export class Excel {
       ...this.activeCell.alignment,
       shrinkToFit: true,
     }
+    return this
+  }
+
+  public wrapText() {
+    this.activeCell.alignment = {
+      ...this.activeCell.alignment,
+      wrapText: true,
+    }
+    return this
+  }
+
+  /**
+   * Make this cell content rotate by `degree`
+   */
+  public rotate(degree: number) {
+    this.activeCell.alignment = {
+      ...this.activeCell.alignment,
+      textRotation: degree,
+    }
+    return this
   }
 
   /**
@@ -381,4 +439,7 @@ type MyBaseBorderSide =
   | 'diagonal-down'
   | 'diagonal-up'
 
-type MyBorderSide = MyBaseBorderSide | `${MyBaseBorderSide}-bold`
+type MyBorderSide =
+  | MyBaseBorderSide
+  | `${MyBaseBorderSide}-bold`
+  | `${MyBaseBorderSide}-double`

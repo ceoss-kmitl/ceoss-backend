@@ -1,46 +1,61 @@
-import { Response } from 'express'
 import { Excel, PaperSize } from '@libs/Excel'
-import { IGetWorkloadExcel1Query } from '@controllers/types/workload'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
-import { WorkloadType } from '@models/workload'
-import { NotFoundError } from '@errors/notFoundError'
-
-const NOT_CLAIM_SUBJECT = ['01076311', '01076014']
+import { WorkloadType } from '@constants/common'
+import { TeacherWorkload } from '@models/teacherWorkload'
 
 export async function generateWorkloadExcel1(
-  response: Response,
-  query: IGetWorkloadExcel1Query
+  excel: Excel,
+  teacher: Teacher,
+  academicYear: number,
+  semester: number
 ) {
-  const { teacher_id, academic_year, semester } = query
+  // Start: Prepare workload for rendering
+  teacher.teacherWorkloadList = teacher.teacherWorkloadList
+    .sort(
+      (a, b) =>
+        a.workload.dayOfWeek - b.workload.dayOfWeek ||
+        a.workload.getFirstTimeSlot() - b.workload.getFirstTimeSlot()
+    )
+    .reduce((prevList, cur) => {
+      const prev = prevList.pop()
+      if (!prev) return [cur]
 
-  const teacher = await Teacher.findOne(teacher_id, {
-    relations: ['workloadList', 'workloadList.subject'],
-  })
-  if (!teacher) throw new NotFoundError(`Teacher ${teacher_id} is not found`)
+      // Current workload OVERLAP with previous workload
+      if (
+        prev.workload.dayOfWeek === cur.workload.dayOfWeek &&
+        prev.workload.getLastTimeSlot() >= cur.workload.getFirstTimeSlot()
+      ) {
+        const tmp = []
+        if (prev.isClaim) tmp.push(prev)
+        if (cur.isClaim) tmp.push(cur)
+        return [...prevList, ...tmp]
+      }
 
-  teacher.workloadList = teacher.workloadList.filter(
-    (workload) =>
-      workload.academicYear === academic_year && workload.semester === semester
-  )
+      return [...prevList, prev, cur]
+    }, [] as TeacherWorkload[])
+  // End: Prepare workload for rendering
 
   const setting = await Setting.get()
 
   // ===== Excel setup =====
-  const excel = new Excel(response, {
+  excel.addSheet('01-ภาระงาน', {
     pageSetup: {
       paperSize: PaperSize.A4,
       orientation: 'landscape',
+      verticalCentered: true,
+      horizontalCentered: true,
+      fitToPage: true,
+      printArea: 'A1:BB32',
       margins: {
-        top: 0.35,
-        bottom: 0.1,
+        top: 0.16,
+        bottom: 0.16,
         left: 0.16,
-        right: 0,
-        header: 0.32,
-        footer: 0.32,
+        right: 0.16,
+        header: 0,
+        footer: 0,
       },
     },
-    views: [{ style: 'pageLayout' }],
     properties: {
       defaultColWidth: Excel.pxCol(20),
       defaultRowHeight: Excel.pxRow(23),
@@ -52,7 +67,7 @@ export async function generateWorkloadExcel1(
   excel
     .cells('A1:BB1')
     .value(
-      `ตารางการปฏิบัติงานสอนของอาจารย์คณะวิศวกรรมศาสตร์ สจล.  ประจำภาคเรียนที่ ${semester} ปีการศึกษา ${academic_year}`
+      `ตารางการปฏิบัติงานสอนของอาจารย์คณะวิศวกรรมศาสตร์ สจล.  ประจำภาคเรียนที่ ${semester} ปีการศึกษา ${academicYear}`
     )
     .bold()
     .align('center')
@@ -179,50 +194,62 @@ export async function generateWorkloadExcel1(
 
   // ===== Workload of teacher =====
   excel.fontSize(13)
-  teacher.workloadList.forEach((workload) => {
+  teacher.getWorkloadList().forEach((workload) => {
     const {
       subject,
       type,
       section,
       dayOfWeek,
-      startTimeSlot,
-      endTimeSlot,
+      timeList,
       classYear,
       fieldOfStudy,
     } = workload
 
     const subjectType = {
-      [WorkloadType.Lecture]: '(ท)',
-      [WorkloadType.Lab]: '(ป)',
+      [WorkloadType.LECTURE]: '(ท)',
+      [WorkloadType.LAB]: '(ป)',
     }
 
-    const row = 7 + (dayOfWeek - 1) * 2
-    let start = Excel.toAlphabet(3 + (startTimeSlot - 1))
-    let end = Excel.toAlphabet(3 + (endTimeSlot - 1))
-    // Remove 1 slot cause Lunch break have only 3 slot
-    if (Excel.toNumber(start) >= 20) {
-      start = Excel.toAlphabet(Excel.toNumber(start) - 1)
-    }
-    if (Excel.toNumber(end) >= 20) {
-      end = Excel.toAlphabet(Excel.toNumber(end) - 1)
-    }
+    const row = 7 + dayOfWeek * 2
+    for (let i = 0; i < timeList.length; i++) {
+      let start = Excel.toAlphabet(3 + (timeList[i].startSlot - 1))
+      let end = Excel.toAlphabet(3 + (timeList[i].endSlot - 1))
 
-    excel
-      .cells(`${start}${row}:${end}${row}`)
-      .value(
-        `${subject.code} ${
-          subjectType[type]
-        } ปี ${classYear} ห้อง ${fieldOfStudy}/${section}${
-          NOT_CLAIM_SUBJECT.includes(subject.code) ? ' ไม่เบิก' : ''
-        }`
-      )
-      .align('center')
-      .shrink()
-    excel
-      .cells(`${start}${row + 1}:${end}${row + 1}`)
-      .value(subject.name)
-      .align('center')
-      .shrink()
+      // Remove 1 slot because Lunch break have only 3 slot
+      if (Excel.toNumber(start) >= 23) {
+        start = Excel.toAlphabet(Excel.toNumber(start) - 1)
+      }
+      if (Excel.toNumber(end) >= 23) {
+        end = Excel.toAlphabet(Excel.toNumber(end) - 1)
+      }
+
+      excel
+        .cells(`${start}${row}:${end}${row}`)
+        .value(
+          `${subject.code} ${
+            subjectType[type]
+          } ปี ${classYear} ห้อง ${fieldOfStudy}/${section}${
+            teacher.getIsClaim(workload.id) ? '' : ' ไม่เบิก'
+          }`
+        )
+        .align('center')
+        .shrink()
+      excel
+        .cells(`${start}${row + 1}:${end}${row + 1}`)
+        .value(subject.name)
+        .align('center')
+        .shrink()
+
+      if (timeList[i + 1]?.startSlot - timeList[i]?.endSlot === 2) {
+        const breakTime = Excel.toAlphabet(Excel.toNumber(end) + 1)
+        excel
+          .cells(`${breakTime}${row}:${breakTime}${row + 1}`)
+          .value(' พั ก เ บ ร ค ')
+          .shrink()
+          .align('center')
+          .rotate(90)
+      }
+    }
   })
 
   // ===== Project table =====
@@ -287,10 +314,4 @@ export async function generateWorkloadExcel1(
     .align('center')
   excel.cells('AN31:AW31').value(`(${setting.deanName})`).align('center')
   excel.cells('AN32:AW32').value('คณบดีคณะวิศวกรรมศาสตร์').align('center')
-
-  return excel.createFile(
-    `01-ภาระงาน ${semester}-${String(academic_year).substr(2, 2)} คอม-${
-      teacher.name
-    }`
-  )
 }
