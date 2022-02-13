@@ -1,5 +1,5 @@
 import { Excel, PaperSize } from '@libs/Excel'
-import { Room } from '@models/Room'
+import { Room } from '@models/room'
 import { Time } from '@models/time'
 import { WorkloadType } from '@constants/common'
 
