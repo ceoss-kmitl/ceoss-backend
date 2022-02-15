@@ -9,6 +9,7 @@ import { uniqBy, chain, isEmpty } from 'lodash'
 
 import { Degree } from '@constants/common'
 import { WebScrap } from '@libs/WebScrap'
+import { WebScrapV2 } from '@libs/WebScrapV2'
 import { ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 import { Workload } from '@models/workload'
@@ -154,6 +155,19 @@ export class WebScrapController {
       .mapValues((each) => each.map((e) => e.subject))
       .toPairs()
       .value()
+  }
+
+  @Post('/v2/web-scrap')
+  @ValidateQuery(IWebScrapQuery)
+  //   @Authorized()
+  async scrapDataFromRegKMITLv2(@QueryParams() query: IWebScrapQuery) {
+    const { academicYear, semester, save } = query
+
+    const webScrapV2 = new WebScrapV2(academicYear, semester)
+    await webScrapV2.init()
+    const data = webScrapV2.extractData()
+
+    return data
   }
 
   // TODO: Remove this when go on production
