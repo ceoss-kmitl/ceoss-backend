@@ -1,8 +1,8 @@
 import Puppeteer from 'puppeteer'
 import Cheerio, { CheerioAPI } from 'cheerio'
-
 import { get, last } from 'lodash'
-import { DayOfWeek, WorkloadType } from '@constants/common'
+
+import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 import { Time } from '@models/time'
 
 enum TableHeader {
@@ -32,13 +32,32 @@ const DayOfWeekName = {
   'อา.': DayOfWeek.SUNDAY,
 }
 
+const CurriculumDegree = {
+  'วิศวกรรมคอมพิวเตอร์': Degree.BACHELOR,
+  'วิศวกรรมคอมพิวเตอร์ (ต่อเนื่อง)': Degree.BACHELOR_CONTINUE,
+  'วิศวกรรมดนตรีและสื่อประสม': Degree.BACHELOR,
+  'Software Engineering (International program)': Degree.BACHELOR_INTER,
+  'Computer Innovation Engineering (International Program)':
+    Degree.BACHELOR_INTER,
+  'วิศวกรรมสารสนเทศ': Degree.BACHELOR,
+}
+
+const CurriculumField = {
+  'วิศวกรรมคอมพิวเตอร์': 'D',
+  'วิศวกรรมคอมพิวเตอร์ (ต่อเนื่อง)': 'DT',
+  'วิศวกรรมดนตรีและสื่อประสม': 'IMSE',
+  'Software Engineering (International program)': 'SE',
+  'Computer Innovation Engineering (International Program)': 'CIE',
+  'วิศวกรรมสารสนเทศ': 'ITE',
+}
+
 export class WebScrapV2 {
   private url: string
   private html: string
   private $: CheerioAPI
 
   constructor(academicYear: number, semester: number) {
-    this.url = `https://new.reg.kmitl.ac.th/reg/#/teach_table?mode=by_class&selected_year=${academicYear}&selected_semester=${semester}&selected_faculty=01&selected_department=05&selected_curriculum=06&selected_class_year&search_all_faculty=false&search_all_department=false&search_all_curriculum=false&search_all_class_year=true`
+    this.url = `https://new.reg.kmitl.ac.th/reg/#/teach_table?mode=by_class&selected_year=${academicYear}&selected_semester=${semester}&selected_faculty=01&selected_department=05&selected_curriculum&selected_class_year&search_all_faculty=false&search_all_department=false&search_all_curriculum=true&search_all_class_year=true`
   }
 
   async init() {
@@ -46,7 +65,7 @@ export class WebScrapV2 {
     const page = await browser.newPage()
     await page.goto(this.url)
     await page.waitForSelector('table', {
-      timeout: 5000,
+      timeout: 6000,
     })
 
     this.html = await page.evaluate(() => {
@@ -116,6 +135,7 @@ export class WebScrapV2 {
 
         return {
           classYear: parseInt(last(classYearTitle) || '0'),
+          curriculum: this.toCurriculumObject(classYearTitle),
           tableList,
         }
       })
@@ -159,7 +179,6 @@ export class WebScrapV2 {
       }
     }
     const [startTime, endTime] = time.split('-')
-
     return {
       dayOfWeek: DayOfWeekName[dayOfWeek as keyof typeof DayOfWeekName],
       startSlot: Time.fromTimeString(startTime),
@@ -178,6 +197,16 @@ export class WebScrapV2 {
     return {
       title,
       name,
+    }
+  }
+
+  toCurriculumObject(curriculumString: string): ICurriculum {
+    const i = curriculumString.lastIndexOf(' ชั้นปีที่')
+    const curriculum = curriculumString.substring(0, i)
+
+    return {
+      degree: CurriculumDegree[curriculum as keyof typeof CurriculumDegree],
+      fieldOfStudy: CurriculumField[curriculum as keyof typeof CurriculumField],
     }
   }
 }
@@ -203,4 +232,9 @@ interface IDateTime {
 interface ITeacher {
   title: string
   name: string
+}
+
+interface ICurriculum {
+  fieldOfStudy: string
+  degree: Degree
 }
