@@ -9,6 +9,7 @@ import { uniqBy, chain, isEmpty } from 'lodash'
 
 import { Degree } from '@constants/common'
 import { WebScrap } from '@libs/WebScrap'
+import { WebScrapV2 } from '@libs/WebScrapV2'
 import { ValidateQuery } from '@middlewares/validator'
 import { NotFoundError } from '@errors/notFoundError'
 import { Workload } from '@models/workload'
@@ -16,6 +17,7 @@ import { Subject } from '@models/subject'
 import { Teacher } from '@models/teacher'
 import { Setting } from '@models/setting'
 import { Time } from '@models/time'
+import { Room } from '@models/room'
 import { TeacherWorkload } from '@models/teacherWorkload'
 
 import { IWebScrapQuery } from './types/webScrap'
@@ -137,6 +139,121 @@ export class WebScrapController {
     }
 
     const todayDate = new Date()
+    setting.webScrapUpdatedDate = todayDate
+
+    if (save === true) {
+      await TeacherWorkload.save(willBeSaveList)
+      await setting.save()
+    }
+
+    return chain(willBeSaveList)
+      .map((tw) => ({
+        subject: `${tw.workload.subject.code} - ${tw.workload.subject.name}`,
+        teacher: `${tw.teacher.title}${tw.teacher.name}`,
+      }))
+      .uniqBy((each) => `${each.subject} + ${each.teacher}`)
+      .groupBy('teacher')
+      .mapValues((each) => each.map((e) => e.subject))
+      .toPairs()
+      .value()
+  }
+
+  @Post('/v2/web-scrap')
+  @ValidateQuery(IWebScrapQuery)
+  @Authorized()
+  async scrapDataFromRegKMITLv2(@QueryParams() query: IWebScrapQuery) {
+    const { academicYear, semester, save } = query
+
+    const webScrapV2 = new WebScrapV2(academicYear, semester)
+    await webScrapV2.init()
+    const data = webScrapV2.extractData()
+
+    const subjectErrorList: Pick<Subject, 'code' | 'name'>[] = []
+    const teacherErrorList: Pick<Teacher, 'title' | 'name'>[] = []
+    const willBeSaveList: TeacherWorkload[] = []
+
+    for (const _classYear of data) {
+      for (const _table of _classYear.tableList) {
+        for (const _row of _table.rowList) {
+          for (const _teacher of _row.teacher) {
+            // Step 1: Find teacher in DB. If not found then skip to next teacher
+            const teacher = await Teacher.findOne({
+              where: { name: _teacher.name },
+              relations: ['teacherWorkloadList'],
+            })
+            if (!teacher) {
+              teacherErrorList.push({
+                title: _teacher.title,
+                name: _teacher.name,
+              })
+              continue
+            }
+
+            // Step 2: Find subject in DB. If not found then add to error list and skip
+            const subject = await Subject.findOne({
+              where: { code: _row.subjectCode },
+            })
+            if (!subject) {
+              subjectErrorList.push({
+                code: _row.subjectCode,
+                name: _row.subjectName,
+              })
+              continue
+            }
+
+            // Step 3: Find workload in DB. If not found then create it
+            let workload = await Workload.findOne({
+              relations: ['subject', 'timeList', 'teacherWorkloadList'],
+              where: {
+                academicYear,
+                semester,
+                subject: { id: subject.id },
+                section: _row.section.section,
+                dayOfWeek: _row.dateTime[0].dayOfWeek,
+              },
+            })
+            if (!workload) {
+              workload = new Workload()
+              workload.room = await Room.findOne({ where: { name: _row.room } })
+              workload.subject = subject
+              workload.section = _row.section.section
+              workload.type = _row.section.type
+              workload.dayOfWeek = _row.dateTime[0].dayOfWeek
+              workload.academicYear = academicYear
+              workload.semester = semester
+              workload.degree = _classYear.curriculum.degree
+              workload.fieldOfStudy = _classYear.curriculum.fieldOfStudy
+              workload.classYear = _classYear.classYear
+              workload.timeList = _row.dateTime.map(({ startSlot, endSlot }) =>
+                Time.create({ startSlot, endSlot })
+              )
+
+              // Step 4: Link workload to teacher!
+              const teacherWorkload = new TeacherWorkload()
+              teacherWorkload.workload = workload
+              teacherWorkload.teacher = teacher
+              teacherWorkload.isClaim = true
+              teacherWorkload.weekCount = 15
+              willBeSaveList.push(teacherWorkload)
+            }
+          }
+        }
+      }
+    }
+
+    if (!isEmpty(teacherErrorList) || !isEmpty(subjectErrorList)) {
+      throw new NotFoundError('ไม่พบอาจารย์หรือวิชาดังกล่าว', [
+        ...uniqBy(teacherErrorList, 'name')
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((t) => `${t.title}${t.name}`),
+        ...uniqBy(subjectErrorList, 'code')
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((s) => `${s.code} - ${s.name}`),
+      ])
+    }
+
+    const todayDate = new Date()
+    const setting = await Setting.get()
     setting.webScrapUpdatedDate = todayDate
 
     if (save === true) {

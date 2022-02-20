@@ -165,32 +165,32 @@ export async function generateAssistantExcel2(
   for (const [i, name] of rawTaNameList.entries()) {
     // ===== TA Name Header =====
     excel
-      .cell(`B${10 + 7 * i}`)
+      .cell(`B${10 + 8 * i}`)
       .value(`${i + 1}.`)
       .align('center')
     excel
-      .cells(`C${10 + 7 * i}:E${10 + 7 * i}`)
+      .cells(`C${10 + 8 * i}:E${10 + 8 * i}`)
       .value(name)
       .align('center')
 
     // ===== Table Header =====
     excel
-      .cell(`B${11 + 7 * i}`)
+      .cell(`B${11 + 8 * i}`)
       .value('ลำดับที่')
       .border('box')
       .align('center')
     excel
-      .cells(`C${11 + 7 * i}:E${11 + 7 * i}`)
+      .cells(`C${11 + 8 * i}:E${11 + 8 * i}`)
       .value('วัน/เดือน/ปี')
       .border('box')
       .align('center')
     excel
-      .cells(`F${11 + 7 * i}:G${11 + 7 * i}`)
+      .cells(`F${11 + 8 * i}:G${11 + 8 * i}`)
       .value('เวลา')
       .border('box')
       .align('center')
     excel
-      .cell(`H${11 + 7 * i}`)
+      .cell(`H${11 + 8 * i}`)
       .value('ลายมือชื่อ')
       .border('box')
       .align('center')
@@ -207,7 +207,7 @@ export async function generateAssistantExcel2(
       .value()
 
     // ===== Table Outline =====
-    for (const row of range(12 + 7 * i, 16 + 7 * i)) {
+    for (const row of range(12 + 8 * i, 17 + 8 * i)) {
       excel.cell(`B${row}`).border('box').align('center')
       excel.cells(`C${row}:E${row}`).border('box').align('center')
       excel.cells(`F${row}:G${row}`).border('box').align('center')
@@ -224,7 +224,7 @@ export async function generateAssistantExcel2(
     }
   }
 
-  const footerRow = 17 + 7 * (rawTaNameList.length - 1)
+  const footerRow = 18 + 8 * (rawTaNameList.length - 1)
 
   // ===== Table Footer =====
 
