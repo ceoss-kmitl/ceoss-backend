@@ -168,8 +168,8 @@ export class WebScrapController {
     await webScrapV2.init()
     const data = webScrapV2.extractData()
 
-    const subjectErrorList: Pick<Subject, 'code' | 'name'>[] = []
-    const teacherErrorList: Pick<Teacher, 'title' | 'name'>[] = []
+    // const subjectErrorList: Pick<Subject, 'code' | 'name'>[] = []
+    // const teacherErrorList: Pick<Teacher, 'title' | 'name'>[] = []
     const willBeSaveList: TeacherWorkload[] = []
 
     for (const _classYear of data) {
@@ -182,10 +182,10 @@ export class WebScrapController {
               relations: ['teacherWorkloadList'],
             })
             if (!teacher) {
-              teacherErrorList.push({
-                title: _teacher.title,
-                name: _teacher.name,
-              })
+              //   teacherErrorList.push({
+              //     title: _teacher.title,
+              //     name: _teacher.name,
+              //   })
               continue
             }
 
@@ -194,10 +194,10 @@ export class WebScrapController {
               where: { code: _row.subjectCode },
             })
             if (!subject) {
-              subjectErrorList.push({
-                code: _row.subjectCode,
-                name: _row.subjectName,
-              })
+              //   subjectErrorList.push({
+              //     code: _row.subjectCode,
+              //     name: _row.subjectName,
+              //   })
               continue
             }
 
@@ -241,16 +241,16 @@ export class WebScrapController {
       }
     }
 
-    if (!isEmpty(teacherErrorList) || !isEmpty(subjectErrorList)) {
-      throw new NotFoundError('ไม่พบอาจารย์หรือวิชาดังกล่าว', [
-        ...uniqBy(teacherErrorList, 'name')
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((t) => `${t.title}${t.name}`),
-        ...uniqBy(subjectErrorList, 'code')
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((s) => `${s.code} - ${s.name}`),
-      ])
-    }
+    // if (!isEmpty(teacherErrorList) || !isEmpty(subjectErrorList)) {
+    //   throw new NotFoundError('ไม่พบอาจารย์หรือวิชาดังกล่าว', [
+    //     ...uniqBy(teacherErrorList, 'name')
+    //       .sort((a, b) => a.name.localeCompare(b.name))
+    //       .map((t) => `${t.title}${t.name}`),
+    //     ...uniqBy(subjectErrorList, 'code')
+    //       .sort((a, b) => a.name.localeCompare(b.name))
+    //       .map((s) => `${s.code} - ${s.name}`),
+    //   ])
+    // }
 
     const todayDate = new Date()
     const setting = await Setting.get()
