@@ -9,6 +9,7 @@ import {
 import { nanoid } from 'nanoid'
 
 import { Workload } from './workload'
+import dayjs, { Dayjs } from 'dayjs'
 
 /**
  * slot1 - slot 52
@@ -80,5 +81,27 @@ export class Time extends BaseEntity {
       startSlot: Time.fromTimeString(startTime),
       endSlot: Time.fromTimeString(endTime) - 1,
     })
+  }
+
+  static toAcademicYear(date: Dayjs) {
+    const day = date.date()
+    const month = date.month() + 1
+    const year = date.year() + 543
+
+    const hasStartNewAcademicYear = day >= 1 && month >= 8
+    const academicYear = hasStartNewAcademicYear ? year : year - 1
+    const semester = hasStartNewAcademicYear ? 1 : 2
+
+    return { academicYear, semester }
+  }
+
+  /** D/M/BBBB */
+  static toDayjsDate(dateString: string) {
+    const [d, m, y] = dateString.split('/').map((each) => parseInt(each))
+    return dayjs()
+      .set('year', y - 543)
+      .set('month', m)
+      .set('date', d)
+      .startOf('date')
   }
 }

@@ -1,13 +1,24 @@
 import { Body, JsonController, Post } from 'routing-controllers'
-import { get } from 'lodash'
+import { get, chain, uniq } from 'lodash'
+import { In } from 'typeorm'
+import dayjs from 'dayjs'
 
 import { ValidateBody } from '@middlewares/validator'
 import { BadRequestError } from '@errors/badRequestError'
 import { Teacher } from '@models/teacher'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
+import { Time } from '@models/time'
+import { Workload } from '@models/workload'
+import { Assistant } from '@models/assistant'
+import { AssistantWorkload } from '@models/assistantWorkload'
 
-import { ISyncTeacherBody, ISyncSubjectBody, ISyncRoomBody } from './types/sync'
+import {
+  ISyncTeacherBody,
+  ISyncSubjectBody,
+  ISyncRoomBody,
+  ISyncAssistantBody,
+} from './types/sync'
 
 @JsonController()
 export class SyncController {
@@ -131,6 +142,112 @@ export class SyncController {
     return {
       syncCount: result.length,
       result: result.map((each) => each.name),
+    }
+  }
+
+  @Post('/sync/assistant')
+  @ValidateBody(ISyncAssistantBody)
+  async syncAssistant(@Body() body: ISyncAssistantBody) {
+    const codeRegex = new RegExp(/^(\d{8})$/)
+
+    const syncList = <AssistantWorkload[]>[]
+    for (const [i, _ta] of body.data.entries()) {
+      const subjectCode = _ta.รหัสวิชา
+      const taCode = _ta.รหัสนักศึกษา
+      const date = Time.toDayjsDate(_ta.วันปฏิบัติงาน)
+
+      if (!codeRegex.test(subjectCode)) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format รหัสวิชา(${subjectCode})`,
+        ])
+      }
+      if (!codeRegex.test(taCode)) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format รหัสนักศึกษา(${taCode})`,
+        ])
+      }
+      const subject = await Subject.findOne({ where: { code: subjectCode } })
+      if (!subject) {
+        throw new BadRequestError('ไม่พบรหัสวิชาดังกล่าว', [
+          `Data #${i + 1} has invalid format รหัสวิชา(${subjectCode})`,
+        ])
+      }
+
+      const { academicYear, semester } = Time.toAcademicYear(date)
+
+      // Find existing TA or create new one
+      const assistant =
+        (await Assistant.findOne({
+          relations: [
+            'assistantWorkloadList',
+            'assistantWorkloadList.assistant',
+            'assistantWorkloadList.workload',
+            'assistantWorkloadList.workload.subject',
+          ],
+          where: { id: _ta.รหัสนักศึกษา },
+        })) || Assistant.create({ assistantWorkloadList: [] })
+      assistant.id = _ta.รหัสนักศึกษา
+      assistant.name = _ta['ชื่อ-สกุล']
+
+      // Update existing AssistantWorkload
+      let isNew = true
+      for (const _aw of assistant.assistantWorkloadList) {
+        if (
+          _aw.workload.subject.code !== _ta.รหัสวิชา ||
+          _aw.workload.section !== _ta.กลุ่มเรียน
+        ) {
+          continue
+        }
+
+        const uniqDayList = uniq(
+          [..._aw.dayList, date.toDate()].map((each) => each.getTime())
+        ).map((each) => new Date(each))
+        _aw.dayList = uniqDayList
+
+        const result = await _aw.save()
+        syncList.push(result)
+        isNew = false
+      }
+
+      // Create new AssistantWorkload if not found existing
+      if (isNew) {
+        const workloadList = await Workload.find({
+          relations: [
+            'subject',
+            'assistantWorkloadList',
+            'assistantWorkloadList.workload',
+            'assistantWorkloadList.assistant',
+          ],
+        })
+        const filteredWorkloadList = workloadList.filter(
+          (w) =>
+            w.academicYear === academicYear &&
+            w.semester === semester &&
+            w.subject.code === _ta.รหัสวิชา &&
+            w.section === _ta.กลุ่มเรียน
+        )
+
+        for (const _workload of filteredWorkloadList) {
+          const aw = AssistantWorkload.create()
+          aw.assistant = assistant
+          aw.workload = _workload
+          aw.dayList = [date.toDate()]
+
+          const result = await aw.save()
+          syncList.push(result)
+        }
+      }
+    }
+
+    const result = syncList
+
+    return {
+      syncCount: result.length,
+      result: result.map((aw) => ({
+        ta: `${aw.assistant.id} ${aw.assistant.name}`,
+        subject: `${aw.workload.subject.code} ${aw.workload.subject.name}`,
+        date: aw.dayList.map((d) => dayjs(d).format('D MMM BBBB')),
+      })),
     }
   }
 }
