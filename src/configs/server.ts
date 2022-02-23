@@ -1,5 +1,4 @@
 import Path from 'path'
-import Fetch from 'node-fetch'
 import Express from 'express'
 import { OAuth2Client } from 'google-auth-library'
 import { useExpressServer } from 'routing-controllers'
@@ -47,12 +46,9 @@ export class Server {
         const auth: string = action.request.headers['authorization'] || ''
         const accessToken = get(auth.split(' '), 1, '')
         try {
-          const res = await Fetch(
-            `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`
-          )
-          const googleData = await res.json()
+          const tokenInfo = await Server.oAuth2.getTokenInfo(accessToken)
           const user = await Account.findOneOrCreate({
-            email: googleData.email || '',
+            email: tokenInfo.email || '',
             accessToken,
           })
           action.request.user = user
