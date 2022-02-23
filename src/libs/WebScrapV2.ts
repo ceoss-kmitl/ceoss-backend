@@ -51,6 +51,8 @@ const CurriculumField = {
   'วิศวกรรมสารสนเทศ': 'ITE',
 }
 
+const TIMEOUT_SEC = 30
+
 export class WebScrapV2 {
   private url: string
   private html: string
@@ -65,7 +67,7 @@ export class WebScrapV2 {
     const page = await browser.newPage()
     await page.goto(this.url)
     await page.waitForSelector('table', {
-      timeout: 6000,
+      timeout: TIMEOUT_SEC * 1000,
     })
 
     this.html = await page.evaluate(() => {
