@@ -53,7 +53,7 @@ export class SyncController {
   @Post('/sync/subject')
   @ValidateBody(ISyncSubjectBody)
   async syncSubject(@Body() body: ISyncSubjectBody) {
-    const codeRegex = new RegExp(/^(\d{8})$/)
+    const codeRegex = new RegExp(/^\d{8}$/)
     const creditRegex = new RegExp(/^(\d+\(\d+\-\d+\-\d+\))$/)
 
     const syncList = <Subject[]>[]
