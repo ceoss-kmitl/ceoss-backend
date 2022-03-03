@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer'
+import { Transform, Type } from 'class-transformer'
 import {
   IsBoolean,
   IsDateString,
@@ -65,15 +65,19 @@ export class ICreateSubject {
   @IsOptional()
   isRequired = true
 
+  @Type(() => Number)
   @IsNumber()
   credit: number
 
+  @Type(() => Number)
   @IsNumber()
   lectureHours: number
 
+  @Type(() => Number)
   @IsNumber()
   labHours: number
 
+  @Type(() => Number)
   @IsNumber()
   independentHours: number
 
@@ -107,18 +111,22 @@ export class IEditSubject {
   @IsOptional()
   isRequired?: boolean
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   credit?: number
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   lectureHours?: number
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   labHours?: number
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   independentHours?: number
