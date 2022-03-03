@@ -1,27 +1,22 @@
-import { IsBoolean, IsOptional, IsString } from 'class-validator'
+import { IsString } from 'class-validator'
 
-export class ICreateAccount {
+export class IGoogleLogin {
   @IsString()
-  username: string
-
-  @IsString()
-  password: string
-
-  @IsBoolean()
-  @IsOptional()
-  isAdmin: boolean
+  code: string
 }
 
-export class IEditAccount {
+export class IGoogleRefresh {
   @IsString()
-  @IsOptional()
-  username: string
+  email: string
 
   @IsString()
-  @IsOptional()
-  password: string
+  accessToken: string
+}
 
-  @IsBoolean()
-  @IsOptional()
-  isAdmin: boolean
+export class IGoogleLogout {
+  @IsString()
+  email: string
+
+  @IsString()
+  accessToken: string
 }
