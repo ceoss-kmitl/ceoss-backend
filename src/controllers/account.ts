@@ -120,10 +120,7 @@ export class AccountController {
     }
 
     const OAuth = createOAuthInstance()
-    OAuth.setCredentials({
-      refresh_token: account.refreshToken,
-    })
-    await OAuth.revokeCredentials()
+    await OAuth.revokeToken(account.refreshToken)
     await account.remove()
     return 'Logout success'
   }
