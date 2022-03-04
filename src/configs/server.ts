@@ -37,15 +37,18 @@ export class Server {
       defaultErrorHandler: false,
       cors: true,
       authorizationChecker: async (action) => {
-        const auth: string = action.request.headers['authorization'] || ''
+        const headers = action.request.headers
+        const auth: string = headers['authorization'] || ''
+        const deviceId: string = headers['ceoss-device-id'] || ''
         const accessToken = get(auth.split(' '), 1, '')
+
         try {
           const OAuth = createOAuthInstance()
           const tokenInfo = await OAuth.getTokenInfo(accessToken)
           const account = await Account.findOne({
             where: {
               email: tokenInfo.email,
-              accessToken: accessToken,
+              deviceId,
             },
           })
           if (!account) return false

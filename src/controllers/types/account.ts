@@ -3,6 +3,9 @@ import { IsString } from 'class-validator'
 export class IGoogleLogin {
   @IsString()
   code: string
+
+  @IsString()
+  deviceId: string
 }
 
 export class IGoogleRefresh {
@@ -10,7 +13,7 @@ export class IGoogleRefresh {
   email: string
 
   @IsString()
-  accessToken: string
+  deviceId: string
 }
 
 export class IGoogleLogout {
@@ -18,5 +21,5 @@ export class IGoogleLogout {
   email: string
 
   @IsString()
-  accessToken: string
+  deviceId: string
 }

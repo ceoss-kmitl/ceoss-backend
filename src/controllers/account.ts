@@ -1,4 +1,5 @@
 import { Body, JsonController, Post } from 'routing-controllers'
+import { chain } from 'lodash'
 
 import { ValidateBody } from '@middlewares/validator'
 import { createOAuthInstance } from '@configs/oauth'
@@ -16,7 +17,7 @@ export class AccountController {
   @Post('/account/google-login')
   @ValidateBody(IGoogleLogin)
   async googleLogin(@Body() body: IGoogleLogin) {
-    const { code } = body
+    const { code, deviceId } = body
     const OAuth = createOAuthInstance()
 
     const { tokens } = await OAuth.getToken(code)
@@ -39,14 +40,23 @@ export class AccountController {
     }
 
     const account = await Account.findOne({ where: { email } })
+
     if (!account) {
       const newAccount = new Account()
       newAccount.email = email
-      newAccount.accessToken = access_token
+      newAccount.deviceId = deviceId
       newAccount.refreshToken = refresh_token
       await newAccount.save()
-    } else {
-      account.accessToken = access_token
+
+      return {
+        imageUrl: picture,
+        email,
+        accessToken: access_token,
+      }
+    }
+
+    if (account.deviceId !== deviceId) {
+      account.deviceId = deviceId
       await account.save()
     }
 
@@ -60,7 +70,7 @@ export class AccountController {
   @Post('/account/google-refresh')
   @ValidateBody(IGoogleRefresh)
   async getNewAccessToken(@Body() body: IGoogleRefresh) {
-    const { email, accessToken } = body
+    const { email, deviceId } = body
 
     const account = await Account.findOne({ where: { email } })
     if (!account) {
@@ -68,62 +78,53 @@ export class AccountController {
         'Account not found',
       ])
     }
-    if (account.accessToken !== accessToken) {
+    if (account.deviceId !== deviceId) {
       throw new BadRequestError('กรุณาลงชื่อเข้าใช้ใหม่อีกครั้ง', [
-        'Invalid access token',
+        'Refresh token from new device',
       ])
     }
 
     const OAuth = createOAuthInstance()
     OAuth.setCredentials({
-      access_token: accessToken,
       refresh_token: account.refreshToken,
     })
-    const { token } = await OAuth.getAccessToken()
-    if (!token) {
+    const headers = await OAuth.getRequestHeaders()
+    const newAccessToken = chain(headers)
+      .get('Authorization', '')
+      .split(' ')
+      .get(1, '')
+      .value()
+
+    if (!newAccessToken) {
       throw new BadRequestError('กรุณาลงชื่อเข้าใช้ใหม่อีกครั้ง', [
         'Can not re-new token',
       ])
     }
-    account.accessToken = token
-    await account.save()
 
     return {
-      accessToken: token,
+      accessToken: newAccessToken,
     }
   }
 
   @Post('/account/google-logout')
   @ValidateBody(IGoogleLogout)
   async googleLogout(@Body() body: IGoogleLogout) {
-    const { email, accessToken } = body
+    const { email, deviceId } = body
 
     const account = await Account.findOne({ where: { email } })
     if (!account) {
       return 'Account not found'
     }
-    if (account.accessToken !== accessToken) {
-      return 'Invalid access token'
+    if (account.deviceId !== deviceId) {
+      return 'Can not logout from new device'
     }
 
     const OAuth = createOAuthInstance()
     OAuth.setCredentials({
-      access_token: account.accessToken,
       refresh_token: account.refreshToken,
     })
     await OAuth.revokeCredentials()
     await account.remove()
     return 'Logout success'
-  }
-
-  // TODO: Remove this when go on production
-  @Post('/account/revoke-token')
-  async revokeToken(@Body() body: { token: string }) {
-    const { token } = body
-
-    const OAuth = createOAuthInstance()
-    OAuth.setCredentials({ access_token: token })
-    await OAuth.revokeCredentials()
-    return 'Revoke success'
   }
 }
