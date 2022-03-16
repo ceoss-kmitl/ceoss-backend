@@ -145,6 +145,12 @@ export class SubjectController {
     const result = Object.entries(workloadGroupBySection).map(
       ([section, workloadList]) => ({
         section: Number(section),
+        datetime: {
+          dayOfWeek: workloadList[0].dayOfWeek,
+          timeList: workloadList[0]
+            .getTimeStringList()
+            .map((t) => `${t.start} - ${t.end}`),
+        },
         workloadIdList: workloadList.map((w) => w.id),
         dayList: chain(workloadList)
           .map((w) => w.assistantWorkloadList)
