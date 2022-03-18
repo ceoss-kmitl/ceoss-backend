@@ -1,9 +1,11 @@
 import Puppeteer from 'puppeteer'
-import Cheerio, { CheerioAPI } from 'cheerio'
+import { CheerioAPI, load as CheerioLoad } from 'cheerio'
 import { get, last } from 'lodash'
 
 import { DayOfWeek, Degree, WorkloadType } from '@constants/common'
 import { Time } from '@models/time'
+import { Web } from '@models/web'
+import { BadRequestError } from '@errors/badRequestError'
 
 enum TableHeader {
   'รหัสวิชา' = 0,
@@ -40,6 +42,7 @@ const CurriculumDegree = {
   'Computer Innovation Engineering (International Program)':
     Degree.BACHELOR_INTER,
   'วิศวกรรมสารสนเทศ': Degree.BACHELOR,
+  'วิศวกรรมไฟฟ้า': Degree.BACHELOR,
 }
 
 const CurriculumField = {
@@ -49,20 +52,52 @@ const CurriculumField = {
   'Software Engineering (International program)': 'SE',
   'Computer Innovation Engineering (International Program)': 'CIE',
   'วิศวกรรมสารสนเทศ': 'ITE',
+  'วิศวกรรมไฟฟ้า': 'EE',
 }
 
 const TIMEOUT_SEC = 30
+
+// Example url
+// https://new.reg.kmitl.ac.th/reg/#/teach_table?mode=by_subject_id&selected_year=2564&selected_semester=2&selected_faculty=01&selected_department&selected_curriculum&selected_class_year=1&search_all_faculty=false&search_all_department=true&search_all_curriculum=true&search_all_class_year=false&selected_subject_id=01006012
+
+type IWebScrapOptions = {
+  webId: string
+  academicYear: number
+  semester: number
+}
 
 export class WebScrapV2 {
   private url: string
   private html: string
   private $: CheerioAPI
 
-  constructor(academicYear: number, semester: number) {
-    this.url = `https://new.reg.kmitl.ac.th/reg/#/teach_table?mode=by_class&selected_year=${academicYear}&selected_semester=${semester}&selected_faculty=01&selected_department=05&selected_curriculum&selected_class_year&search_all_faculty=false&search_all_department=false&search_all_curriculum=true&search_all_class_year=true`
+  public async init(options: IWebScrapOptions) {
+    const { webId, academicYear, semester } = options
+    await this.loadWebUrl(webId, academicYear, semester)
+    await this.loadWebDocument()
   }
 
-  async init() {
+  private async loadWebUrl(
+    webId: string,
+    academicYear: number,
+    semester: number
+  ) {
+    const web = await Web.findOne({ where: { id: webId } })
+    if (!web) {
+      throw new BadRequestError('ไม่สามารถดึงข้อมูลจากเว็บสำนักทะเบียนได้', [
+        `Web id(${webId}) is not found`,
+      ])
+    }
+    const urlWithoutAcademicYear = web.url
+      .replace(/&selected_year=\d+/g, '')
+      .replace(/selected_year=\d+/g, '')
+      .replace(/&selected_semester=\d+/g, '')
+      .replace(/selected_semester=\d+/g, '')
+
+    this.url = `${urlWithoutAcademicYear}&selected_year=${academicYear}&selected_semester=${semester}`
+  }
+
+  private async loadWebDocument() {
     const browser = await Puppeteer.launch()
     const page = await browser.newPage()
     await page.goto(this.url)
@@ -74,10 +109,10 @@ export class WebScrapV2 {
       return (document.querySelector('html') as any).outerHTML
     })
     await browser.close()
-    this.$ = Cheerio.load(this.html)
+    this.$ = CheerioLoad(this.html)
   }
 
-  extractData() {
+  public extractData() {
     const $ = this.$
     const classYearTableList = $(
       'div.v-card__text.text-center div.v-card__text'
@@ -86,7 +121,11 @@ export class WebScrapV2 {
     return classYearTableList
       .toArray()
       .map((_classYearTable) => {
-        const classYearTitle = $(_classYearTable)
+        const classYearTitle1 = $(_classYearTable)
+          .find('h2:nth-child(2)')
+          .text()
+          .trim()
+        const classYearTitle2 = $(_classYearTable)
           .find('h2:nth-child(3)')
           .text()
           .trim()
@@ -136,12 +175,12 @@ export class WebScrapV2 {
           })
 
         return {
-          classYear: parseInt(last(classYearTitle) || '0'),
-          curriculum: this.toCurriculumObject(classYearTitle),
+          classYear: parseInt(last(classYearTitle2) || '0'),
+          curriculum: this.toCurriculumObject(classYearTitle1, classYearTitle2),
           tableList,
         }
       })
-      .filter((each) => each.classYear)
+      .filter((each) => each?.curriculum?.degree)
   }
 
   toCreditObject(creditString: string): ICredit {
@@ -202,12 +241,16 @@ export class WebScrapV2 {
     }
   }
 
-  toCurriculumObject(curriculumString: string): ICurriculum {
-    const i = curriculumString.lastIndexOf(' ชั้นปีที่')
-    const curriculum = curriculumString.substring(0, i)
+  toCurriculumObject(
+    curriculumString1: string,
+    curriculumString2: string
+  ): ICurriculum {
+    const i = curriculumString2.lastIndexOf(' ชั้นปีที่')
+    const curriculum = curriculumString2.substring(0, i)
 
     return {
-      degree: CurriculumDegree[curriculum as keyof typeof CurriculumDegree],
+      degree:
+        CurriculumDegree[curriculumString1 as keyof typeof CurriculumDegree],
       fieldOfStudy: CurriculumField[curriculum as keyof typeof CurriculumField],
     }
   }
