@@ -47,6 +47,9 @@ export class Setting extends BaseEntity {
   @Column({ default: 0 })
   interClaimLimit: number
 
+  /**
+   * @deprecated For WebScrapV1 only
+   */
   @Column()
   webScrapUrl: string
 
