@@ -42,7 +42,16 @@ const CurriculumDegree = {
   'Computer Innovation Engineering (International Program)':
     Degree.BACHELOR_INTER,
   'วิศวกรรมสารสนเทศ': Degree.BACHELOR,
+  'วิศวกรรมโทรคมนาคม': Degree.BACHELOR,
   'วิศวกรรมไฟฟ้า': Degree.BACHELOR,
+  'อิเล็กทรอนิกส์': Degree.BACHELOR,
+  'วิศวกรรมเครื่องกล': Degree.BACHELOR,
+  'วิศวกรรมการวัดและควบคุม': Degree.BACHELOR,
+  'วิศวกรรมโยธา': Degree.BACHELOR,
+  'วิศวกรรมเกษตร': Degree.BACHELOR,
+  'วิศวกรรมเคมี': Degree.BACHELOR,
+  'วิศวกรรมอาหาร': Degree.BACHELOR,
+  'วิศวกรรมอุตสาหการ': Degree.BACHELOR,
 }
 
 const CurriculumField = {
@@ -52,12 +61,23 @@ const CurriculumField = {
   'Software Engineering (International program)': 'SE',
   'Computer Innovation Engineering (International Program)': 'CIE',
   'วิศวกรรมสารสนเทศ': 'ITE',
+  'วิศวกรรมโทรคมนาคมและโครงข่าย': 'X',
   'วิศวกรรมไฟฟ้า': 'EE',
+  'วิศวกรรมอิเล็กทรอนิกส์': 'X',
+  'วิศวกรรมเครื่องกล': 'X',
+  'วิศวกรรมขนส่งทางราง': 'X',
+  'วิศวกรรมเมคคาทรอนิกส์และออโตเมชัน': 'X',
+  'วิศวกรรมโยธา': 'X',
+  'วิศวกรรมเกษตรอัจฉริยะ': 'X',
+  'วิศวกรรมเคมี': 'X',
+  'วิศวกรรมอาหาร': 'X',
+  'วิศวกรรมอุตสาหการ': 'X',
 }
 
 const TIMEOUT_SEC = 30
 
 // Example url
+// https://new.reg.kmitl.ac.th/reg/#/teach_table?mode=by_class&selected_year=2564&selected_semester=2&selected_faculty=01&selected_department=05&selected_curriculum&selected_class_year&search_all_faculty=false&search_all_department=false&search_all_curriculum=true&search_all_class_year=true
 // https://new.reg.kmitl.ac.th/reg/#/teach_table?mode=by_subject_id&selected_year=2564&selected_semester=2&selected_faculty=01&selected_department&selected_curriculum&selected_class_year=1&search_all_faculty=false&search_all_department=true&search_all_curriculum=true&search_all_class_year=false&selected_subject_id=01006012
 
 type IWebScrapOptions = {
