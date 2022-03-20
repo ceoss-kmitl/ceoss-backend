@@ -85,21 +85,21 @@ class ISyncRoom {
 }
 
 export class ISyncTeacherBody {
-  @ValidateNested()
+  @ValidateNested({ each: true })
   @Type(() => ISyncTeacher)
   @IsArray()
   data: ISyncTeacher[]
 }
 
 export class ISyncSubjectBody {
-  @ValidateNested()
+  @ValidateNested({ each: true })
   @Type(() => ISyncSubject)
   @IsArray()
   data: ISyncSubject[]
 }
 
 export class ISyncRoomBody {
-  @ValidateNested()
+  @ValidateNested({ each: true })
   @Type(() => ISyncRoom)
   @IsArray()
   data: ISyncRoom[]

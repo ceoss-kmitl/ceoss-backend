@@ -64,8 +64,8 @@ export class SyncController {
   @Post('/sync/subject')
   @ValidateBody(ISyncSubjectBody)
   async syncSubject(@Body() body: ISyncSubjectBody) {
-    const codeRegex = new RegExp(/^(\d{8})$/)
-    const creditRegex = new RegExp(/^(\d\(\d\-\d\-\d\))$/)
+    const codeRegex = new RegExp(/^\d{8}$/)
+    const creditRegex = new RegExp(/^(\d+\(\d+\-\d+\-\d+\))$/)
 
     const syncList = <Subject[]>[]
     for (const [i, _subject] of body.data.entries()) {
@@ -74,7 +74,8 @@ export class SyncController {
           `Data #${i + 1} has invalid format รหัสวิชา(${_subject.รหัสวิชา})`,
         ])
       }
-      if (!creditRegex.test(_subject.หน่วยกิต)) {
+      const creditList = _subject.หน่วยกิต.match(/\d+/g) || []
+      if (!creditRegex.test(_subject.หน่วยกิต) || creditList.length !== 4) {
         throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
           `Data #${i + 1} has invalid format หน่วยกิต(${_subject.หน่วยกิต})`,
         ])
@@ -88,16 +89,17 @@ export class SyncController {
       const subject =
         (await Subject.findOne({ where: { code: _subject.รหัสวิชา } })) ||
         new Subject()
+
       subject.code = _subject.รหัสวิชา
       subject.name = _subject.ชื่อวิชา
         .split(/\s+/)
         .map((each) => each.trim().toUpperCase())
         .join(' ')
       subject.isRequired = _subject.วิชาบังคับ
-      subject.credit = parseInt(_subject.หน่วยกิต[0])
-      subject.lectureHours = parseInt(_subject.หน่วยกิต[2])
-      subject.labHours = parseInt(_subject.หน่วยกิต[4])
-      subject.independentHours = parseInt(_subject.หน่วยกิต[6])
+      subject.credit = parseInt(creditList[0])
+      subject.lectureHours = parseInt(creditList[1])
+      subject.labHours = parseInt(creditList[2])
+      subject.independentHours = parseInt(creditList[3])
       subject.curriculumCode = _subject.หลักสูตร.trim().toUpperCase()
       subject.isInter = _subject.นานาชาติ
       subject.requiredRoom = _subject.ใช้ห้องเรียน

@@ -1,47 +1,27 @@
-import {
-  BaseEntity,
-  BeforeInsert,
-  Column,
-  Entity,
-  PrimaryColumn,
-} from 'typeorm'
+import { BaseEntity, Column, Entity, PrimaryColumn } from 'typeorm'
 import { nanoid } from 'nanoid'
 
 @Entity()
 export class Account extends BaseEntity {
   @PrimaryColumn()
-  id: string
-
-  @Column({ unique: true })
   email: string
 
-  @Column({ nullable: true })
-  accessToken: string
+  @Column({ unique: true })
+  refreshToken: string
 
-  @BeforeInsert()
-  private beforeInsert() {
-    this.id = nanoid(10)
-  }
+  @Column({ unique: true })
+  deviceId: string
 
   // ===============
   // Static function
   // ===============
 
-  static async findOneOrCreate(payload: {
-    email: string
-    accessToken: string
-  }) {
-    const account = await this.findOne({
-      where: {
-        email: payload.email,
-      },
-    })
-    if (!account) {
-      const newAccount = Account.create(payload)
-      return await newAccount.save()
+  static async generateUniqueId(): Promise<string> {
+    const id = nanoid(10)
+    const isExist = await this.findOne({ where: { deviceId: id } })
+    if (isExist) {
+      return this.generateUniqueId()
     }
-
-    account.accessToken = payload.accessToken
-    return await account.save()
+    return id
   }
 }
