@@ -7,9 +7,9 @@ import {
   PrimaryColumn,
 } from 'typeorm'
 import { nanoid } from 'nanoid'
+import dayjs, { Dayjs } from 'dayjs'
 
 import { Workload } from './workload'
-import dayjs, { Dayjs } from 'dayjs'
 
 /**
  * slot1 - slot 52
@@ -98,10 +98,14 @@ export class Time extends BaseEntity {
   /** D/M/BBBB */
   static toDayjsDate(dateString: string) {
     const [d, m, y] = dateString.split('/').map((each) => parseInt(each))
-    return dayjs()
+    const date = dayjs()
       .set('year', y - 543)
-      .set('month', m)
+      .set('month', m - 1)
       .set('date', d)
       .startOf('date')
+    if (date.format('D/M/BBBB') !== dateString) {
+      return null
+    }
+    return date
   }
 }

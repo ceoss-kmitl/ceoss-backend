@@ -152,12 +152,19 @@ export class SyncController {
   async syncAssistant(@Body() body: ISyncAssistantBody) {
     const codeRegex = new RegExp(/^(\d{8})$/)
 
-    const syncList = <AssistantWorkload[]>[]
+    const syncList = <{ ta: string; subject: string; date: string }[]>[]
     for (const [i, _ta] of body.data.entries()) {
       const subjectCode = _ta.รหัสวิชา
       const taCode = _ta.รหัสนักศึกษา
       const date = Time.toDayjsDate(_ta.วันปฏิบัติงาน)
 
+      if (!date) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format วันปฏิบัติงาน(${
+            _ta.วันปฏิบัติงาน
+          })`,
+        ])
+      }
       if (!codeRegex.test(subjectCode)) {
         throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
           `Data #${i + 1} has invalid format รหัสวิชา(${subjectCode})`,
@@ -177,79 +184,68 @@ export class SyncController {
 
       const { academicYear, semester } = Time.toAcademicYear(date)
 
-      // Find existing TA or create new one
-      const assistant =
-        (await Assistant.findOne({
-          relations: [
-            'assistantWorkloadList',
-            'assistantWorkloadList.assistant',
-            'assistantWorkloadList.workload',
-            'assistantWorkloadList.workload.subject',
-          ],
-          where: { id: _ta.รหัสนักศึกษา },
-        })) || Assistant.create({ assistantWorkloadList: [] })
-      assistant.id = _ta.รหัสนักศึกษา
-      assistant.name = _ta['ชื่อ-สกุล']
+      // Find Workload list of this section
+      const workloadList = await Workload.find({
+        relations: [
+          'subject',
+          'assistantWorkloadList',
+          'assistantWorkloadList.workload',
+          'assistantWorkloadList.assistant',
+        ],
+      })
+      const filteredWorkloadList = workloadList.filter(
+        (w) =>
+          w.academicYear === academicYear &&
+          w.semester === semester &&
+          w.subject.code === _ta.รหัสวิชา &&
+          w.section === _ta.กลุ่มเรียน
+      )
+      let isPushIntoSyncList = false
+      for (const _workload of filteredWorkloadList) {
+        // Find existing TA or create new one
+        const assistant =
+          (await Assistant.findOne({
+            relations: [
+              'assistantWorkloadList',
+              'assistantWorkloadList.assistant',
+              'assistantWorkloadList.workload',
+              'assistantWorkloadList.workload.subject',
+            ],
+            where: { id: _ta.รหัสนักศึกษา },
+          })) || Assistant.create({ assistantWorkloadList: [] })
+        assistant.id = _ta.รหัสนักศึกษา
+        assistant.name = _ta['ชื่อ-สกุล']
 
-      // Update existing AssistantWorkload
-      let isNew = true
-      for (const _aw of assistant.assistantWorkloadList) {
-        if (
-          _aw.workload.subject.code !== _ta.รหัสวิชา ||
-          _aw.workload.section !== _ta.กลุ่มเรียน
-        ) {
-          continue
-        }
+        // Find existing AssistantWorkload or create new one
+        const aw =
+          assistant.assistantWorkloadList.find(
+            (aw) => aw.workload.id === _workload.id
+          ) || AssistantWorkload.create({ dayList: [] })
+
+        // Update AssistantWorkload
+        aw.assistant = assistant
+        aw.workload = _workload
 
         const uniqDayList = uniq(
-          [..._aw.dayList, date.toDate()].map((each) => each.getTime())
+          [...aw.dayList, date.toDate()].map((each) => each.getTime())
         ).map((each) => new Date(each))
-        _aw.dayList = uniqDayList
+        aw.dayList = uniqDayList
+        await aw.save()
 
-        const result = await _aw.save()
-        syncList.push(result)
-        isNew = false
-      }
-
-      // Create new AssistantWorkload if not found existing
-      if (isNew) {
-        const workloadList = await Workload.find({
-          relations: [
-            'subject',
-            'assistantWorkloadList',
-            'assistantWorkloadList.workload',
-            'assistantWorkloadList.assistant',
-          ],
-        })
-        const filteredWorkloadList = workloadList.filter(
-          (w) =>
-            w.academicYear === academicYear &&
-            w.semester === semester &&
-            w.subject.code === _ta.รหัสวิชา &&
-            w.section === _ta.กลุ่มเรียน
-        )
-
-        for (const _workload of filteredWorkloadList) {
-          const aw = AssistantWorkload.create()
-          aw.assistant = assistant
-          aw.workload = _workload
-          aw.dayList = [date.toDate()]
-
-          const result = await aw.save()
-          syncList.push(result)
+        if (!isPushIntoSyncList) {
+          syncList.push({
+            ta: `${assistant.id} ${assistant.name}`,
+            subject: `${_workload.subject.code} ${_workload.subject.name} กลุ่ม ${_workload.section}`,
+            date: `${_ta.วันปฏิบัติงาน}`,
+          })
+          isPushIntoSyncList = true
         }
       }
     }
 
-    const result = syncList
-
     return {
-      syncCount: result.length,
-      result: result.map((aw) => ({
-        ta: `${aw.assistant.id} ${aw.assistant.name}`,
-        subject: `${aw.workload.subject.code} ${aw.workload.subject.name}`,
-        date: aw.dayList.map((d) => dayjs(d).format('D MMM BBBB')),
-      })),
+      syncCount: syncList.length,
+      result: syncList,
     }
   }
 }

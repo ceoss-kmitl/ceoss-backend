@@ -6,7 +6,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator'
-import dayjs from 'dayjs'
 
 class ISyncTeacher {
   @IsString()
