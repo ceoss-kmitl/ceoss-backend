@@ -9,9 +9,11 @@ import {
 
 class ISyncTeacher {
   @IsString()
+  @Type(() => String)
   'ชื่อ-สกุล': string
 
   @IsString()
+  @Type(() => String)
   'ตำแหน่งบริหาร': string
 
   @IsBoolean()
@@ -25,6 +27,7 @@ class ISyncSubject {
   'รหัสวิชา': string
 
   @IsString()
+  @Type(() => String)
   'ชื่อวิชา': string
 
   @IsBoolean()
@@ -32,9 +35,11 @@ class ISyncSubject {
   'วิชาบังคับ': boolean
 
   @IsString()
+  @Type(() => String)
   'หน่วยกิต': string
 
   @IsString()
+  @Type(() => String)
   'หลักสูตร': string
 
   @IsBoolean()
@@ -44,6 +49,28 @@ class ISyncSubject {
   @IsBoolean()
   @Transform(({ value }) => (value === 'x' ? true : false))
   'ใช้ห้องเรียน': boolean
+}
+
+class ISyncAssistant {
+  @IsString()
+  @Type(() => String)
+  'รหัสวิชา': string
+
+  @IsNumber()
+  @Type(() => Number)
+  'กลุ่มเรียน': number
+
+  @IsString()
+  @Type(() => String)
+  'รหัสนักศึกษา': string
+
+  @IsString()
+  @Type(() => String)
+  'ชื่อ-สกุล': string
+
+  @IsString()
+  @Type(() => String)
+  'วันปฏิบัติงาน': string
 }
 
 class ISyncRoom {
@@ -75,4 +102,11 @@ export class ISyncRoomBody {
   @Type(() => ISyncRoom)
   @IsArray()
   data: ISyncRoom[]
+}
+
+export class ISyncAssistantBody {
+  @ValidateNested()
+  @Type(() => ISyncAssistant)
+  @IsArray()
+  data: ISyncAssistant[]
 }
