@@ -1,10 +1,11 @@
 import { Transform, Type } from 'class-transformer'
-import { IsString, ValidateNested } from 'class-validator'
+import { IsOptional, IsString, ValidateNested } from 'class-validator'
 
 class IWeb {
   @Transform(({ value }) => value?.trim())
+  @IsOptional()
   @IsString()
-  id: string
+  id?: string
 
   @Transform(({ value }) => value?.trim())
   @IsString()

@@ -33,7 +33,6 @@ export class WebController {
       }
 
       const web = (await Web.findOne({ where: { id: _web.id } })) || new Web()
-      web.id = _web.id
       web.url = _web.url
       willBeSaveList.push(web)
     }
