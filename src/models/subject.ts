@@ -119,6 +119,62 @@ export class Subject extends BaseEntity {
     return subject
   }
 
+  static async findOneByCodeAndJoinWorkload(
+    code: string,
+    {
+      academicYear,
+      semester,
+      section,
+      compensation,
+    }: IAcademicTime & { section?: number; compensation?: boolean }
+  ) {
+    const subject = await this.findOne({
+      relations: [
+        'workloadList',
+        'workloadList.room',
+        'workloadList.subject',
+        'workloadList.timeList',
+        'workloadList.compensationList',
+        'workloadList.compensationFrom',
+        'workloadList.compensationFrom.room',
+        'workloadList.compensationFrom.timeList',
+        'workloadList.teacherWorkloadList',
+        'workloadList.teacherWorkloadList.workload',
+        'workloadList.teacherWorkloadList.teacher',
+        'workloadList.assistantWorkloadList',
+        'workloadList.assistantWorkloadList.assistant',
+      ],
+      where: { code },
+    })
+
+    if (subject) {
+      subject.workloadList = subject.workloadList.filter(
+        (workload) =>
+          workload.academicYear === academicYear &&
+          workload.semester === semester
+      )
+
+      if (section !== undefined) {
+        subject.workloadList = subject.workloadList.filter(
+          (workload) => workload.section === section
+        )
+        if (subject.workloadList.length === 0) {
+          return undefined
+        }
+      }
+
+      if (compensation !== undefined) {
+        subject.workloadList = compensation
+          ? subject.workloadList.filter((workload) => workload.compensationFrom)
+          : subject.workloadList.filter(
+              (workload) => !workload.compensationFrom
+            )
+      }
+    }
+
+    return subject
+  }
+
   // ===============
   // Public function
   // ===============

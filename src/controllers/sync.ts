@@ -1,13 +1,24 @@
 import { Body, JsonController, Post } from 'routing-controllers'
-import { get } from 'lodash'
+import { get, chain, uniq } from 'lodash'
+import { In } from 'typeorm'
+import dayjs from 'dayjs'
 
 import { ValidateBody } from '@middlewares/validator'
 import { BadRequestError } from '@errors/badRequestError'
 import { Teacher } from '@models/teacher'
 import { Subject } from '@models/subject'
 import { Room } from '@models/room'
+import { Time } from '@models/time'
+import { Workload } from '@models/workload'
+import { Assistant } from '@models/assistant'
+import { AssistantWorkload } from '@models/assistantWorkload'
 
-import { ISyncTeacherBody, ISyncSubjectBody, ISyncRoomBody } from './types/sync'
+import {
+  ISyncTeacherBody,
+  ISyncSubjectBody,
+  ISyncRoomBody,
+  ISyncAssistantBody,
+} from './types/sync'
 
 @JsonController()
 export class SyncController {
@@ -133,6 +144,108 @@ export class SyncController {
     return {
       syncCount: result.length,
       result: result.map((each) => each.name),
+    }
+  }
+
+  @Post('/sync/assistant')
+  @ValidateBody(ISyncAssistantBody)
+  async syncAssistant(@Body() body: ISyncAssistantBody) {
+    const codeRegex = new RegExp(/^(\d{8})$/)
+
+    const syncList = <{ ta: string; subject: string; date: string }[]>[]
+    for (const [i, _ta] of body.data.entries()) {
+      const subjectCode = _ta.รหัสวิชา
+      const taCode = _ta.รหัสนักศึกษา
+      const date = Time.toDayjsDate(_ta.วันปฏิบัติงาน)
+
+      if (!date) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format วันปฏิบัติงาน(${
+            _ta.วันปฏิบัติงาน
+          })`,
+        ])
+      }
+      if (!codeRegex.test(subjectCode)) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format รหัสวิชา(${subjectCode})`,
+        ])
+      }
+      if (!codeRegex.test(taCode)) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has invalid format รหัสนักศึกษา(${taCode})`,
+        ])
+      }
+      const subject = await Subject.findOne({ where: { code: subjectCode } })
+      if (!subject) {
+        throw new BadRequestError('ไม่พบรหัสวิชาดังกล่าว', [
+          `Data #${i + 1} has invalid format รหัสวิชา(${subjectCode})`,
+        ])
+      }
+
+      const { academicYear, semester } = Time.toAcademicYear(date)
+
+      // Find Workload list of this section
+      const workloadList = await Workload.find({
+        relations: [
+          'subject',
+          'assistantWorkloadList',
+          'assistantWorkloadList.workload',
+          'assistantWorkloadList.assistant',
+        ],
+      })
+      const filteredWorkloadList = workloadList.filter(
+        (w) =>
+          w.academicYear === academicYear &&
+          w.semester === semester &&
+          w.subject.code === _ta.รหัสวิชา &&
+          w.section === _ta.กลุ่มเรียน
+      )
+      let isPushIntoSyncList = false
+      for (const _workload of filteredWorkloadList) {
+        // Find existing TA or create new one
+        const assistant =
+          (await Assistant.findOne({
+            relations: [
+              'assistantWorkloadList',
+              'assistantWorkloadList.assistant',
+              'assistantWorkloadList.workload',
+              'assistantWorkloadList.workload.subject',
+            ],
+            where: { id: _ta.รหัสนักศึกษา },
+          })) || Assistant.create({ assistantWorkloadList: [] })
+        assistant.id = _ta.รหัสนักศึกษา
+        assistant.name = _ta['ชื่อ-สกุล']
+
+        // Find existing AssistantWorkload or create new one
+        const aw =
+          assistant.assistantWorkloadList.find(
+            (aw) => aw.workload.id === _workload.id
+          ) || AssistantWorkload.create({ dayList: [] })
+
+        // Update AssistantWorkload
+        aw.assistant = assistant
+        aw.workload = _workload
+
+        const uniqDayList = uniq(
+          [...aw.dayList, date.toDate()].map((each) => each.getTime())
+        ).map((each) => new Date(each))
+        aw.dayList = uniqDayList
+        await aw.save()
+
+        if (!isPushIntoSyncList) {
+          syncList.push({
+            ta: `${assistant.id} ${assistant.name}`,
+            subject: `${_workload.subject.code} ${_workload.subject.name} กลุ่ม ${_workload.section}`,
+            date: `${_ta.วันปฏิบัติงาน}`,
+          })
+          isPushIntoSyncList = true
+        }
+      }
+    }
+
+    return {
+      syncCount: syncList.length,
+      result: syncList,
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "ceoss-kmitl-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Backend of CEOSS project",
   "main": "build/main.js",
   "scripts": {

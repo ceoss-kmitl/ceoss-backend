@@ -22,9 +22,6 @@ import { TeacherWorkload } from '@models/teacherWorkload'
 
 import { IWebScrapQuery } from './types/webScrap'
 
-// REG example url
-// http://www.reg.kmitl.ac.th/teachtable_v20/teachtable_show.php?midterm=0&faculty_id=01&dept_id=05&curr_id=19&curr2_id=06&year=2563&semester=1
-
 @JsonController()
 export class WebScrapController {
   @Get('/web-scrap/updated-date')
@@ -162,10 +159,10 @@ export class WebScrapController {
   @ValidateQuery(IWebScrapQuery)
   @Authorized()
   async scrapDataFromRegKMITLv2(@QueryParams() query: IWebScrapQuery) {
-    const { academicYear, semester, save } = query
+    const { academicYear, semester, save, webId } = query
 
-    const webScrapV2 = new WebScrapV2(academicYear, semester)
-    await webScrapV2.init()
+    const webScrapV2 = new WebScrapV2()
+    await webScrapV2.init({ webId, academicYear, semester })
     const data = webScrapV2.extractData()
 
     // const subjectErrorList: Pick<Subject, 'code' | 'name'>[] = []
