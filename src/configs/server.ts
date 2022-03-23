@@ -26,7 +26,9 @@ export class Server {
     this.app.use(ServerLogger())
     this.app.use(Express.json())
     this.app.use(Express.urlencoded({ extended: true }))
-    this.app.use('/ping', (_, res) => res.send({ hello: 'world' }))
+    this.app.use('/ping', (_, res) =>
+      res.send({ hello: 'world', version: process.env.npm_package_version })
+    )
   }
 
   private setupRouting() {
