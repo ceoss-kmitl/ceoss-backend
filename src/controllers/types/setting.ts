@@ -47,6 +47,10 @@ export class IEditSetting {
 
   @IsNumber()
   @IsOptional()
+  assistantPayRateInter?: number
+
+  @IsNumber()
+  @IsOptional()
   normalClaimLimit?: number
 
   @IsNumber()

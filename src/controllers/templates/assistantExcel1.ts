@@ -298,9 +298,11 @@ export async function generateAssistantExcel1(
 
       tmpList.push({
         assistant: aw.assistant,
-        dateList: aw.dayList
+        dateList: chain(aw.dayList)
           .filter((day) => dayjs(day).isSame(dayjs(documentDate), 'month'))
-          .map((day) => dayjs(day).format('ddddที่ D MMM BB')),
+          .sort((a, b) => a.getTime() - b.getTime())
+          .map((day) => dayjs(day).format('ddddที่ D MMM BB'))
+          .value(),
         time: `${Time.toTimeString(timeSlotStart)} - ${Time.toTimeString(
           timeSlotEnd
         )}`,
@@ -320,7 +322,7 @@ export async function generateAssistantExcel1(
         )
       )
         .flatten()
-        .sort((a, b) => a[0].localeCompare(b[0], 'th'))
+        .uniqBy(([dateTime]) => dateTime)
         .value(),
     }))
     .values()
