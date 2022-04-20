@@ -9,50 +9,57 @@ import {
 
 class ISyncTeacher {
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'ชื่อ-สกุล': string
 
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'ตำแหน่งบริหาร': string
 
   @IsBoolean()
-  @Transform(({ value }) => (value === 'x' ? true : false))
+  @Transform(({ value }) => (value?.trim() === 'x' ? true : false))
   'อาจารย์ภายนอก': boolean
 }
 
 class ISyncSubject {
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'รหัสวิชา': string
 
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'ชื่อวิชา': string
 
   @IsBoolean()
-  @Transform(({ value }) => (value === 'x' ? true : false))
+  @Transform(({ value }) => (value?.trim() === 'x' ? true : false))
   'วิชาบังคับ': boolean
 
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'หน่วยกิต': string
 
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'หลักสูตร': string
 
   @IsBoolean()
-  @Transform(({ value }) => (value === 'x' ? true : false))
+  @Transform(({ value }) => (value?.trim() === 'x' ? true : false))
   'นานาชาติ': boolean
 
   @IsBoolean()
-  @Transform(({ value }) => (value === 'x' ? true : false))
+  @Transform(({ value }) => (value?.trim() === 'x' ? true : false))
   'ใช้ห้องเรียน': boolean
 }
 
 class ISyncAssistant {
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'รหัสวิชา': string
 
@@ -61,14 +68,17 @@ class ISyncAssistant {
   'กลุ่มเรียน': number
 
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'รหัสนักศึกษา': string
 
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'ชื่อ-สกุล': string
 
   @IsString()
+  @Transform(({ value }) => value?.trim())
   @Type(() => String)
   'วันปฏิบัติงาน': string
 }
