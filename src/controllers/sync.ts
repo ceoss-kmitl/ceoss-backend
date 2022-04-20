@@ -1,7 +1,5 @@
 import { Body, JsonController, Post } from 'routing-controllers'
-import { get, chain, uniq } from 'lodash'
-import { In } from 'typeorm'
-import dayjs from 'dayjs'
+import { get, uniq } from 'lodash'
 
 import { ValidateBody } from '@middlewares/validator'
 import { BadRequestError } from '@errors/badRequestError'
@@ -34,6 +32,7 @@ export class SyncController {
         .replace(titleRegex, '')
         .split(/\s+/)
         .map((each) => each.trim())
+        .filter((each) => each.length)
         .join(' ')
       if (!title) {
         throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
@@ -50,7 +49,16 @@ export class SyncController {
       teacher.executiveRole = _teacher.ตำแหน่งบริหาร
       teacher.isActive = true
       teacher.isExternal = _teacher.อาจารย์ภายนอก
+      ;(<any>teacher).__fileIndex = i + 1
 
+      const existingTeacher = syncList.find((t) => t.name === teacher.name)
+      if (existingTeacher) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has dulplicated with Data #${
+            (<any>existingTeacher).__fileIndex
+          }`,
+        ])
+      }
       syncList.push(teacher)
     }
     const result = await Teacher.save(syncList)
@@ -94,6 +102,7 @@ export class SyncController {
       subject.name = _subject.ชื่อวิชา
         .split(/\s+/)
         .map((each) => each.trim().toUpperCase())
+        .filter((each) => each.length)
         .join(' ')
       subject.isRequired = _subject.วิชาบังคับ
       subject.credit = parseInt(creditList[0])
@@ -103,7 +112,16 @@ export class SyncController {
       subject.curriculumCode = _subject.หลักสูตร.trim().toUpperCase()
       subject.isInter = _subject.นานาชาติ
       subject.requiredRoom = _subject.ใช้ห้องเรียน
+      ;(<any>subject).__fileIndex = i + 1
 
+      const existingSubject = syncList.find((s) => s.code === subject.code)
+      if (existingSubject) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has dulplicated with Data #${
+            (<any>existingSubject).__fileIndex
+          }`,
+        ])
+      }
       syncList.push(subject)
     }
     const result = await Subject.save(syncList)
@@ -136,7 +154,16 @@ export class SyncController {
         (await Room.findOne({ where: { name: _room.ชื่อห้อง } })) || new Room()
       room.name = _room.ชื่อห้อง.trim()
       room.capacity = _room.จำนวนที่นั่ง
+      ;(<any>room).__fileIndex = i + 1
 
+      const existingRoom = syncList.find((r) => r.name === room.name)
+      if (existingRoom) {
+        throw new BadRequestError('รูปแบบข้อมูลไม่ถูกต้อง', [
+          `Data #${i + 1} has dulplicated with Data #${
+            (<any>existingRoom).__fileIndex
+          }`,
+        ])
+      }
       syncList.push(room)
     }
     const result = await Room.save(syncList)
